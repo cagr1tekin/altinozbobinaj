@@ -8,18 +8,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        /* Primary – Bakır (3 ton) */
-        "copper-light": "#E8C39E",
-        "copper-main": "#C2784F",
-        "copper-dark": "#8A4B29",
-        /* Neutral – 60-30 kuralı */
-        "surface-light": "#FAFAFA",
-        "surface-dark": "#121212",
+        /* Primary – Premium Silver (3 ton) */
+        "silver-light": "#F8FAFC",
+        "silver-main": "#94A3B8",
+        "silver-dark": "#475569",
+        /* Neutral – Dark Theme */
+        "surface-light": "#09090b", /* Dark background (Zinc 950) */
+        "surface-dark": "#fafafa", /* Light text (Zinc 50) */
       },
       backgroundImage: {
-        /* %10 vurgu – bakır gradient */
-        "copper-gradient":
-          "linear-gradient(135deg, #8A4B29 0%, #C2784F 50%, #E8C39E 100%)",
+        /* %10 vurgu – silver gradient */
+        "silver-gradient":
+          "linear-gradient(135deg, #E2E8F0 0%, #94A3B8 50%, #475569 100%)",
       },
       fontFamily: {
         sans: ["var(--font-plus-jakarta)", "sans-serif"],

@@ -72,7 +72,7 @@ export default function References() {
   return (
     <section
       id="referanslar"
-      className="bg-surface-light py-16 lg:py-20"
+      className="bg-[#09090b] py-16 lg:py-20"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Marka Logoları - Marquee */}
@@ -99,7 +99,7 @@ export default function References() {
                 className="group flex h-20 w-40 shrink-0 items-center justify-center grayscale transition-all duration-300 hover:grayscale-0 hover:opacity-100 opacity-50"
               >
                 {/* Placeholder logo - Gerçek logolar ile değiştirilecek */}
-                <div className="flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br from-copper-light/20 to-copper-dark/20 text-center text-xs font-semibold text-copper-main transition-colors group-hover:from-copper-light/40 group-hover:to-copper-dark/40">
+                <div className="flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br from-silver-light/20 to-silver-dark/20 text-center text-xs font-semibold text-silver-main transition-colors group-hover:from-silver-light/40 group-hover:to-silver-dark/40">
                   {brand.name}
                 </div>
               </div>
@@ -111,7 +111,7 @@ export default function References() {
                 className="group flex h-20 w-40 shrink-0 items-center justify-center grayscale transition-all duration-300 hover:grayscale-0 hover:opacity-100 opacity-50"
               >
                 {/* Placeholder logo - Gerçek logolar ile değiştirilecek */}
-                <div className="flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br from-copper-light/20 to-copper-dark/20 text-center text-xs font-semibold text-copper-main transition-colors group-hover:from-copper-light/40 group-hover:to-copper-dark/40">
+                <div className="flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br from-silver-light/20 to-silver-dark/20 text-center text-xs font-semibold text-silver-main transition-colors group-hover:from-silver-light/40 group-hover:to-silver-dark/40">
                   {brand.name}
                 </div>
               </div>
@@ -126,7 +126,7 @@ export default function References() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6 }}
-            className="mb-12 text-center text-3xl font-bold text-surface-dark sm:text-4xl md:text-5xl"
+            className="mb-12 text-center text-3xl font-bold text-[#fafafa] sm:text-4xl md:text-5xl"
           >
             Müşterilerimiz Ne Diyor?
           </motion.h2>
@@ -142,11 +142,11 @@ export default function References() {
               <motion.div
                 key={index}
                 variants={cardVariants}
-                className="group relative rounded-3xl border border-copper-light/30 bg-gray-50 p-8 shadow-lg transition-all duration-300 hover:shadow-xl"
+                className="group relative rounded-3xl border border-white/10 bg-[#18181b] p-8 shadow-lg transition-all duration-300 hover:shadow-xl"
               >
                 {/* Quote Icon - Sol Üst */}
                 <Quote
-                  className="absolute left-6 top-6 h-12 w-12 text-copper-main opacity-20"
+                  className="absolute left-6 top-6 h-12 w-12 text-silver-main opacity-20"
                   aria-hidden="true"
                 />
 
@@ -155,26 +155,26 @@ export default function References() {
                   {[...Array(testimonial.rating)].map((_, i) => (
                     <Star
                       key={i}
-                      className="h-5 w-5 fill-copper-main text-copper-main"
+                      className="h-5 w-5 fill-silver-main text-silver-main"
                       aria-hidden="true"
                     />
                   ))}
                 </div>
 
                 {/* Yorum Metni */}
-                <p className="mb-6 text-base leading-relaxed text-gray-700">
+                <p className="mb-6 text-base leading-relaxed text-gray-300">
                   {testimonial.comment}
                 </p>
 
                 {/* Müşteri Bilgisi */}
-                <div className="border-t border-gray-200 pt-4">
-                  <p className="font-semibold text-surface-dark">
+                <div className="border-t border-white/10 pt-4">
+                  <p className="font-semibold text-[#fafafa]">
                     {testimonial.name}
                   </p>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-400">
                     {testimonial.position}
                   </p>
-                  <p className="text-sm text-copper-main">
+                  <p className="text-sm text-silver-main">
                     {testimonial.company}
                   </p>
                 </div>

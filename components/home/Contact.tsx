@@ -71,10 +71,10 @@ export default function Contact() {
   return (
     <section
       id="iletisim"
-      className="relative overflow-hidden bg-surface-dark py-16 lg:py-20"
+      className="relative overflow-hidden bg-[#09090b] py-16 lg:py-20"
     >
-      {/* Arka Plan: Bakır Glow Efekti */}
-      <div className="absolute -left-1/4 -bottom-1/4 h-[600px] w-[600px] rounded-full bg-copper-gradient opacity-5 blur-3xl md:h-[800px] md:w-[800px]" />
+      {/* Arka Plan: Gümüş Glow Efekti */}
+      <div className="absolute -left-1/4 -bottom-1/4 h-[600px] w-[600px] rounded-full bg-silver-gradient opacity-10 blur-3xl md:h-[800px] md:w-[800px]" />
 
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
@@ -100,9 +100,9 @@ export default function Contact() {
               const isLink = info.href.startsWith("tel:") || info.href.startsWith("mailto:");
 
               const CardContent = (
-                <div className="group flex items-start gap-6 rounded-2xl bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:translate-x-2 hover:border hover:border-copper-main/30 hover:bg-white/10">
+                <div className="group flex items-start gap-6 rounded-2xl bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:translate-x-2 hover:border hover:border-silver-main/30 hover:bg-white/10">
                   {/* İkon */}
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-copper-main/20 text-copper-main transition-colors group-hover:bg-copper-main/30">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-silver-main/20 text-silver-main transition-colors group-hover:bg-silver-main/30">
                     <Icon className="h-7 w-7" aria-hidden="true" />
                   </div>
 
@@ -159,7 +159,7 @@ export default function Contact() {
                 title="Altınöz Bobinaj Konum Haritası"
               />
               {/* Overlay (hover için) */}
-              <div className="pointer-events-none absolute inset-0 bg-copper-main/0 transition-colors duration-500 group-hover:bg-copper-main/5" />
+              <div className="pointer-events-none absolute inset-0 bg-silver-main/0 transition-colors duration-500 group-hover:bg-silver-main/5" />
             </div>
           </motion.div>
         </div>

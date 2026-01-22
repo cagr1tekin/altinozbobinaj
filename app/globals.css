@@ -9,10 +9,10 @@
 
   html,
   body {
-    @apply bg-surface-light text-surface-dark antialiased;
+    @apply bg-[#09090b] text-[#fafafa] antialiased;
   }
 
   ::selection {
-    @apply bg-copper-main text-surface-light;
+    @apply bg-silver-main text-[#09090b];
   }
 }

@@ -75,7 +75,7 @@ export default function Services() {
   return (
     <section
       id="hizmetler"
-      className="bg-surface-light py-16 lg:py-20"
+      className="bg-[#09090b] py-16 lg:py-20"
     >
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Başlık */}
@@ -84,7 +84,7 @@ export default function Services() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, amount: 0.3 }}
           transition={{ duration: 0.6 }}
-          className="mb-12 text-center text-3xl font-bold text-surface-dark sm:text-4xl md:text-5xl"
+          className="mb-12 text-center text-3xl font-bold text-[#fafafa] sm:text-4xl md:text-5xl"
         >
           Neler Yapıyoruz?
         </motion.h2>
@@ -103,20 +103,20 @@ export default function Services() {
               <motion.div
                 key={index}
                 variants={cardVariants}
-                className="group relative rounded-3xl border-2 border-transparent bg-white p-8 shadow-lg transition-all duration-300 hover:-translate-y-2 hover:border-copper-main"
+                className="group relative rounded-3xl border-2 border-white/10 bg-[#18181b] p-8 shadow-lg transition-all duration-300 hover:-translate-y-2 hover:border-silver-main"
               >
                 {/* İkon (Sol Üst) */}
-                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-copper-gradient text-white transition-transform duration-300 group-hover:scale-110">
+                <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-silver-gradient text-white transition-transform duration-300 group-hover:scale-110">
                   <Icon className="h-8 w-8" aria-hidden="true" />
                 </div>
 
                 {/* Başlık */}
-                <h3 className="mb-3 text-xl font-bold text-surface-dark">
+                <h3 className="mb-3 text-xl font-bold text-[#fafafa]">
                   {service.title}
                 </h3>
 
                 {/* Açıklama */}
-                <p className="text-base leading-relaxed text-gray-600">
+                <p className="text-base leading-relaxed text-gray-400">
                   {service.description}
                 </p>
               </motion.div>

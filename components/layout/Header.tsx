@@ -46,8 +46,8 @@ export default function Header() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? "bg-white/80 backdrop-blur-md shadow-sm"
-          : "bg-white/60 backdrop-blur-sm"
+          ? "bg-[#09090b]/80 backdrop-blur-md shadow-sm border-b border-white/10"
+          : "bg-[#09090b]/60 backdrop-blur-sm"
       }`}
     >
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -55,7 +55,7 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            className="text-2xl font-bold text-surface-dark transition-colors hover:text-copper-main"
+            className="text-2xl font-bold text-[#fafafa] transition-colors hover:text-silver-main"
             aria-label="Altınöz Bobinaj Ana Sayfa"
           >
             Altınöz Bobinaj
@@ -68,7 +68,7 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 onClick={(e) => handleSmoothScroll(e, item.href)}
-                className="text-base font-medium text-surface-dark transition-colors hover:text-copper-main"
+                className="text-base font-medium text-[#fafafa] transition-colors hover:text-silver-main"
               >
                 {item.label}
               </Link>
@@ -79,7 +79,7 @@ export default function Header() {
           <Link
             href="#iletisim"
             onClick={(e) => handleSmoothScroll(e, "#iletisim")}
-            className="group relative flex items-center justify-center rounded-full bg-copper-gradient px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-copper-main/30 md:px-6 md:py-3"
+            className="group relative flex items-center justify-center rounded-full bg-silver-gradient px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-silver-main/30 md:px-6 md:py-3"
             aria-label="Teklif Al"
           >
             <span className="hidden sm:inline">Teklif Al</span>

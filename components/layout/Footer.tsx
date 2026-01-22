@@ -85,7 +85,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-surface-dark text-white">
+    <footer className="bg-[#09090b] text-white border-t border-white/10">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           {footerColumns.map((column, index) => (
@@ -101,11 +101,11 @@ export default function Footer() {
                       <Link
                         href={link.href}
                         onClick={(e) => handleSmoothScroll(e, link.href)}
-                        className="group flex items-center gap-2 text-sm text-gray-300 transition-colors hover:text-copper-main"
+                        className="group flex items-center gap-2 text-sm text-gray-300 transition-colors hover:text-silver-main"
                       >
                         {Icon && (
                           <Icon
-                            className="h-4 w-4 text-copper-main transition-colors group-hover:text-copper-light"
+                            className="h-4 w-4 text-silver-main transition-colors group-hover:text-silver-light"
                             aria-hidden="true"
                           />
                         )}

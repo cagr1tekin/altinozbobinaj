@@ -79,10 +79,10 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="relative flex min-h-[calc(100vh-80px)] items-center overflow-hidden bg-surface-light py-12 lg:py-20"
+      className="relative flex min-h-[calc(100vh-80px)] items-center overflow-hidden bg-[#09090b] py-12 lg:py-20"
     >
-      {/* Arka Plan: Blur Bakır Daire */}
-      <div className="absolute -right-1/4 -top-1/4 h-[800px] w-[800px] rounded-full bg-copper-gradient opacity-10 blur-3xl md:-right-1/3 md:-top-1/3 md:h-[1000px] md:w-[1000px]" />
+      {/* Arka Plan: Blur Gümüş Daire */}
+      <div className="absolute -right-1/4 -top-1/4 h-[800px] w-[800px] rounded-full bg-silver-gradient opacity-20 blur-3xl md:-right-1/3 md:-top-1/3 md:h-[1000px] md:w-[1000px]" />
 
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 lg:items-center">
@@ -96,10 +96,10 @@ export default function Hero() {
             {/* H1 Başlık */}
             <motion.h1
               variants={itemVariants}
-              className="text-4xl font-bold leading-tight text-surface-dark sm:text-5xl md:text-5xl lg:text-6xl"
+              className="text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl"
             >
               Enerjinizi{" "}
-              <span className="text-transparent bg-clip-text bg-copper-gradient">
+              <span className="text-transparent bg-clip-text bg-silver-gradient">
                 Geleceğe
               </span>{" "}
               Taşıyoruz
@@ -108,7 +108,7 @@ export default function Hero() {
             {/* Açıklama Metni */}
             <motion.p
               variants={itemVariants}
-              className="text-base leading-relaxed text-gray-600 sm:text-lg md:text-xl"
+              className="text-base leading-relaxed text-gray-400 sm:text-lg md:text-xl"
             >
               Yılların deneyimi ve teknolojik altyapımızla motor sargı ve
               bobinaj hizmetlerinde sektörün öncüsüyüz. Güvenilir çözümlerimiz
@@ -124,7 +124,7 @@ export default function Hero() {
               <Link
                 href="#hizmetler"
                 onClick={(e) => handleSmoothScroll(e, "#hizmetler")}
-                className="group flex items-center justify-center gap-2 rounded-full bg-copper-gradient px-8 py-4 text-base font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-copper-main/30 sm:text-lg"
+                className="group flex items-center justify-center gap-2 rounded-full bg-silver-gradient px-8 py-4 text-base font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-silver-main/30 sm:text-lg"
                 aria-label="Hizmetlerimizi Görüntüle"
               >
                 Hizmetlerimiz
@@ -135,7 +135,7 @@ export default function Hero() {
               <Link
                 href="#iletisim"
                 onClick={(e) => handleSmoothScroll(e, "#iletisim")}
-                className="group flex items-center justify-center gap-2 rounded-full border-2 border-copper-main px-8 py-4 text-base font-semibold text-copper-main transition-all duration-300 hover:bg-copper-main hover:text-white sm:text-lg"
+                className="group flex items-center justify-center gap-2 rounded-full border-2 border-silver-main px-8 py-4 text-base font-semibold text-silver-main transition-all duration-300 hover:bg-silver-main hover:text-white sm:text-lg"
                 aria-label="İletişime Geç"
               >
                 <Phone className="h-5 w-5" />
@@ -152,7 +152,7 @@ export default function Hero() {
             className="relative"
           >
             {/* Ana Görsel */}
-            <div className="relative aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-copper-light/20 to-copper-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
+            <div className="relative aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
               <div className="relative h-full w-full">
                 <Image
                   src="/asd.avif"
@@ -163,7 +163,7 @@ export default function Hero() {
                   priority
                 />
                 {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-copper-dark/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-silver-dark/20 to-transparent" />
               </div>
             </div>
 
@@ -172,17 +172,17 @@ export default function Hero() {
               variants={cardVariants}
               initial="hidden"
               animate="visible"
-              className="absolute -bottom-6 -left-6 rounded-2xl bg-white/80 backdrop-blur-md p-6 shadow-xl md:-bottom-8 md:-left-8"
+              className="absolute -bottom-6 -left-6 rounded-2xl bg-[#18181b]/80 backdrop-blur-md p-6 shadow-xl border border-white/10 md:-bottom-8 md:-left-8"
             >
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-copper-gradient text-2xl font-bold text-white">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-silver-gradient text-2xl font-bold text-white">
                   30+
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-sm font-medium text-gray-300">
                     Yıllık Tecrübe
                   </p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-gray-400">
                     Sektörde lider konumdayız
                   </p>
                 </div>
