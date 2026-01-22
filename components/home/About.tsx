@@ -28,7 +28,7 @@ export default function About() {
   };
 
   const imageVariants = {
-    hidden: { opacity: 0, x: 30 },
+    hidden: { opacity: 0, x: 50 },
     visible: {
       opacity: 1,
       x: 0,
@@ -42,21 +42,23 @@ export default function About() {
   return (
     <section
       id="hakkimizda"
-      className="bg-[#09090b] py-16 lg:py-20"
+      className="relative flex min-h-[calc(100vh-80px)] items-center overflow-hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-800 py-12 lg:py-20"
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Arka Plan: Blur Gümüş Daire */}
+      <div className="absolute -right-1/4 -top-1/4 h-[800px] w-[800px] rounded-full bg-silver-gradient opacity-20 blur-3xl md:-right-1/3 md:-top-1/3 md:h-[1000px] md:w-[1000px]" />
+
+      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 lg:items-center">
           {/* Sol Taraf: Metin İçeriği */}
           <motion.div
             variants={containerVariants}
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
+            animate="visible"
             className="space-y-6"
           >
             <motion.h2
               variants={itemVariants}
-              className="text-3xl font-bold text-[#fafafa] sm:text-4xl md:text-5xl"
+              className="text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl"
             >
               Hakkımızda
             </motion.h2>
@@ -110,31 +112,25 @@ export default function About() {
             </motion.div>
           </motion.div>
 
-          {/* Sağ Taraf: Fotoğraf (Offset Border) */}
+          {/* Sağ Taraf: Görsel */}
           <motion.div
             variants={imageVariants}
             initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-            className="relative"
+            animate="visible"
+            className="relative w-full"
           >
-            {/* Offset Border Container */}
-            <div className="relative">
-              {/* Border (Fotoğraftan ayrık) */}
-              <div className="absolute -inset-4 rounded-3xl border-4 border-silver-main opacity-60" />
-
-              {/* Fotoğraf */}
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-silver-light/10 to-silver-dark/10 shadow-2xl">
+            {/* Ana Görsel */}
+            <div className="relative w-full aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
+              <div className="relative h-full w-full">
                 <Image
                   src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&h=1000&fit=crop&q=80"
                   alt="Altınöz Bobinaj Atölye ve Çalışma Alanı - Motor Sargı İşlemi"
-                  width={600}
-                  height={700}
-                  className="h-full w-full object-cover"
+                  fill
+                  className="w-full h-full object-cover"
                   sizes="(max-width: 768px) 100vw, 50vw"
                 />
                 {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-silver-dark/10 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-silver-dark/20 to-transparent" />
               </div>
             </div>
           </motion.div>

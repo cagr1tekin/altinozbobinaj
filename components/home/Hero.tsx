@@ -79,7 +79,7 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="relative flex min-h-[calc(100vh-80px)] items-center overflow-hidden bg-[#09090b] py-12 lg:py-20"
+      className="relative flex min-h-[calc(100vh-80px)] items-center overflow-hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-800 py-12 lg:py-20"
     >
       {/* Arka Plan: Blur Gümüş Daire */}
       <div className="absolute -right-1/4 -top-1/4 h-[800px] w-[800px] rounded-full bg-silver-gradient opacity-20 blur-3xl md:-right-1/3 md:-top-1/3 md:h-[1000px] md:w-[1000px]" />
@@ -98,11 +98,10 @@ export default function Hero() {
               variants={itemVariants}
               className="text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl"
             >
-              Enerjinizi{" "}
+              1976&apos;dan Günümüze{" "}
               <span className="text-transparent bg-clip-text bg-silver-gradient">
-                Geleceğe
-              </span>{" "}
-              Taşıyoruz
+                Altınöz Bobinaj
+              </span>
             </motion.h1>
 
             {/* Açıklama Metni */}
@@ -110,9 +109,11 @@ export default function Hero() {
               variants={itemVariants}
               className="text-base leading-relaxed text-gray-400 sm:text-lg md:text-xl"
             >
-              Yılların deneyimi ve teknolojik altyapımızla motor sargı ve
-              bobinaj hizmetlerinde sektörün öncüsüyüz. Güvenilir çözümlerimiz
-              ile enerjinizi geleceğe taşıyoruz.
+              Yarım asra yaklaşan tecrübemizle, endüstriyel elektrik motorlarının
+              sarımı, bakımı ve onarımında Türkiye&apos;nin güvenilir çözüm ortağıyız.
+              Geleneksel ustalığı modern teknolojiyle birleştirerek, işletmenizin
+              kalbi olan motorlarınıza ilk günkü performansını kazandırıyoruz.
+              Sadece tamir etmiyor, geleceğe hazırlıyoruz.
             </motion.p>
 
             {/* Butonlar */}
@@ -149,16 +150,16 @@ export default function Hero() {
             variants={imageVariants}
             initial="hidden"
             animate="visible"
-            className="relative"
+            className="relative w-full"
           >
             {/* Ana Görsel */}
-            <div className="relative aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
+            <div className="relative w-full aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
               <div className="relative h-full w-full">
                 <Image
                   src="/asd.avif"
                   alt="Altınöz Bobinaj Motor Sargı ve Bobinaj Hizmetleri - Endüstriyel Motor"
                   fill
-                  className="object-cover"
+                  className="w-full h-full object-cover"
                   sizes="(max-width: 768px) 100vw, 50vw"
                   priority
                 />

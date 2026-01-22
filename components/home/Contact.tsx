@@ -71,12 +71,12 @@ export default function Contact() {
   return (
     <section
       id="iletisim"
-      className="relative overflow-hidden bg-[#09090b] py-16 lg:py-20"
+      className="relative overflow-hidden bg-gradient-to-t from-zinc-950 via-zinc-900 to-zinc-900 h-auto lg:h-[760px] py-16 lg:py-10"
     >
       {/* Arka Plan: Gümüş Glow Efekti */}
       <div className="absolute -left-1/4 -bottom-1/4 h-[600px] w-[600px] rounded-full bg-silver-gradient opacity-10 blur-3xl md:h-[800px] md:w-[800px]" />
 
-      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
           {/* Sol Taraf: İletişim Bilgileri */}
           <motion.div
@@ -143,7 +143,7 @@ export default function Contact() {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.3 }}
-            className="relative h-full min-h-[400px] w-full"
+            className="relative h-full min-h-[400px] max-h-[500px] lg:max-h-full w-full"
           >
             <div className="group relative h-full w-full overflow-hidden rounded-3xl">
               {/* Harita Iframe */}

@@ -1,186 +1,120 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Quote, Star } from "lucide-react";
+import Image from "next/image";
 
-// Marka logoları (placeholder - gerçek logolar ile değiştirilecek)
-const brands = [
-  { name: "Firma 1" },
-  { name: "Firma 2" },
-  { name: "Firma 3" },
-  { name: "Firma 4" },
-  { name: "Firma 5" },
-  { name: "Firma 6" },
-];
-
-// Müşteri yorumları
-const testimonials = [
-  {
-    name: "Ahmet Yılmaz",
-    position: "Üretim Müdürü",
-    company: "ABC Endüstri",
-    comment:
-      "Altınöz Bobinaj ile çalışmaktan çok memnunuz. Hızlı ve kaliteli hizmetleri sayesinde üretimimizde aksama yaşamadık. Profesyonel ekibi ve güvenilir çözümleri için teşekkür ederiz.",
-    rating: 5,
-  },
-  {
-    name: "Ayşe Demir",
-    position: "Teknik Müdür",
-    company: "XYZ Makina",
-    comment:
-      "30 yıllık deneyimleri gerçekten hissediliyor. Motor sargı işlemlerinde hassasiyet ve kalite standartlarını her zaman koruyorlar. Kesinlikle tavsiye ederim.",
-    rating: 5,
-  },
-  {
-    name: "Mehmet Kaya",
-    position: "İşletme Sahibi",
-    company: "Kaya Teknik",
-    comment:
-      "Acil durumlarda bile 7/24 destek sağlayan bir ekip. Motorlarımızın bakım ve onarımında her zaman yanımızda oldular. Müşteri memnuniyeti odaklı çalışmaları takdire şayan.",
-    rating: 5,
-  },
+// Placeholder görseller (gerçek görseller ile değiştirilecek)
+const galleryImages = [
+  { id: 1, src: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop&q=80", alt: "Endüstriyel Motor Bobinaj İşlemi" },
+  { id: 2, src: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=600&h=400&fit=crop&q=80", alt: "Motor Sargı Atölyesi" },
+  { id: 3, src: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop&q=80", alt: "Bobinaj Sarım İşlemi" },
+  { id: 4, src: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=600&h=400&fit=crop&q=80", alt: "Elektrik Motoru Tamiri" },
+  { id: 5, src: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=600&h=400&fit=crop&q=80", alt: "Motor Bakım ve Onarım" },
+  { id: 6, src: "https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=600&h=400&fit=crop&q=80", alt: "Endüstriyel Motor Çalışması" },
 ];
 
 export default function References() {
-  // Marquee animasyonu için mesafe hesaplama
-  // Her logo ~160px (w-40) + gap-12 (48px) = ~208px
-  const marqueeDistance = brands.length * 208;
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.1,
-      },
-    },
-  };
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.6,
-        ease: "easeOut" as const,
-      },
-    },
-  };
+  // Görselleri 4 kez çoğalt (kesintisiz döngü için)
+  const duplicatedImages = [
+    ...galleryImages,
+    ...galleryImages,
+    ...galleryImages,
+    ...galleryImages,
+  ];
 
   return (
     <section
       id="referanslar"
-      className="bg-[#09090b] py-16 lg:py-20"
+      className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Marka Logoları - Marquee */}
-        <div className="mb-20 overflow-hidden">
-          <motion.div
-            className="flex gap-12"
-            animate={{
-              x: [0, -marqueeDistance],
-            }}
-            transition={{
-              x: {
-                repeat: Infinity,
-                repeatType: "loop",
-                duration: 30,
-                ease: "linear",
-              },
-            }}
-            style={{ width: "max-content" }}
-          >
-            {/* İlk set */}
-            {brands.map((brand, index) => (
-              <div
-                key={`brand-1-${index}`}
-                className="group flex h-20 w-40 shrink-0 items-center justify-center grayscale transition-all duration-300 hover:grayscale-0 hover:opacity-100 opacity-50"
-              >
-                {/* Placeholder logo - Gerçek logolar ile değiştirilecek */}
-                <div className="flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br from-silver-light/20 to-silver-dark/20 text-center text-xs font-semibold text-silver-main transition-colors group-hover:from-silver-light/40 group-hover:to-silver-dark/40">
-                  {brand.name}
-                </div>
-              </div>
-            ))}
-            {/* İkinci set (sonsuz döngü için) */}
-            {brands.map((brand, index) => (
-              <div
-                key={`brand-2-${index}`}
-                className="group flex h-20 w-40 shrink-0 items-center justify-center grayscale transition-all duration-300 hover:grayscale-0 hover:opacity-100 opacity-50"
-              >
-                {/* Placeholder logo - Gerçek logolar ile değiştirilecek */}
-                <div className="flex h-full w-full items-center justify-center rounded-lg bg-gradient-to-br from-silver-light/20 to-silver-dark/20 text-center text-xs font-semibold text-silver-main transition-colors group-hover:from-silver-light/40 group-hover:to-silver-dark/40">
-                  {brand.name}
-                </div>
-              </div>
-            ))}
-          </motion.div>
-        </div>
-
-        {/* Müşteri Yorumları */}
-        <div>
+      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
+        {/* Başlık ve Slogan */}
+        <div className="mb-8 lg:mb-10 text-center">
           <motion.h2
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.6 }}
-            className="mb-12 text-center text-3xl font-bold text-[#fafafa] sm:text-4xl md:text-5xl"
+            className="mb-6 text-3xl font-bold text-[#fafafa] sm:text-4xl md:text-5xl"
           >
-            Müşterilerimiz Ne Diyor?
           </motion.h2>
 
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-            className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+          <motion.h3
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="text-3xl font-bold leading-tight text-[#fafafa] sm:text-4xl md:text-5xl"
           >
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                variants={cardVariants}
-                className="group relative rounded-3xl border border-white/10 bg-[#18181b] p-8 shadow-lg transition-all duration-300 hover:shadow-xl"
-              >
-                {/* Quote Icon - Sol Üst */}
-                <Quote
-                  className="absolute left-6 top-6 h-12 w-12 text-silver-main opacity-20"
-                  aria-hidden="true"
-                />
+            <span className="text-transparent bg-clip-text bg-silver-gradient">
+              Referansımız, İşçiliğimizin Kalitesidir.
+            </span>
+          </motion.h3>
+        </div>
 
-                {/* Yıldızlar */}
-                <div className="mb-4 flex gap-1">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="h-5 w-5 fill-silver-main text-silver-main"
-                      aria-hidden="true"
-                    />
-                  ))}
+        {/* Çift Yönlü Kayan Galeri */}
+        <div className="space-y-6">
+          {/* 1. Satır: Soldan Sağa */}
+          <div className="overflow-hidden">
+            <motion.div
+              className="flex gap-6"
+              initial={{ x: 0 }}
+              animate={{ x: "-50%" }}
+              transition={{
+                duration: 60,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{ width: "max-content" }}
+            >
+              {duplicatedImages.map((image, index) => (
+                <div
+                  key={`row1-${image.id}-${index}`}
+                  className="group relative h-64 w-auto shrink-0 overflow-hidden rounded-2xl transition-all duration-500 hover:scale-105"
+                >
+                  <Image
+                    src={image.src}
+                    alt={image.alt}
+                    width={400}
+                    height={256}
+                    className="h-full w-auto object-cover"
+                    sizes="(max-width: 768px) 200px, 400px"
+                  />
                 </div>
+              ))}
+            </motion.div>
+          </div>
 
-                {/* Yorum Metni */}
-                <p className="mb-6 text-base leading-relaxed text-gray-300">
-                  {testimonial.comment}
-                </p>
-
-                {/* Müşteri Bilgisi */}
-                <div className="border-t border-white/10 pt-4">
-                  <p className="font-semibold text-[#fafafa]">
-                    {testimonial.name}
-                  </p>
-                  <p className="text-sm text-gray-400">
-                    {testimonial.position}
-                  </p>
-                  <p className="text-sm text-silver-main">
-                    {testimonial.company}
-                  </p>
+          {/* 2. Satır: Sağdan Sola */}
+          <div className="overflow-hidden">
+            <motion.div
+              className="flex gap-6"
+              initial={{ x: "-50%" }}
+              animate={{ x: "0%" }}
+              transition={{
+                duration: 60,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{ width: "max-content" }}
+            >
+              {duplicatedImages.map((image, index) => (
+                <div
+                  key={`row2-${image.id}-${index}`}
+                  className="group relative h-64 w-auto shrink-0 overflow-hidden rounded-2xl transition-all duration-500 hover:scale-105"
+                >
+                  <Image
+                    src={image.src}
+                    alt={image.alt}
+                    width={400}
+                    height={256}
+                    className="h-full w-auto object-cover"
+                    sizes="(max-width: 768px) 200px, 400px"
+                  />
                 </div>
-              </motion.div>
-            ))}
-          </motion.div>
+              ))}
+            </motion.div>
+          </div>
         </div>
       </div>
     </section>

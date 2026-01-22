@@ -51,8 +51,8 @@ export default function Footer() {
     {
       title: "Hızlı Linkler",
       links: [
-        { label: "Hakkımızda", href: "#hakkimizda" },
         { label: "Hizmetler", href: "#hizmetler" },
+        { label: "Hakkımızda", href: "#hakkimizda" },
         { label: "Referanslar", href: "#referanslar" },
         { label: "İletişim", href: "#iletisim" },
       ],

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Settings, Zap, Toolbox, Wrench, Cog, Gauge } from "lucide-react";
+import { Settings, Zap, Toolbox, Wrench } from "lucide-react";
 
 type Service = {
   icon: React.ComponentType<{ className?: string }>;
@@ -34,18 +34,6 @@ const services: Service[] = [
     description:
       "Orijinal ve kaliteli yedek parça temini. Geniş stok yelpazesi ile hızlı çözüm.",
   },
-  {
-    icon: Cog,
-    title: "Teknik Destek",
-    description:
-      "7/24 teknik destek ve danışmanlık hizmeti. Uzman ekibimiz her zaman yanınızda.",
-  },
-  {
-    icon: Gauge,
-    title: "Test & Kalibrasyon",
-    description:
-      "Motor performans testleri ve kalibrasyon işlemleri. ISO standartlarında ölçüm ve raporlama.",
-  },
 ];
 
 export default function Services() {
@@ -75,9 +63,9 @@ export default function Services() {
   return (
     <section
       id="hizmetler"
-      className="bg-[#09090b] py-16 lg:py-20"
+      className="bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         {/* Başlık */}
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
@@ -89,13 +77,13 @@ export default function Services() {
           Neler Yapıyoruz?
         </motion.h2>
 
-        {/* 3 Sütunlu Grid */}
+        {/* 4 Sütunlu Grid */}
         <motion.div
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true, amount: 0.2 }}
-          className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+          className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4"
         >
           {services.map((service, index) => {
             const Icon = service.icon;

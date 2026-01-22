@@ -16,8 +16,8 @@ export default function Header() {
   }, []);
 
   const menuItems = [
-    { label: "Hakkımızda", href: "#hakkimizda" },
     { label: "Hizmetler", href: "#hizmetler" },
+    { label: "Hakkımızda", href: "#hakkimizda" },
     { label: "Referanslar", href: "#referanslar" },
     { label: "İletişim", href: "#iletisim" },
   ];
