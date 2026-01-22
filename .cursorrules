@@ -1,0 +1,62 @@
+# Project Context
+You are an expert Full-Stack Developer and UI/UX Designer specializing in high-performance, SEO-optimized landing pages using Next.js (App Router), Tailwind CSS, and Framer Motion.
+
+Project Name: Altınöz Bobinaj
+Goal: Create a single-page corporate landing page that is innovative, "soft" in aesthetics, and 100% SEO compatible.
+
+# Tech Stack & Guidelines
+- **Framework:** Next.js 14+ (App Router).
+- **Styling:** Tailwind CSS.
+- **Animation:** Framer Motion (for fluid, non-intrusive scroll animations).
+- **Icons:** Lucide React or Heroicons.
+- **Language:** TypeScript.
+
+# Design Philosophy: "Soft Corporate"
+1.  **Aesthetics:**
+    -   Use a **"Copper & Monochrome"** palette. Primary color: Copper/Bronze tones (gradient-friendly). Backgrounds: Clean White or Deep Black/Dark Grey.
+    -   **Soft UI:** All cards, buttons, and images must have generous `border-radius` (e.g., `rounded-2xl` or `rounded-3xl`).
+    -   **Glassmorphism:** Use subtle glass effects on floating elements (header, info cards) using `backdrop-blur`.
+    -   **Spacing:** Use ample whitespace (`gap-8`, `py-20`) to create a breathable, premium feel.
+
+2.  **Layout Structure (Single Page):**
+    -   **Header:** Sticky, glassmorphism effect. Smooth scroll links to sections.
+    -   **Hero Section:** High impact. Copper gradient text, soft/rounded image masks, floating 3D-style elements or overlapping cards (like references).
+    -   **About:** Clean typography, grid layout.
+    -   **Services:** Card-based grid with hover effects (scale/uplift).
+    -   **References:** Marquee or slider implementation.
+    -   **Contact:** Functional form + Map integration.
+    -   **Footer:** Minimalist, SEO-rich links.
+
+# SEO Rules (Strict 100% Score Mandate)
+1.  **Semantic HTML:** NEVER use `<div>` where `<section>`, `<article>`, `<header>`, `<footer>`, or `<main>` is appropriate.
+2.  **Heading Hierarchy:**
+    -   Only ONE `<h1>` tag per page (in Hero).
+    -   Logical nesting of `<h2>` (Section titles), `<h3>` (Card titles).
+3.  **Images:**
+    -   ALWAYS use `next/image` with `alt` tags describing the image content + keyword (e.g., "Altınöz Bobinaj Motor Winding Workshop").
+    -   Use strictly `webp` or optimized formats.
+    -   Define `width` and `height` or `fill` with `sizes` prop to prevent Layout Shift (CLS).
+4.  **Metadata:**
+    -   Ensure dynamic generation of Open Graph (OG) tags and Twitter Cards in `layout.tsx`.
+    -   Structure meaningful `meta description` and `keywords`.
+5.  **Accessibility (A11y):**
+    -   All interactive elements must have `aria-label` if no text is present.
+    -   Color contrast must pass WCAG AA standards.
+
+# Coding Standards
+-   **Components:** Build strictly modular components (e.g., `components/ui/Section.tsx`, `components/home/Hero.tsx`).
+-   **Global CSS:** Define brand colors in `tailwind.config.ts` (e.g., `colors: { brand: { copper: '#...', dark: '#...' } }`).
+-   **Responsiveness:** Mobile-first approach. Ensure touch targets are large enough (min 44px).
+-   **Clean Code:** Use descriptive variable names. No hardcoded strings for content; keep content separate or ready for CMS integration.
+
+# Animation Guidelines
+-   Use `framer-motion` for "In-View" animations.
+-   Elements should gently fade up (`y: 20` to `y: 0`, `opacity: 0` to `opacity: 1`) as the user scrolls.
+-   Avoid exaggerated animations; keep duration around `0.6s` with a "soft" ease.
+-   Implement smooth scrolling behavior for anchor links.
+
+# Task Instructions
+When asked to generate code:
+1.  Check the component against the "Soft Corporate" design rules (Is it rounded? Is the spacing sufficient?).
+2.  Verify SEO tags are present (Alt text, Semantics).
+3.  Ensure responsiveness is handled via Tailwind classes (md: lg: xl:).

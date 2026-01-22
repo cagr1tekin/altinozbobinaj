@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  html,
+  body {
+    @apply bg-surface-light text-surface-dark antialiased;
+  }
+
+  ::selection {
+    @apply bg-copper-main text-surface-light;
+  }
+}
