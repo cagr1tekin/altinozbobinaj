@@ -8,23 +8,23 @@ const contactInfo = [
   {
     icon: MapPin,
     title: "Adres",
-    content: "Örnek Mahalle, Örnek Sokak No: 123",
-    subContent: "İstanbul, Türkiye",
+    content: "Yeni Sanayi Sitesi, Cumhuriyet Cd. No: 16",
+    subContent: "Altıeylül/Balıkesir, Türkiye",
     href: "#",
   },
   {
     icon: Phone,
     title: "Telefon",
-    content: "+90 (555) 123 45 67",
+    content: "+90 (542) 591 83 72",
     subContent: "7/24 Destek Hattı",
-    href: "tel:+905551234567",
+    href: "tel:+905425918372",
   },
   {
     icon: Mail,
     title: "E-posta",
-    content: "info@altinozbobinaj.com",
+    content: "altinozbobinajsan@gmail.com",
     subContent: "Genel İletişim",
-    href: "mailto:info@altinozbobinaj.com",
+    href: "mailto:altinozbobinajsan@gmail.com",
   },
 ];
 
@@ -66,7 +66,7 @@ export default function Contact() {
 
   // Google Maps iframe URL (placeholder - gerçek adres ile değiştirilecek)
   const mapUrl =
-    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3009.5!2d28.9784!3d41.0082!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDHCsDAwJzI5LjUiTiAyOMKwNTgnNDIuMiJF!5e0!3m2!1str!2str!4v1234567890123!5m2!1str!2str";
+    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3071.4381955598697!2d27.910002476230698!3d39.66235647157093!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14b6ff515998906f%3A0x6d33e708d120c5ea!2zQWx0xLFuw7Z6IEJvYmluYWogQmFsxLFrZXNpcg!5e0!3m2!1str!2str!4v1772074445259!5m2!1str!2str";
 
   return (
     <section

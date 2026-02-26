@@ -156,7 +156,7 @@ export default function Hero() {
             <div className="relative w-full aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
               <div className="relative h-full w-full">
                 <Image
-                  src="/asd.avif"
+                  src="/images/referanslar/2.jpeg"
                   alt="Altınöz Bobinaj Motor Sargı ve Bobinaj Hizmetleri - Endüstriyel Motor"
                   fill
                   className="w-full h-full object-cover"

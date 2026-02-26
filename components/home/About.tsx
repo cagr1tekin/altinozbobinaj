@@ -123,7 +123,7 @@ export default function About() {
             <div className="relative w-full aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
               <div className="relative h-full w-full">
                 <Image
-                  src="https://images.unsplash.com/photo-1581092160562-40aa08e78837?w=800&h=1000&fit=crop&q=80"
+                  src="/images/referanslar/ref2.jpeg"
                   alt="Altınöz Bobinaj Atölye ve Çalışma Alanı - Motor Sargı İşlemi"
                   fill
                   className="w-full h-full object-cover"

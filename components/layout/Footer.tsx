@@ -69,8 +69,8 @@ export default function Footer() {
     {
       title: "İletişim",
       links: [
-        { label: "Telefon", href: "tel:+905551234567", icon: Phone },
-        { label: "E-posta", href: "mailto:info@altinozbobinaj.com", icon: Mail },
+        { label: "Telefon", href: "tel:+905425918372", icon: Phone },
+        { label: "E-posta", href: "mailto:altinozbobinajsan@gmail.com", icon: Mail },
         { label: "Adres", href: "#iletisim", icon: MapPin },
       ],
     },
