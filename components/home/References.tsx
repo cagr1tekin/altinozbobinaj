@@ -6,30 +6,30 @@ import Image from "next/image";
 // 1. Grup Görseller (Üst Satır)
 const row1Images = [
   { id: 1, src: "/images/referanslar/3585DFDA-7B06-4AEF-9B8F-6E8324C93927.webp", alt: "Referans Görsel" },
-  { id: 2, src: "/images/referanslar/a24924b8-65f0-44bf-9e37-07342966ec9c.jpg", alt: "Referans Görsel" },
-  { id: 3, src: "/images/referanslar/B920246F-E325-4B39-986C-CBAFB4EF492C (1).jpg", alt: "Referans Görsel" },
-  { id: 4, src: "/images/referanslar/FC577FD9-9EF4-42B2-96CD-44EC1439261D.jpg", alt: "Referans Görsel" },
-  { id: 5, src: "/images/referanslar/Gemini_Generated_Image_1bajy11bajy11baj (1).png", alt: "Referans Görsel" },
-  { id: 6, src: "/images/referanslar/Gemini_Generated_Image_1fnlnr1fnlnr1fnl.png", alt: "Referans Görsel" },
-  { id: 7, src: "/images/referanslar/Gemini_Generated_Image_b2am0wb2am0wb2am.png", alt: "Referans Görsel" },
-  { id: 8, src: "/images/referanslar/Gemini_Generated_Image_d6xngnd6xngnd6xn.png", alt: "Referans Görsel" },
-  { id: 9, src: "/images/referanslar/Gemini_Generated_Image_fevi8xfevi8xfevi.png", alt: "Referans Görsel" },
-  { id: 10, src: "/images/referanslar/Gemini_Generated_Image_r6rsar6rsar6rsar.png", alt: "Referans Görsel" },
-  { id: 11, src: "/images/referanslar/Gemini_Generated_Image_sodrlmsodrlmsodr.png", alt: "Referans Görsel" },
+  { id: 2, src: "/images/referanslar/a24924b8-65f0-44bf-9e37-07342966ec9c.webp", alt: "Referans Görsel" },
+  { id: 3, src: "/images/referanslar/B920246F-E325-4B39-986C-CBAFB4EF492C (1).webp", alt: "Referans Görsel" },
+  { id: 4, src: "/images/referanslar/FC577FD9-9EF4-42B2-96CD-44EC1439261D.webp", alt: "Referans Görsel" },
+  { id: 5, src: "/images/referanslar/Gemini_Generated_Image_1bajy11bajy11baj-_1_.webp", alt: "Referans Görsel" },
+  { id: 6, src: "/images/referanslar/Gemini_Generated_Image_1fnlnr1fnlnr1fnl.webp", alt: "Referans Görsel" },
+  { id: 7, src: "/images/referanslar/Gemini_Generated_Image_b2am0wb2am0wb2am.webp", alt: "Referans Görsel" },
+  { id: 8, src: "/images/referanslar/Gemini_Generated_Image_d6xngnd6xngnd6xn.webp", alt: "Referans Görsel" },
+  { id: 9, src: "/images/referanslar/Gemini_Generated_Image_fevi8xfevi8xfevi.webp", alt: "Referans Görsel" },
+  { id: 10, src: "/images/referanslar/Gemini_Generated_Image_r6rsar6rsar6rsar.webp", alt: "Referans Görsel" },
+  { id: 11, src: "/images/referanslar/Gemini_Generated_Image_sodrlmsodrlmsodr.webp", alt: "Referans Görsel" },
 ];
 
 // 2. Grup Görseller (Alt Satır)
 const row2Images = [
-  { id: 12, src: "/images/referanslar/IMG_1084.JPG", alt: "Referans Görsel" },
-  { id: 13, src: "/images/referanslar/IMG_4512.JPG", alt: "Referans Görsel" },
-  { id: 14, src: "/images/referanslar/IMG_4804.jpg", alt: "Referans Görsel1" },
-  { id: 15, src: "/images/referanslar/IMG_5289.jpg", alt: "Referans Görsel2" },
-  { id: 16, src: "/images/referanslar/IMG_5595.JPG", alt: "Referans Görsel3" },
-  { id: 17, src: "/images/referanslar/IMG_5600.jpg", alt: "Referans Görsel4" },
-  { id: 19, src: "/images/referanslar/IMG_5615.jpg", alt: "Referans Görsel5" },
-  { id: 26, src: "/images/referanslar/IMG_7183.JPG", alt: "Referans Görsel12" },
-  { id: 27, src: "/images/referanslar/IMG_9172.JPG", alt: "Referans Görsel13" },
-  { id: 28, src: "/images/referanslar/WhatsApp Image 2026-02-10 at 14.22.00.jpeg", alt: "Referans Görsel14" },
+  { id: 12, src: "/images/referanslar/IMG_1084.webp", alt: "Referans Görsel" },
+  { id: 13, src: "/images/referanslar/IMG_4512.webp", alt: "Referans Görsel" },
+  { id: 14, src: "/images/referanslar/IMG_4804.webp", alt: "Referans Görsel1" },
+  { id: 15, src: "/images/referanslar/IMG_5289.webp", alt: "Referans Görsel2" },
+  { id: 16, src: "/images/referanslar/IMG_5595.webp", alt: "Referans Görsel3" },
+  { id: 17, src: "/images/referanslar/IMG_5600.webp", alt: "Referans Görsel4" },
+  { id: 19, src: "/images/referanslar/IMG_5615.webp", alt: "Referans Görsel5" },
+  { id: 26, src: "/images/referanslar/IMG_7183.webp", alt: "Referans Görsel12" },
+  { id: 27, src: "/images/referanslar/IMG_9172.webp", alt: "Referans Görsel13" },
+  { id: 28, src: "/images/referanslar/WhatsApp-Image-2026-02-10-at-14.22.00.webp", alt: "Referans Görsel14" },
 ];
 
 export default function References() {
@@ -106,6 +106,7 @@ export default function References() {
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
                     sizes="(max-width: 768px) 200px, 400px"
+                    priority
                   />
                 </div>
               ))}
@@ -138,6 +139,7 @@ export default function References() {
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
                     sizes="(max-width: 768px) 200px, 400px"
+                    priority
                   />
                 </div>
               ))}

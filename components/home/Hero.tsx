@@ -79,12 +79,12 @@ export default function Hero() {
   return (
     <section
       id="hero"
-      className="relative flex min-h-[calc(100vh-80px)] items-center overflow-hidden bg-gradient-to-r from-zinc-950 via-zinc-900 to-zinc-800 py-12 lg:py-20"
+      className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
       {/* Arka Plan: Blur Gümüş Daire */}
       <div className="absolute -right-1/4 -top-1/4 h-[800px] w-[800px] rounded-full bg-silver-gradient opacity-20 blur-3xl md:-right-1/3 md:-top-1/3 md:h-[1000px] md:w-[1000px]" />
 
-      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 lg:items-center">
           {/* Sol Taraf: Metin İçeriği */}
           <motion.div
@@ -156,7 +156,7 @@ export default function Hero() {
             <div className="relative w-full aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
               <div className="relative h-full w-full">
                 <Image
-                  src="/images/referanslar/2.jpeg"
+                  src="/images/referanslar/2.webp"
                   alt="Altınöz Bobinaj Motor Sargı ve Bobinaj Hizmetleri - Endüstriyel Motor"
                   fill
                   className="w-full h-full object-cover"

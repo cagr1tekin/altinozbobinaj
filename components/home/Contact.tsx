@@ -8,8 +8,8 @@ const contactInfo = [
   {
     icon: MapPin,
     title: "Adres",
-    content: "Yeni Sanayi Sitesi, Cumhuriyet Cd. No: 16",
-    subContent: "Altıeylül/Balıkesir, Türkiye",
+    content: "Yeni Sanayi Sitesi, 19 Ağustos Cd.",
+    subContent: "10100 Karesi/Balıkesir",
     href: "#",
   },
   {
@@ -71,7 +71,7 @@ export default function Contact() {
   return (
     <section
       id="iletisim"
-      className="relative overflow-hidden bg-gradient-to-t from-zinc-950 via-zinc-900 to-zinc-900 h-auto lg:h-[760px] py-16 lg:py-10"
+      className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
       {/* Arka Plan: Gümüş Glow Efekti */}
       <div className="absolute -left-1/4 -bottom-1/4 h-[600px] w-[600px] rounded-full bg-silver-gradient opacity-10 blur-3xl md:h-[800px] md:w-[800px]" />

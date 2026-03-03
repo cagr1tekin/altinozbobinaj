@@ -60,10 +60,10 @@ export default function Footer() {
     {
       title: "Hizmetlerimiz",
       links: [
-        { label: "Motor Sargı", href: "#hizmetler" },
-        { label: "Bobinaj", href: "#hizmetler" },
-        { label: "Tamir & Bakım", href: "#hizmetler" },
-        { label: "Teknik Destek", href: "#hizmetler" },
+        { label: "Klasik Motor Sarımı", href: "#hizmetler" },
+        { label: "Su Pompası Revizyon", href: "#hizmetler" },
+        { label: "Parça Tedarik", href: "#hizmetler" },
+        { label: "Fren Bobini Sarımı", href: "#hizmetler" },
       ],
     },
     {
