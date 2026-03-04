@@ -5,31 +5,31 @@ import Image from "next/image";
 
 // 1. Grup Görseller (Üst Satır)
 const row1Images = [
-  { id: 1, src: "/images/referanslar/3585DFDA-7B06-4AEF-9B8F-6E8324C93927.webp", alt: "Referans Görsel" },
-  { id: 2, src: "/images/referanslar/a24924b8-65f0-44bf-9e37-07342966ec9c.webp", alt: "Referans Görsel" },
-  { id: 3, src: "/images/referanslar/B920246F-E325-4B39-986C-CBAFB4EF492C (1).webp", alt: "Referans Görsel" },
-  { id: 4, src: "/images/referanslar/FC577FD9-9EF4-42B2-96CD-44EC1439261D.webp", alt: "Referans Görsel" },
-  { id: 5, src: "/images/referanslar/Gemini_Generated_Image_1bajy11bajy11baj-_1_.webp", alt: "Referans Görsel" },
-  { id: 6, src: "/images/referanslar/Gemini_Generated_Image_1fnlnr1fnlnr1fnl.webp", alt: "Referans Görsel" },
-  { id: 7, src: "/images/referanslar/Gemini_Generated_Image_b2am0wb2am0wb2am.webp", alt: "Referans Görsel" },
-  { id: 8, src: "/images/referanslar/Gemini_Generated_Image_d6xngnd6xngnd6xn.webp", alt: "Referans Görsel" },
-  { id: 9, src: "/images/referanslar/Gemini_Generated_Image_fevi8xfevi8xfevi.webp", alt: "Referans Görsel" },
-  { id: 10, src: "/images/referanslar/Gemini_Generated_Image_r6rsar6rsar6rsar.webp", alt: "Referans Görsel" },
-  { id: 11, src: "/images/referanslar/Gemini_Generated_Image_sodrlmsodrlmsodr.webp", alt: "Referans Görsel" },
+  { id: 1, src: "/images/referanslar/3585DFDA-7B06-4AEF-9B8F-6E8324C93927.webp", alt: "Balıkesir Bobinaj ve Motor Sarımı Referans" },
+  { id: 2, src: "/images/referanslar/a24924b8-65f0-44bf-9e37-07342966ec9c.webp", alt: "Endüstriyel Motor Tamiri Balıkesir" },
+  { id: 3, src: "/images/referanslar/B920246F-E325-4B39-986C-CBAFB4EF492C (1).webp", alt: "Elektrik Motoru Sargı İşlemleri" },
+  { id: 4, src: "/images/referanslar/FC577FD9-9EF4-42B2-96CD-44EC1439261D.webp", alt: "Su Pompası Tamiri ve Bakımı" },
+  { id: 5, src: "/images/referanslar/Gemini_Generated_Image_1bajy11bajy11baj-_1_.webp", alt: "Profesyonel Bobinaj Atölyesi" },
+  { id: 6, src: "/images/referanslar/Gemini_Generated_Image_1fnlnr1fnlnr1fnl.webp", alt: "Karesi Motor Sarımı Hizmetleri" },
+  { id: 7, src: "/images/referanslar/Gemini_Generated_Image_b2am0wb2am0wb2am.webp", alt: "Yüksek Voltajlı Motor Sarımı" },
+  { id: 8, src: "/images/referanslar/Gemini_Generated_Image_d6xngnd6xngnd6xn.webp", alt: "Alternatör ve Jeneratör Tamiri" },
+  { id: 9, src: "/images/referanslar/Gemini_Generated_Image_fevi8xfevi8xfevi.webp", alt: "Balıkesir Sanayi Bobinaj Ustası" },
+  { id: 10, src: "/images/referanslar/Gemini_Generated_Image_r6rsar6rsar6rsar.webp", alt: "Elektromanyetik Fren Bobini Sarımı" },
+  { id: 11, src: "/images/referanslar/Gemini_Generated_Image_sodrlmsodrlmsodr.webp", alt: "Garantili Motor Yenileme" },
 ];
 
 // 2. Grup Görseller (Alt Satır)
 const row2Images = [
-  { id: 12, src: "/images/referanslar/IMG_1084.webp", alt: "Referans Görsel" },
-  { id: 13, src: "/images/referanslar/IMG_4512.webp", alt: "Referans Görsel" },
-  { id: 14, src: "/images/referanslar/IMG_4804.webp", alt: "Referans Görsel1" },
-  { id: 15, src: "/images/referanslar/IMG_5289.webp", alt: "Referans Görsel2" },
-  { id: 16, src: "/images/referanslar/IMG_5595.webp", alt: "Referans Görsel3" },
-  { id: 17, src: "/images/referanslar/IMG_5600.webp", alt: "Referans Görsel4" },
-  { id: 19, src: "/images/referanslar/IMG_5615.webp", alt: "Referans Görsel5" },
-  { id: 26, src: "/images/referanslar/IMG_7183.webp", alt: "Referans Görsel12" },
-  { id: 27, src: "/images/referanslar/IMG_9172.webp", alt: "Referans Görsel13" },
-  { id: 28, src: "/images/referanslar/WhatsApp-Image-2026-02-10-at-14.22.00.webp", alt: "Referans Görsel14" },
+  { id: 12, src: "/images/referanslar/IMG_1084.webp", alt: "Ağır Sanayi Motor Sargısı" },
+  { id: 13, src: "/images/referanslar/IMG_4512.webp", alt: "Dalgıç Pompa Tamir ve Bakım" },
+  { id: 14, src: "/images/referanslar/IMG_4804.webp", alt: "Balıkesir Bobinaj Referans Çalışması" },
+  { id: 15, src: "/images/referanslar/IMG_5289.webp", alt: "Servo Motor Tamiri" },
+  { id: 16, src: "/images/referanslar/IMG_5595.webp", alt: "Komple Motor Revizyonu" },
+  { id: 17, src: "/images/referanslar/IMG_5600.webp", alt: "Trafo ve Bobin Sargısı" },
+  { id: 19, src: "/images/referanslar/IMG_5615.webp", alt: "Özel Sargı Teknikleri" },
+  { id: 26, src: "/images/referanslar/IMG_7183.webp", alt: "Fabrika Bakım Onarım Hizmetleri" },
+  { id: 27, src: "/images/referanslar/IMG_9172.webp", alt: "Balıkesir Bobinaj Atölye İçi" },
+  { id: 28, src: "/images/referanslar/WhatsApp-Image-2026-02-10-at-14.22.00.webp", alt: "Motor Sargı Kalite Kontrol" },
 ];
 
 export default function References() {
@@ -106,7 +106,6 @@ export default function References() {
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
                     sizes="(max-width: 768px) 200px, 400px"
-                    priority
                   />
                 </div>
               ))}
@@ -139,7 +138,6 @@ export default function References() {
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
                     sizes="(max-width: 768px) 200px, 400px"
-                    priority
                   />
                 </div>
               ))}

@@ -177,7 +177,7 @@ export default function Hero() {
             >
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-silver-gradient text-2xl font-bold text-white">
-                  30+
+                  50+
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-300">

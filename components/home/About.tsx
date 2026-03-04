@@ -67,7 +67,7 @@ export default function About() {
               variants={itemVariants}
               className="text-base leading-relaxed text-gray-400 sm:text-lg md:text-xl"
             >
-              Altınöz Bobinaj olarak, 30 yılı aşkın deneyimimizle motor sargı
+              Altınöz Bobinaj olarak, 50 yılı aşkın deneyimimizle motor sargı
               ve bobinaj sektöründe öncü bir konumdayız. Müşteri memnuniyetini
               ön planda tutarak, kaliteli hizmet ve güvenilir çözümler sunuyoruz.
             </motion.p>
@@ -88,7 +88,7 @@ export default function About() {
             >
               <div className="flex items-center gap-2">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-silver-gradient text-white">
-                  <span className="text-xl font-bold">30+</span>
+                  <span className="text-xl font-bold">50+</span>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[#fafafa]">
@@ -100,7 +100,7 @@ export default function About() {
 
               <div className="flex items-center gap-2">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-silver-gradient text-white">
-                  <span className="text-xl font-bold">1000+</span>
+                  <span className="text-xl font-bold">20K</span>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[#fafafa]">
@@ -128,7 +128,6 @@ export default function About() {
                   fill
                   className="w-full h-full object-cover"
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  priority
                 />
                 {/* Overlay gradient */}
                 <div className="absolute inset-0 bg-gradient-to-t from-silver-dark/20 to-transparent" />

@@ -30,7 +30,7 @@ export default function Services() {
     {
       title: "Klasik Motor Sarımı",
       description:
-        "Her türlü AC/DC elektrik motorunun, alternatörlerin ve jeneratörlerin fabrika standartlarında sarımı, verniklenmesi ve fırınlanması işlemleri. Yüksek ısı sınıfına sahip, kaliteli bakır teller ve izolasyon malzemeleri kullanılarak motorlarınızın ömrünü uzatıyor, ilk günkü performansına kavuşturuyoruz.",
+        "Her türlü AC elektrik motorunun, alternatörlerin ve jeneratörlerin fabrika standartlarında sarımı, verniklenmesi ve fırınlanması işlemleri. Yüksek ısı sınıfına sahip, kaliteli bakır teller ve izolasyon malzemeleri kullanılarak motorlarınızın ömrünü uzatıyor, ilk günkü performansına kavuşturuyoruz.",
       align: "self-start text-left lg:mr-auto lg:text-left z-10 relative",
     },
     {
