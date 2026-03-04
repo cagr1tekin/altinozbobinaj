@@ -77,7 +77,7 @@ export default function References() {
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
                     sizes="(max-width: 640px) 260px, (max-width: 768px) 320px, (max-width: 1024px) 360px, 400px"
-                    loading="lazy"
+                    loading="eager"
                   />
                 </div>
               ))}
@@ -103,7 +103,7 @@ export default function References() {
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
                     sizes="(max-width: 640px) 260px, (max-width: 768px) 320px, (max-width: 1024px) 360px, 400px"
-                    loading="lazy"
+                    loading="eager"
                   />
                 </div>
               ))}
