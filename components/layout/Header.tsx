@@ -12,8 +12,23 @@ export default function Header() {
       setIsScrolled(window.scrollY > 20);
     };
 
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    let ticking = false;
+
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    // İlk yüklemede de state'i doğru ayarla
+    handleScroll();
+
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
   const menuItems = [
@@ -59,7 +74,7 @@ export default function Header() {
             className="flex items-center gap-3 text-2xl font-bold text-[#fafafa] transition-colors hover:text-silver-main"
             aria-label="Altınöz Bobinaj Ana Sayfa"
           >
-            <div className="relative h-10 w-10 overflow-hidden">
+            <div className="relative h-11 w-11 md:h-12 md:w-12 overflow-hidden">
               <Image
                 src="/favicon.svg"
                 alt="Altınöz Bobinaj Logo"
