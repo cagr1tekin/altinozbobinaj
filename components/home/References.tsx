@@ -1,6 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+import { motion, useInView, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 
 // 1. Grup Görseller (Üst Satır)
@@ -36,18 +37,41 @@ const row2Images = [
 export default function References() {
   const shouldReduceMotion = useReducedMotion();
 
-  // Görselleri 3 kez çoğalt (kesintisiz döngü ve performans optimizasyonu için)
-  const duplicatedRow1 = [
-    ...row1Images,
-    ...row1Images,
-    ...row1Images,
-  ];
+  const [isMobile, setIsMobile] = useState(false);
+  const row1Ref = useRef<HTMLDivElement | null>(null);
+  const row2Ref = useRef<HTMLDivElement | null>(null);
+  const row1InView = useInView(row1Ref, { margin: "-80px" });
+  const row2InView = useInView(row2Ref, { margin: "-80px" });
 
-  const duplicatedRow2 = [
-    ...row2Images,
-    ...row2Images,
-    ...row2Images,
-  ];
+  useEffect(() => {
+    const updateIsMobile = () => {
+      if (typeof window !== "undefined") {
+        setIsMobile(window.innerWidth < 768);
+      }
+    };
+
+    updateIsMobile();
+    window.addEventListener("resize", updateIsMobile);
+
+    return () => window.removeEventListener("resize", updateIsMobile);
+  }, []);
+
+  // Görselleri 3 kez çoğalt (kesintisiz döngü ve performans optimizasyonu için)
+  const duplicatedRow1 = isMobile
+    ? row1Images
+    : [
+        ...row1Images,
+        ...row1Images,
+        ...row1Images,
+      ];
+
+  const duplicatedRow2 = isMobile
+    ? row2Images
+    : [
+        ...row2Images,
+        ...row2Images,
+        ...row2Images,
+      ];
 
   return (
     <section
@@ -85,14 +109,19 @@ export default function References() {
           {/* 1. Satır: Soldan Sağa */}
           <div className="overflow-hidden">
             <motion.div
+              ref={row1Ref}
               className="flex gap-3 sm:gap-4 md:gap-6 lg:gap-8 will-change-transform"
               initial={{ x: 0 }}
-              animate={shouldReduceMotion ? { x: 0 } : { x: "-33.33%" }}
+              animate={
+                shouldReduceMotion || !row1InView
+                  ? { x: 0 }
+                  : { x: isMobile ? "-50%" : "-33.33%" }
+              }
               transition={
-                shouldReduceMotion
+                shouldReduceMotion || !row1InView
                   ? { duration: 0 }
                   : {
-                      duration: 55,
+                      duration: isMobile ? 70 : 55,
                       repeat: Infinity,
                       ease: "linear",
                     }
@@ -107,11 +136,12 @@ export default function References() {
                   <Image
                     src={image.src}
                     alt={image.alt}
-                    width={400}
-                    height={256}
+                    width={320}
+                    height={200}
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
                     sizes="(max-width: 640px) 260px, (max-width: 768px) 320px, (max-width: 1024px) 360px, 400px"
+                    loading="lazy"
                   />
                 </div>
               ))}
@@ -121,14 +151,19 @@ export default function References() {
           {/* 2. Satır: Sağdan Sola */}
           <div className="overflow-hidden">
             <motion.div
+              ref={row2Ref}
               className="flex gap-3 sm:gap-4 md:gap-6 lg:gap-8 will-change-transform"
               initial={{ x: "-33.33%" }}
-              animate={shouldReduceMotion ? { x: "-33.33%" } : { x: "0%" }}
+              animate={
+                shouldReduceMotion || !row2InView
+                  ? { x: "-33.33%" }
+                  : { x: isMobile ? "0%" : "0%" }
+              }
               transition={
-                shouldReduceMotion
+                shouldReduceMotion || !row2InView
                   ? { duration: 0 }
                   : {
-                      duration: 55,
+                      duration: isMobile ? 70 : 55,
                       repeat: Infinity,
                       ease: "linear",
                     }
@@ -143,11 +178,12 @@ export default function References() {
                   <Image
                     src={image.src}
                     alt={image.alt}
-                    width={400}
-                    height={256}
+                    width={320}
+                    height={200}
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
                     sizes="(max-width: 640px) 260px, (max-width: 768px) 320px, (max-width: 1024px) 360px, 400px"
+                    loading="lazy"
                   />
                 </div>
               ))}
