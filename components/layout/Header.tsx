@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
@@ -55,10 +56,19 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            className="text-2xl font-bold text-[#fafafa] transition-colors hover:text-silver-main"
+            className="flex items-center gap-3 text-2xl font-bold text-[#fafafa] transition-colors hover:text-silver-main"
             aria-label="Altınöz Bobinaj Ana Sayfa"
           >
-            Altınöz Bobinaj
+            <div className="relative h-10 w-10 overflow-hidden">
+              <Image
+                src="/favicon.svg"
+                alt="Altınöz Bobinaj Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <span>Altınöz Bobinaj</span>
           </Link>
 
           {/* Menü - Desktop */}

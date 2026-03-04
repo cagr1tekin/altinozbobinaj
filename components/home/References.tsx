@@ -30,19 +30,18 @@ const row2Images = [
   { id: 26, src: "/images/referanslar/IMG_7183.webp", alt: "Fabrika Bakım Onarım Hizmetleri" },
   { id: 27, src: "/images/referanslar/IMG_9172.webp", alt: "Balıkesir Bobinaj Atölye İçi" },
   { id: 28, src: "/images/referanslar/WhatsApp-Image-2026-02-10-at-14.22.00.webp", alt: "Motor Sargı Kalite Kontrol" },
+  { id: 29, src: "/images/referanslar/87.webp", alt: "Altınöz Bobinaj Referans İşçiliği" },
 ];
 
 export default function References() {
-  // Görselleri 4 kez çoğalt (kesintisiz döngü için)
+  // Görselleri 3 kez çoğalt (kesintisiz döngü ve performans optimizasyonu için)
   const duplicatedRow1 = [
-    ...row1Images,
     ...row1Images,
     ...row1Images,
     ...row1Images,
   ];
 
   const duplicatedRow2 = [
-    ...row2Images,
     ...row2Images,
     ...row2Images,
     ...row2Images,
@@ -83,11 +82,11 @@ export default function References() {
           {/* 1. Satır: Soldan Sağa */}
           <div className="overflow-hidden">
             <motion.div
-              className="flex gap-6"
+              className="flex gap-3 sm:gap-4 md:gap-6 lg:gap-8 will-change-transform"
               initial={{ x: 0 }}
-              animate={{ x: "-50%" }}
+              animate={{ x: "-33.33%" }}
               transition={{
-                duration: 60,
+                duration: 40,
                 repeat: Infinity,
                 ease: "linear",
               }}
@@ -96,7 +95,7 @@ export default function References() {
               {duplicatedRow1.map((image, index) => (
                 <div
                   key={`row1-${image.id}-${index}`}
-                  className="group relative h-64 w-auto shrink-0 overflow-hidden rounded-2xl transition-all duration-500 hover:scale-105"
+                  className="group relative h-32 sm:h-40 md:h-56 lg:h-64 w-auto shrink-0 overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl transition-all duration-500 hover:scale-105"
                 >
                   <Image
                     src={image.src}
@@ -105,7 +104,7 @@ export default function References() {
                     height={256}
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
-                    sizes="(max-width: 768px) 200px, 400px"
+                    sizes="(max-width: 640px) 150px, (max-width: 768px) 200px, (max-width: 1024px) 300px, 400px"
                   />
                 </div>
               ))}
@@ -115,11 +114,11 @@ export default function References() {
           {/* 2. Satır: Sağdan Sola */}
           <div className="overflow-hidden">
             <motion.div
-              className="flex gap-6"
-              initial={{ x: "-50%" }}
+              className="flex gap-3 sm:gap-4 md:gap-6 lg:gap-8 will-change-transform"
+              initial={{ x: "-33.33%" }}
               animate={{ x: "0%" }}
               transition={{
-                duration: 60,
+                duration: 40,
                 repeat: Infinity,
                 ease: "linear",
               }}
@@ -128,7 +127,7 @@ export default function References() {
               {duplicatedRow2.map((image, index) => (
                 <div
                   key={`row2-${image.id}-${index}`}
-                  className="group relative h-64 w-auto shrink-0 overflow-hidden rounded-2xl transition-all duration-500 hover:scale-105"
+                  className="group relative h-32 sm:h-40 md:h-56 lg:h-64 w-auto shrink-0 overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl transition-all duration-500 hover:scale-105"
                 >
                   <Image
                     src={image.src}
@@ -137,7 +136,7 @@ export default function References() {
                     height={256}
                     className="h-full w-auto object-cover"
                     style={{ width: "auto", height: "100%" }}
-                    sizes="(max-width: 768px) 200px, 400px"
+                    sizes="(max-width: 640px) 150px, (max-width: 768px) 200px, (max-width: 1024px) 300px, 400px"
                   />
                 </div>
               ))}
