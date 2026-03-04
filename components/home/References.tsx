@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, useInView, useReducedMotion } from "framer-motion";
 import Image from "next/image";
 
 // 1. Grup Görseller (Üst Satır)
@@ -34,45 +32,11 @@ const row2Images = [
   { id: 29, src: "/images/referanslar/87.webp", alt: "Altınöz Bobinaj Referans İşçiliği" },
 ];
 
+// Marquee için tekrar eden diziler (CSS animasyon ile sonsuz kaydırma)
+const duplicatedRow1 = [...row1Images, ...row1Images];
+const duplicatedRow2 = [...row2Images, ...row2Images];
+
 export default function References() {
-  const shouldReduceMotion = useReducedMotion();
-
-  const [isMobile, setIsMobile] = useState(false);
-  const row1Ref = useRef<HTMLDivElement | null>(null);
-  const row2Ref = useRef<HTMLDivElement | null>(null);
-  const row1InView = useInView(row1Ref, { margin: "-80px" });
-  const row2InView = useInView(row2Ref, { margin: "-80px" });
-
-  useEffect(() => {
-    const updateIsMobile = () => {
-      if (typeof window !== "undefined") {
-        setIsMobile(window.innerWidth < 768);
-      }
-    };
-
-    updateIsMobile();
-    window.addEventListener("resize", updateIsMobile);
-
-    return () => window.removeEventListener("resize", updateIsMobile);
-  }, []);
-
-  // Görselleri 3 kez çoğalt (kesintisiz döngü ve performans optimizasyonu için)
-  const duplicatedRow1 = isMobile
-    ? row1Images
-    : [
-        ...row1Images,
-        ...row1Images,
-        ...row1Images,
-      ];
-
-  const duplicatedRow2 = isMobile
-    ? row2Images
-    : [
-        ...row2Images,
-        ...row2Images,
-        ...row2Images,
-      ];
-
   return (
     <section
       id="referanslar"
@@ -81,51 +45,23 @@ export default function References() {
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         {/* Başlık ve Slogan */}
         <div className="mb-8 lg:mb-10 text-center">
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6 }}
-            className="mb-6 text-3xl font-bold text-[#fafafa] sm:text-4xl md:text-5xl"
-          >
+          <h2 className="mb-6 text-3xl font-bold text-[#fafafa] sm:text-4xl md:text-5xl">
             {""}
-          </motion.h2>
+          </h2>
 
-          <motion.h3
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-3xl font-bold leading-tight text-[#fafafa] sm:text-4xl md:text-5xl"
-          >
+          <h3 className="text-3xl font-bold leading-tight text-[#fafafa] sm:text-4xl md:text-5xl">
             <span className="text-transparent bg-clip-text bg-silver-gradient">
               Referansımız, İşçiliğimizin Kalitesidir.
             </span>
-          </motion.h3>
+          </h3>
         </div>
 
         {/* Çift Yönlü Kayan Galeri */}
         <div className="space-y-6">
           {/* 1. Satır: Soldan Sağa */}
           <div className="overflow-hidden">
-            <motion.div
-              ref={row1Ref}
-              className="flex gap-3 sm:gap-4 md:gap-6 lg:gap-8 will-change-transform"
-              initial={{ x: 0 }}
-              animate={
-                shouldReduceMotion || !row1InView
-                  ? { x: 0 }
-                  : { x: isMobile ? "-50%" : "-33.33%" }
-              }
-              transition={
-                shouldReduceMotion || !row1InView
-                  ? { duration: 0 }
-                  : {
-                      duration: isMobile ? 70 : 55,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }
-              }
+            <div
+              className="flex gap-3 sm:gap-4 md:gap-6 lg:gap-8 will-change-transform animate-marquee-slow motion-reduce:animate-none"
               style={{ width: "max-content" }}
             >
               {duplicatedRow1.map((image, index) => (
@@ -145,29 +81,13 @@ export default function References() {
                   />
                 </div>
               ))}
-            </motion.div>
+            </div>
           </div>
 
           {/* 2. Satır: Sağdan Sola */}
           <div className="overflow-hidden">
-            <motion.div
-              ref={row2Ref}
-              className="flex gap-3 sm:gap-4 md:gap-6 lg:gap-8 will-change-transform"
-              initial={{ x: "-33.33%" }}
-              animate={
-                shouldReduceMotion || !row2InView
-                  ? { x: "-33.33%" }
-                  : { x: isMobile ? "0%" : "0%" }
-              }
-              transition={
-                shouldReduceMotion || !row2InView
-                  ? { duration: 0 }
-                  : {
-                      duration: isMobile ? 70 : 55,
-                      repeat: Infinity,
-                      ease: "linear",
-                    }
-              }
+            <div
+              className="flex gap-3 sm:gap-4 md:gap-6 lg:gap-8 will-change-transform animate-marquee-reverse-slow motion-reduce:animate-none"
               style={{ width: "max-content" }}
             >
               {duplicatedRow2.map((image, index) => (
@@ -187,7 +107,7 @@ export default function References() {
                   />
                 </div>
               ))}
-            </motion.div>
+            </div>
           </div>
         </div>
       </div>

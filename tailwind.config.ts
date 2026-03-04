@@ -24,6 +24,22 @@ const config: Config = {
       fontFamily: {
         sans: ["var(--font-plus-jakarta)", "sans-serif"],
       },
+      keyframes: {
+        marquee: {
+          "0%": { transform: "translateX(0%)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        "marquee-reverse": {
+          "0%": { transform: "translateX(-50%)" },
+          "100%": { transform: "translateX(0%)" },
+        },
+      },
+      animation: {
+        marquee: "marquee 45s linear infinite",
+        "marquee-slow": "marquee 70s linear infinite",
+        "marquee-reverse": "marquee-reverse 45s linear infinite",
+        "marquee-reverse-slow": "marquee-reverse 70s linear infinite",
+      },
     },
   },
   plugins: [],

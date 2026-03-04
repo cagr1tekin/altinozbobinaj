@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Phone } from "lucide-react";
 
 export default function Hero() {
+  const shouldReduceMotion = useReducedMotion();
+
   const handleSmoothScroll = (
     e: React.MouseEvent<HTMLAnchorElement>,
     href: string
@@ -28,49 +30,48 @@ export default function Hero() {
 
   // Animasyon varyantları
   const containerVariants = {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
+      y: 0,
       transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.1,
+        duration: 0.5,
+        ease: "easeOut" as const,
       },
     },
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 30 },
+    hidden: { opacity: 0, y: 20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
+        duration: 0.5,
         ease: "easeOut" as const,
       },
     },
   };
 
   const imageVariants = {
-    hidden: { opacity: 0, x: 50 },
+    hidden: { opacity: 0, x: 24 },
     visible: {
       opacity: 1,
       x: 0,
       transition: {
-        duration: 0.8,
+        duration: 0.6,
         ease: "easeOut" as const,
       },
     },
   };
 
   const cardVariants = {
-    hidden: { opacity: 0, scale: 0.8, y: 20 },
+    hidden: { opacity: 0, y: 16 },
     visible: {
       opacity: 1,
-      scale: 1,
       y: 0,
       transition: {
-        duration: 0.6,
-        delay: 0.4,
+        duration: 0.5,
         ease: "easeOut" as const,
       },
     },
@@ -81,15 +82,15 @@ export default function Hero() {
       id="hero"
       className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
-      {/* Arka Plan: Blur Gümüş Daire */}
-      <div className="absolute -right-1/4 -top-1/4 h-[800px] w-[800px] rounded-full bg-silver-gradient opacity-20 blur-3xl md:-right-1/3 md:-top-1/3 md:h-[1000px] md:w-[1000px]" />
+      {/* Arka Plan: Blur Gümüş Daire (sadece büyük ekranlarda) */}
+      <div className="pointer-events-none hidden md:block absolute -right-1/3 -top-1/3 h-[900px] w-[900px] rounded-full bg-silver-gradient opacity-20 blur-3xl lg:-right-1/4 lg:-top-1/4 lg:h-[1000px] lg:w-[1000px]" />
 
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 lg:items-center">
           {/* Sol Taraf: Metin İçeriği */}
           <motion.div
             variants={containerVariants}
-            initial="hidden"
+            initial={shouldReduceMotion ? false : "hidden"}
             animate="visible"
             className="space-y-6"
           >
@@ -105,16 +106,13 @@ export default function Hero() {
             </motion.h1>
 
             {/* Açıklama Metni */}
-            <motion.p
-              variants={itemVariants}
-              className="text-base leading-relaxed text-gray-400 sm:text-lg md:text-xl"
-            >
+            <p className="text-base leading-relaxed text-gray-400 sm:text-lg md:text-xl">
               Yarım asra yaklaşan tecrübemizle, endüstriyel elektrik motorlarının
               sarımı, bakımı ve onarımında Türkiye&apos;nin güvenilir çözüm ortağıyız.
               Geleneksel ustalığı modern teknolojiyle birleştirerek, işletmenizin
               kalbi olan motorlarınıza ilk günkü performansını kazandırıyoruz.
               Sadece tamir etmiyor, geleceğe hazırlıyoruz.
-            </motion.p>
+            </p>
 
             {/* Butonlar */}
             <motion.div
@@ -148,12 +146,12 @@ export default function Hero() {
           {/* Sağ Taraf: Görsel */}
           <motion.div
             variants={imageVariants}
-            initial="hidden"
+            initial={shouldReduceMotion ? false : "hidden"}
             animate="visible"
             className="relative w-full"
           >
             {/* Ana Görsel */}
-            <div className="relative w-full aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
+            <div className="relative w-full aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/10 to-silver-dark/30 shadow-xl md:shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
               <div className="relative h-full w-full">
                 <Image
                   src="/images/referanslar/2.webp"
@@ -164,16 +162,16 @@ export default function Hero() {
                   priority
                 />
                 {/* Overlay gradient */}
-                <div className="absolute inset-0 bg-gradient-to-t from-silver-dark/20 to-transparent" />
+                <div className="absolute inset-0 bg-gradient-to-t from-silver-dark/10 to-transparent md:from-silver-dark/20" />
               </div>
             </div>
 
             {/* Floating Deneyim Kartı */}
             <motion.div
               variants={cardVariants}
-              initial="hidden"
+              initial={shouldReduceMotion ? false : "hidden"}
               animate="visible"
-              className="absolute -bottom-6 -left-6 rounded-2xl bg-[#18181b]/80 backdrop-blur-md p-6 shadow-xl border border-white/10 md:-bottom-8 md:-left-8"
+              className="absolute -bottom-6 -left-6 rounded-2xl bg-[#18181b]/75 backdrop-blur-sm md:backdrop-blur-md p-5 md:p-6 shadow-lg md:shadow-xl border border-white/10 md:-bottom-8 md:-left-8"
             >
               <div className="flex items-center gap-4">
                 <div className="flex h-16 w-16 items-center justify-center rounded-full bg-silver-gradient text-2xl font-bold text-white">
