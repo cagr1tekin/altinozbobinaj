@@ -82,9 +82,6 @@ export default function Hero() {
       id="hero"
       className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
-      {/* Arka Plan: Blur Gümüş Daire (sadece büyük ekranlarda) */}
-      <div className="pointer-events-none hidden md:block absolute -right-1/3 -top-1/3 h-[900px] w-[900px] rounded-full bg-silver-gradient opacity-20 blur-3xl lg:-right-1/4 lg:-top-1/4 lg:h-[1000px] lg:w-[1000px]" />
-
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 lg:items-center">
           {/* Sol Taraf: Metin İçeriği */}

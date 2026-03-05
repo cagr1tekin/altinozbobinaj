@@ -15,7 +15,7 @@ const contactInfo = [
   {
     icon: Phone,
     title: "Telefon",
-    content: "+90 (542) 591 83 72",
+    content: "+90 (542) 591 83 72    |    +90 (506) 121 05 73",
     subContent: "7/24 Destek Hattı",
     href: "tel:+905425918372",
   },
@@ -73,9 +73,6 @@ export default function Contact() {
       id="iletisim"
       className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
-      {/* Arka Plan: Gümüş Glow Efekti */}
-      <div className="absolute -left-1/4 -bottom-1/4 h-[600px] w-[600px] rounded-full bg-silver-gradient opacity-10 blur-3xl md:h-[800px] md:w-[800px]" />
-
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         <div className="grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
           {/* Sol Taraf: İletişim Bilgileri */}
@@ -114,7 +111,9 @@ export default function Contact() {
                     <p className="mb-1 text-lg font-semibold text-white">
                       {info.content}
                     </p>
-                    <p className="text-sm text-gray-400">{info.subContent}</p>
+                    <p className="text-sm text-gray-400 whitespace-pre-line">
+                      {info.subContent}
+                    </p>
                   </div>
                 </div>
               );

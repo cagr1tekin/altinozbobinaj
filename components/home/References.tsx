@@ -42,6 +42,8 @@ export default function References() {
       id="referanslar"
       className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
+      <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(to_bottom,_rgba(148,163,184,0.16),_transparent_40%,_transparent_60%,_rgba(148,163,184,0.1))]" />
+
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         {/* Başlık ve Slogan */}
         <div className="mb-8 lg:mb-10 text-center">

@@ -44,9 +44,6 @@ export default function About() {
       id="hakkimizda"
       className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
-      {/* Arka Plan: Blur Gümüş Daire */}
-      <div className="absolute -right-1/4 -top-1/4 h-[300px] w-[300px] rounded-full bg-silver-gradient opacity-20 blur-xl md:-right-1/3 md:-top-1/3 md:h-[1000px] md:w-[1000px] md:blur-3xl" />
-
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 lg:items-center">
           {/* Sol Taraf: Metin İçeriği */}
@@ -100,7 +97,7 @@ export default function About() {
 
               <div className="flex items-center gap-2">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-silver-gradient text-white">
-                  <span className="text-xl font-bold">20K</span>
+                  <span className="text-xl font-bold">10K</span>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-[#fafafa]">

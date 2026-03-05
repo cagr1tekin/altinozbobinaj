@@ -30,7 +30,7 @@ export default function Services() {
     {
       title: "Klasik Motor Sarımı",
       description:
-        "Her türlü AC elektrik motorunun, alternatörlerin ve jeneratörlerin fabrika standartlarında sarımı, verniklenmesi ve fırınlanması işlemleri. Yüksek ısı sınıfına sahip, kaliteli bakır teller ve izolasyon malzemeleri kullanılarak motorlarınızın ömrünü uzatıyor, ilk günkü performansına kavuşturuyoruz.",
+        "Her türlü AC elektrik motorunun fabrika standartlarında sarımı, verniklenmesi ve fırınlanması işlemleri. Yüksek ısı sınıfına sahip, kaliteli bakır teller ve izolasyon malzemeleri kullanılarak motorlarınızın ömrünü uzatıyor, ilk günkü performansına kavuşturuyoruz.",
       align: "self-start text-left lg:mr-auto lg:text-left z-10 relative",
     },
     {
@@ -52,8 +52,7 @@ export default function Services() {
       id="hizmetler"
       className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
     >
-      {/* Arka Plan: Blur Gümüş Daire */}
-      <div className="absolute -left-1/4 -bottom-1/4 h-[800px] w-[800px] rounded-full bg-silver-gradient opacity-10 blur-3xl md:-left-1/3 md:-bottom-1/3 md:h-[1000px] md:w-[1000px]" />
+      <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_bottom,_rgba(148,163,184,0.18),_transparent_45%,_transparent_55%,_rgba(148,163,184,0.12))]" />
 
       <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
         <motion.div
