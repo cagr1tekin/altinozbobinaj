@@ -71,19 +71,30 @@ export default function Header() {
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center gap-3 text-2xl font-bold text-[#fafafa] transition-colors hover:text-silver-main"
+            className="flex h-full items-center gap-1 text-2xl font-bold text-[#fafafa] transition-colors hover:text-silver-main"
             aria-label="Altınöz Bobinaj Ana Sayfa"
           >
-            <div className="relative h-11 w-11 md:h-12 md:w-12 overflow-hidden">
+            {/* Sol amblem: header yüksekliğinin yaklaşık %70'i */}
+            <div className="relative h-12 w-12 md:h-14 md:w-14 overflow-hidden">
               <Image
                 src="/favicon.svg"
-                alt="Altınöz Bobinaj Logo"
+                alt="Altınöz Bobinaj Amblem"
                 fill
-                className="object-contain"
+                className="object-contain filter brightness-0 invert"
                 priority
               />
             </div>
-            <span>Altınöz Bobinaj</span>
+
+            {/* Sağda yazı-logo (logo2.webp): header yüksekliğinin yaklaşık %90'ı */}
+            <div className="relative h-16 w-36 md:h-18 md:w-48 overflow-hidden">
+              <Image
+                src="/logo2.webp"
+                alt="Altınöz Bobinaj Logo"
+                fill
+                className="object-contain filter brightness-0 invert"
+                priority
+              />
+            </div>
           </Link>
 
           {/* Menü - Desktop */}
@@ -104,7 +115,7 @@ export default function Header() {
           <Link
             href="#iletisim"
             onClick={(e) => handleSmoothScroll(e, "#iletisim")}
-            className="group relative flex items-center justify-center rounded-full bg-silver-gradient px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-silver-main/30 md:px-6 md:py-3"
+            className="group relative flex items-center justify-center rounded-xl bg-silver-gradient px-4 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-silver-main/30 md:px-6 md:py-3"
             aria-label="Teklif Al"
           >
             <span className="hidden sm:inline">Teklif Al</span>

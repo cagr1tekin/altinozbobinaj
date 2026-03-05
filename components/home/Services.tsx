@@ -69,7 +69,7 @@ export default function Services() {
               variants={itemVariants}
               className={`flex w-full flex-col gap-4 lg:max-w-[45%] ${service.align}`}
             >
-              <h2 className="text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl">
+              <h2 className="font-display text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl">
                 {service.title}
               </h2>
               <p className="text-base leading-relaxed text-gray-400 sm:text-lg md:text-xl">

@@ -49,7 +49,7 @@ export default function References() {
             {""}
           </h2>
 
-          <h3 className="text-3xl font-bold leading-tight text-[#fafafa] sm:text-4xl md:text-5xl">
+          <h3 className="font-display text-3xl font-bold leading-tight text-[#fafafa] sm:text-4xl md:text-5xl">
             <span className="text-transparent bg-clip-text bg-silver-gradient">
               Referansımız, İşçiliğimizin Kalitesidir.
             </span>
@@ -67,7 +67,7 @@ export default function References() {
               {duplicatedRow1.map((image, index) => (
                 <div
                   key={`row1-${image.id}-${index}`}
-                  className="group relative h-40 sm:h-48 md:h-56 lg:h-64 w-auto shrink-0 overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl transition-all duration-500 hover:scale-105"
+                  className="group relative h-40 sm:h-48 md:h-56 lg:h-64 w-auto shrink-0 overflow-hidden rounded-md sm:rounded-lg md:rounded-xl transition-all duration-500 hover:scale-105"
                 >
                   <Image
                     src={image.src}
@@ -93,7 +93,7 @@ export default function References() {
               {duplicatedRow2.map((image, index) => (
                 <div
                   key={`row2-${image.id}-${index}`}
-                  className="group relative h-40 sm:h-48 md:h-56 lg:h-64 w-auto shrink-0 overflow-hidden rounded-lg sm:rounded-xl md:rounded-2xl transition-all duration-500 hover:scale-105"
+                  className="group relative h-40 sm:h-48 md:h-56 lg:h-64 w-auto shrink-0 overflow-hidden rounded-md sm:rounded-lg md:rounded-xl transition-all duration-500 hover:scale-105"
                 >
                   <Image
                     src={image.src}
@@ -104,6 +104,7 @@ export default function References() {
                     style={{ width: "auto", height: "100%" }}
                     sizes="(max-width: 640px) 260px, (max-width: 768px) 320px, (max-width: 1024px) 360px, 400px"
                     loading="eager"
+                    priority
                   />
                 </div>
               ))}

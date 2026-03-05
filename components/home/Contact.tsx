@@ -89,7 +89,7 @@ export default function Contact() {
             {/* Başlık */}
             <motion.h2
               variants={itemVariants}
-              className="text-3xl font-bold text-white sm:text-4xl md:text-5xl"
+              className="font-display text-3xl font-bold text-white sm:text-4xl md:text-5xl"
             >
               Bizimle İletişime Geçin
             </motion.h2>
@@ -99,10 +99,10 @@ export default function Contact() {
               const Icon = info.icon;
               const isLink = info.href.startsWith("tel:") || info.href.startsWith("mailto:");
 
-              const CardContent = (
-                <div className="group flex items-start gap-6 rounded-2xl bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:translate-x-2 hover:border hover:border-silver-main/30 hover:bg-white/10">
+                const CardContent = (
+                  <div className="group flex items-start gap-6 rounded-xl bg-white/5 p-6 backdrop-blur-sm transition-all duration-300 hover:translate-x-2 hover:border hover:border-silver-main/30 hover:bg-white/10">
                   {/* İkon */}
-                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-silver-main/20 text-silver-main transition-colors group-hover:bg-silver-main/30">
+                  <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-silver-main/20 text-silver-main transition-colors group-hover:bg-silver-main/30">
                     <Icon className="h-7 w-7" aria-hidden="true" />
                   </div>
 
@@ -145,7 +145,7 @@ export default function Contact() {
             viewport={{ once: true, amount: 0.3 }}
             className="relative h-full min-h-[400px] max-h-[500px] lg:max-h-full w-full"
           >
-            <div className="group relative h-full w-full overflow-hidden rounded-3xl">
+            <div className="group relative h-full w-full overflow-hidden rounded-2xl">
               {/* Harita Iframe */}
               <iframe
                 src={mapUrl}

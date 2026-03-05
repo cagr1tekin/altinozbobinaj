@@ -97,7 +97,7 @@ export default function Hero() {
             {/* H1 Başlık */}
             <motion.h1
               variants={itemVariants}
-              className="text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl"
+              className="font-display text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl"
             >
               1976&apos;dan Günümüze{" "}
               <span className="text-transparent bg-clip-text bg-silver-gradient">
@@ -123,7 +123,7 @@ export default function Hero() {
               <Link
                 href="#hizmetler"
                 onClick={(e) => handleSmoothScroll(e, "#hizmetler")}
-                className="group flex items-center justify-center gap-2 rounded-full bg-silver-gradient px-8 py-4 text-base font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-silver-main/30 sm:text-lg"
+                className="group flex items-center justify-center gap-2 rounded-xl bg-silver-gradient px-8 py-3.5 text-base font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-silver-main/30 sm:text-lg"
                 aria-label="Hizmetlerimizi Görüntüle"
               >
                 Hizmetlerimiz
@@ -134,7 +134,7 @@ export default function Hero() {
               <Link
                 href="#iletisim"
                 onClick={(e) => handleSmoothScroll(e, "#iletisim")}
-                className="group flex items-center justify-center gap-2 rounded-full border-2 border-silver-main px-8 py-4 text-base font-semibold text-silver-main transition-all duration-300 hover:bg-silver-main hover:text-white sm:text-lg"
+                className="group flex items-center justify-center gap-2 rounded-xl border-2 border-silver-main px-8 py-3.5 text-base font-semibold text-silver-main transition-all duration-300 hover:bg-silver-main hover:text-white sm:text-lg"
                 aria-label="İletişime Geç"
               >
                 <Phone className="h-5 w-5" />
@@ -151,7 +151,7 @@ export default function Hero() {
             className="relative w-full"
           >
             {/* Ana Görsel */}
-            <div className="relative w-full aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/10 to-silver-dark/30 shadow-xl md:shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
+            <div className="relative w-full aspect-square overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-silver-light/10 to-silver-dark/30 shadow-xl md:shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
               <div className="relative h-full w-full">
                 <Image
                   src="/images/referanslar/2.webp"
@@ -171,10 +171,10 @@ export default function Hero() {
               variants={cardVariants}
               initial={shouldReduceMotion ? false : "hidden"}
               animate="visible"
-              className="absolute -bottom-6 -left-6 rounded-2xl bg-[#18181b]/75 backdrop-blur-sm md:backdrop-blur-md p-5 md:p-6 shadow-lg md:shadow-xl border border-white/10 md:-bottom-8 md:-left-8"
+              className="absolute -bottom-6 -left-6 rounded-lg bg-[#18181b]/75 backdrop-blur-sm md:backdrop-blur-md p-5 md:p-6 shadow-lg md:shadow-xl border border-white/10 md:-bottom-8 md:-left-8"
             >
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-silver-gradient text-2xl font-bold text-white">
+                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-silver-gradient text-2xl font-bold text-white">
                   50+
                 </div>
                 <div>

@@ -58,7 +58,7 @@ export default function About() {
           >
             <motion.h2
               variants={itemVariants}
-              className="text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl"
+              className="font-display text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl"
             >
               Hakkımızda
             </motion.h2>
@@ -87,7 +87,7 @@ export default function About() {
               className="flex flex-wrap gap-4 pt-4"
             >
               <div className="flex items-center gap-2">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-silver-gradient text-white">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-silver-gradient text-white">
                   <span className="text-xl font-bold">50+</span>
                 </div>
                 <div>
@@ -99,7 +99,7 @@ export default function About() {
               </div>
 
               <div className="flex items-center gap-2">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-silver-gradient text-white">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-silver-gradient text-white">
                   <span className="text-xl font-bold">20K</span>
                 </div>
                 <div>
@@ -120,7 +120,7 @@ export default function About() {
             className="relative w-full"
           >
             {/* Ana Görsel */}
-            <div className="relative w-full aspect-square overflow-hidden rounded-[3rem] rounded-tr-[5rem] bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
+            <div className="relative w-full aspect-square overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-silver-light/20 to-silver-dark/20 shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
               <div className="relative h-full w-full">
                 <Image
                   src="/images/referanslar/ref2.webp"

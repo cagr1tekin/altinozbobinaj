@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
@@ -7,6 +7,12 @@ import "./globals.css";
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const playfairDisplay = Playfair_Display({
+  variable: "--font-playfair-display",
   subsets: ["latin"],
   display: "swap",
 });
@@ -131,7 +137,7 @@ export default function RootLayout({
 
   return (
     <html lang="tr">
-      <body className={`${plusJakarta.variable} font-sans`}>
+      <body className={`${plusJakarta.variable} ${playfairDisplay.variable} font-sans`}>
         {/* Google Analytics - ID'yi .env dosyasına eklemeyi unutmayın: NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX */}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_ID} />

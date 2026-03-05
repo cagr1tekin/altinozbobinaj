@@ -23,6 +23,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-plus-jakarta)", "sans-serif"],
+        display: ["var(--font-playfair-display)", "serif"],
       },
       keyframes: {
         marquee: {
