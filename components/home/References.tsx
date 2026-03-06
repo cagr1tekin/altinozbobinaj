@@ -33,7 +33,7 @@ const row1Images = [
   {
     id: 6,
     src: "/images/referanslar/Gemini_Generated_Image_1fnlnr1fnlnr1fnl.webp",
-    alt: "Karesi Altınöz Bobinaj klasik motor sarımı ve bakım hizmeti",
+    alt: "Karesi Altınöz Bobinaj elektrik motoru sarımı ve bakım hizmeti",
   },
   {
     id: 7,

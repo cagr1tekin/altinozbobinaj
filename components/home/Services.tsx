@@ -28,7 +28,7 @@ export default function Services() {
 
   const services = [
     {
-      title: "Klasik Motor Sarımı",
+      title: "Elektrik Motoru Sarımı",
       description:
         "Her türlü AC elektrik motorunun fabrika standartlarında sarımı, verniklenmesi ve fırınlanması işlemleri. Yüksek ısı sınıfına sahip, kaliteli bakır teller ve izolasyon malzemeleri kullanılarak motorlarınızın ömrünü uzatıyor, ilk günkü performansına kavuşturuyoruz.",
       align: "self-start text-left lg:mr-auto lg:text-left z-10 relative",

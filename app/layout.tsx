@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://altinozbobinaj.com"),
   title: "Altınöz Bobinaj | Balıkesir Bobinaj ve Motor Sarımı",
   description:
-    "Balıkesir Karesi'de profesyonel bobinaj, klasik motor sarımı, su pompası revizyonu ve fren bobini sarımı hizmetleri. Endüstriyel motor bakım ve onarımında güvenilir çözüm ortağınız.",
+    "Balıkesir Karesi'de profesyonel bobinaj, elektrik motoru sarımı, su pompası revizyonu ve fren bobini sarımı hizmetleri. Endüstriyel motor bakım ve onarımında güvenilir çözüm ortağınız.",
   keywords: [
     "bobinaj",
     "motor sarımı",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Altınöz Bobinaj | Balıkesir Bobinaj ve Motor Sarımı",
     description:
-      "Balıkesir Karesi'de profesyonel bobinaj, klasik motor sarımı, su pompası revizyonu ve fren bobini sarımı hizmetleri.",
+      "Balıkesir Karesi'de profesyonel bobinaj, elektrik motoru sarımı, su pompası revizyonu ve fren bobini sarımı hizmetleri.",
     type: "website",
     locale: "tr_TR",
     siteName: "Altınöz Bobinaj",
@@ -72,7 +72,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Altınöz Bobinaj | Balıkesir Bobinaj ve Motor Sarımı",
     description:
-      "Balıkesir Karesi'de profesyonel bobinaj, klasik motor sarımı, su pompası revizyonu ve fren bobini sarımı hizmetleri.",
+      "Balıkesir Karesi'de profesyonel bobinaj, elektrik motoru sarımı, su pompası revizyonu ve fren bobini sarımı hizmetleri.",
     images: ["/images/referanslar/IMG_5595.webp"],
   },
   robots: {
