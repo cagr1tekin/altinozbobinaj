@@ -60,7 +60,7 @@ export default function Footer() {
     {
       title: "Hizmetlerimiz",
       links: [
-        { label: "Klasik Motor Sarımı", href: "#hizmetler" },
+        { label: "Elektrik Motoru Sarımı", href: "#hizmetler" },
         { label: "Su Pompası Revizyon", href: "#hizmetler" },
         { label: "Parça Tedarik", href: "#hizmetler" },
         { label: "Fren Bobini Sarımı", href: "#hizmetler" },

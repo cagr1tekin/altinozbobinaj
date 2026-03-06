@@ -135,6 +135,64 @@ export default function RootLayout({
     servesCuisine: "Bobinaj ve Motor Bakımı",
   };
 
+  const referencesItemListJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "Altınöz Bobinaj Referans Görselleri",
+    description:
+      "Balıkesir Karesi'de Altınöz Bobinaj tarafından tamamlanan seçili motor sarımı, su pompası revizyonu ve endüstriyel bakım onarım referans çalışmaları.",
+    itemListElement: [
+      {
+        "@type": "ImageObject",
+        position: 1,
+        url: "https://altinozbobinaj.com/images/referanslar/IMG_5595.webp",
+        name: "Balıkesir Altınöz Bobinaj komple elektrik motor revizyonu referansı",
+        description:
+          "Balıkesir Altınöz Bobinaj tarafından gerçekleştirilen komple elektrik motor revizyonu ve sarımı referans çalışması.",
+      },
+      {
+        "@type": "ImageObject",
+        position: 2,
+        url: "https://altinozbobinaj.com/images/referanslar/IMG_5615.webp",
+        name: "Yüksek voltajlı elektrik motor sarımı Altınöz Bobinaj Balıkesir",
+        description:
+          "Balıkesir'de yüksek voltajlı elektrik motor sarımı ve izolasyon işlemi Altınöz Bobinaj referans görseli.",
+      },
+      {
+        "@type": "ImageObject",
+        position: 3,
+        url: "https://altinozbobinaj.com/images/referanslar/IMG_7183.webp",
+        name: "Balıkesir ağır sanayi elektrik motoru sargısı referansı",
+        description:
+          "Balıkesir ağır sanayi elektrik motoru sargısı ve bakım onarım hizmeti Altınöz Bobinaj referans çalışması.",
+      },
+      {
+        "@type": "ImageObject",
+        position: 4,
+        url: "https://altinozbobinaj.com/images/referanslar/IMG_5289.webp",
+        name: "Servo motor tamiri ve test hattı Altınöz Bobinaj",
+        description:
+          "Altınöz Bobinaj Balıkesir atölyesinde gerçekleştirilen servo motor tamiri ve test hattı referans görseli.",
+      },
+      {
+        "@type": "ImageObject",
+        position: 5,
+        url: "https://altinozbobinaj.com/images/referanslar/IMG_4804.webp",
+        name: "Balıkesir endüstriyel motor sarımı referans görseli",
+        description:
+          "Balıkesir'de endüstriyel elektrik motor sarımı ve balans ayarı Altınöz Bobinaj referans fotoğrafı.",
+      },
+      {
+        "@type": "ImageObject",
+        position: 6,
+        url: "https://altinozbobinaj.com/images/referanslar/IMG_5600.webp",
+        name: "Trafo ve özel bobin sargısı Altınöz Bobinaj Balıkesir",
+        description:
+          "Trafo ve özel bobin sargısı üzerine Balıkesir Altınöz Bobinaj tarafından gerçekleştirilen referans çalışması.",
+      },
+    ],
+  };
+
   return (
     <html lang="tr">
       <body className={`${plusJakarta.variable} ${playfairDisplay.variable} font-sans`}>
@@ -146,6 +204,10 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(referencesItemListJsonLd) }}
         />
         <Header />
         <main className="min-h-screen pt-20">{children}</main>
