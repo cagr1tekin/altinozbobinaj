@@ -39,23 +39,45 @@ GA ID tanımlı değilse Google Analytics script'i hiç yüklenmez.
 
 ```
 app/
-  layout.tsx        # metadata, OG/Twitter, JSON-LD (ProfessionalService + ItemList), fontlar
-  page.tsx          # bölümlerin sırası
+  layout.tsx        # html/body, fontlar, GA (her rota icin ortak)
+  globals.css       # Tailwind katmanlari + base stiller
   not-found.tsx     # 404
   robots.ts         # robots.txt
   sitemap.ts        # sitemap.xml
-  globals.css       # Tailwind katmanları + base stiller
+  (site)/           # pazarlama sitesi — header/footer/cagri bari
+    layout.tsx      #   site metadata, OG/Twitter, JSON-LD
+    page.tsx        #   bolumlerin sirasi
+    opengraph-image.tsx
+  giris/            # personel girisi
+  yonetim/          # yonetim paneli (korumali)
+  j/[token]/        # QR ile acilan salt-okunur malzeme sayfasi
 components/
-  layout/           # Header (mobil menü dahil), Footer
+  layout/           # Header (mobil menu dahil), Footer, MobileCallBar
   home/             # Hero, Services, About, References, Contact
-  GoogleAnalytics.tsx
+  yonetim/          # panel formlari ve ortak arayuz parcalari
 lib/
-  scroll.ts         # header offset'li yumuşak kaydırma (tek kaynak)
-  motion.ts         # paylaşılan Framer Motion varyantları
-public/images/referanslar/   # referans galerisi görselleri
-scripts/            # tek seferlik yardımcı script'ler
-ark/, ark.webp/     # yerel görsel çalışma klasörleri (gitignore'da)
+  scroll.ts         # header offset'li yumusak kaydirma (tek kaynak)
+  motion.ts         # paylasilan Framer Motion varyantlari
+  supabase/         # istemciler, middleware, veritabani tipleri
+  actions/          # server action'lar
+  validation/       # zod semalari
+supabase/
+  migrations/       # SQL sema, fonksiyonlar, RLS politikalari
+  tests/            # yerel Postgres davranis testleri
+  README.md         # kurulum ve mimari kararlar
+middleware.ts       # oturum yenileme + panel korumasi
+public/images/referanslar/   # referans galerisi gorselleri
+scripts/            # yardimci script'ler ve sema testi
+ark/, ark.webp/     # yerel gorsel calisma klasorleri (gitignore'da)
 ```
+
+## Yönetim Paneli
+
+Müşteri → segment → iş → malzeme akışı, stok takibi ve QR ile malzeme
+şeffaflığı. Kurulum ve mimari kararlar: [`supabase/README.md`](supabase/README.md).
+
+Panel Supabase yapılandırılmadan da derlenir; `/yonetim` bu durumda
+kurulum talimatını gösterir.
 
 ## Tasarım Sistemi
 
