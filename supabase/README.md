@@ -10,10 +10,27 @@ kısmı. Fatura girişi, dashboard ve PDF çıktıları henüz yok (bkz. en alt)
    bölge, gecikme farkı hissedilir.
 2. Veritabanı şifresini bir parola yöneticisine kaydedin.
 
-## 2. Migration'ları uygulayın
+## 2. Kendi kaydolmayı (signup) kapatın — ÖNEMLİ
 
-Supabase panelinde **SQL Editor**'ü açın ve dosyaları **numara sırasıyla**
-çalıştırın:
+**Authentication → Sign In / Providers → Email** altında
+**"Allow new users to sign up"** seçeneğini **kapatın**.
+
+Bu bir iç araç: RLS politikaları `authenticated` rolüne tüm verilere erişim
+veriyor (PRD Bölüm 3, tek iç kullanıcı rolü). Signup açık kalırsa herhangi
+biri e-postayla kayıt olup müşteri, iş ve stok verisinin tamamına erişir.
+
+Personel hesapları **Authentication → Users → Add user** ile elle açılır.
+
+## 3. Migration'ları uygulayın
+
+**Kolay yol:** `kurulum-tumu.sql` dosyasının tamamını kopyalayıp Supabase
+panelinde **SQL Editor**'e yapıştırın ve çalıştırın. Bu dosya aşağıdaki üç
+migration'ın sırayla birleştirilmiş hâlidir ve sonunda bir doğrulama sorgusu
+çalıştırır — **9 tablo / 5 fonksiyon / 10 politika** görmelisiniz.
+
+Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
+
+**Ayrı ayrı uygulamak isterseniz** dosyaları **numara sırasıyla** çalıştırın:
 
 | Sıra | Dosya | İçerik |
 |---|---|---|
@@ -24,14 +41,14 @@ Supabase panelinde **SQL Editor**'ü açın ve dosyaları **numara sırasıyla**
 `tests/00_supabase_shim.sql` dosyasını **çalıştırmayın** — o yalnızca yerel
 Postgres'te test için, Supabase'de bu roller zaten var.
 
-## 3. Personel kullanıcısı oluşturun
+## 4. Personel kullanıcısı oluşturun
 
 **Authentication → Users → Add user** ile e-posta ve şifre girin.
 
 Kayıt (sign-up) formu bilinçli olarak yok: bu bir iç araç, herkesin hesap
 açabilmesi gerekmiyor. Yeni personel için buradan kullanıcı eklenir.
 
-## 4. Ortam değişkenleri
+## 5. Ortam değişkenleri
 
 Kök dizindeki `.env.example` dosyasını `.env` olarak kopyalayın ve
 **Project Settings → API** bilgileriyle doldurun:
@@ -43,13 +60,20 @@ NEXT_PUBLIC_SITE_URL=https://altinozbobinaj.com
 ```
 
 `anon` anahtarı tarayıcıya gider — bu normaldir, güvenliği RLS sağlar.
-**`service_role` anahtarını hiçbir yere koymayın**: RLS'i baypas eder ve
-tüm yetki modelini anlamsız kılar.
+**`service_role` / secret anahtarını hiçbir yere koymayın**: RLS'i baypas
+eder ve tüm yetki modelini anlamsız kılar. Kod bilinçli olarak yalnızca
+`anon` anahtarını kullanır.
+
+Supabase panelindeki **Session / Transaction pooler** ve **Direct connection**
+bağlantı adreslerine ihtiyaç yoktur — onlar doğrudan Postgres'e bağlanan
+araçlar (psql, Prisma, Drizzle) içindir. Bu proje REST API üzerinden
+çalışır, yalnızca **Project URL** gerekir. Veritabanı parolası da `.env`'de
+saklanmamalıdır, kod onu kullanmaz.
 
 Vercel'de aynı üç değişkeni **Settings → Environment Variables** altına
 ekleyin.
 
-## 5. Çalıştırın
+## 6. Çalıştırın
 
 ```bash
 npm install
