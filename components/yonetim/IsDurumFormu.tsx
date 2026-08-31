@@ -6,6 +6,11 @@ import { Form, GonderButonu } from "@/components/yonetim/Form";
 
 /**
  * Bekliyor <-> Devam ediyor geçişi.
+ *
+ * Yeni işler doğrudan "devam ediyor" başlıyor (ayrıca başlatmak gerekmiyor),
+ * bu yüzden buton çoğunlukla "Beklemeye Al" olarak görünür. Beklemeye alınan
+ * bir iş buradan tekrar devam ettirilebiliyor.
+ *
  * Tamamlama bilinçli olarak burada değil: stok düşümü ve QR üretimi
  * gerektirdiği için ayrı bir akış (TamamlamaPaneli).
  */
@@ -25,7 +30,7 @@ export default function IsDurumFormu({
           <input type="hidden" name="job_id" value={isId} />
           <input type="hidden" name="status" value={hedef} />
           <GonderButonu ikincil>
-            {hedef === "in_progress" ? "İşe Başla" : "Beklemeye Al"}
+            {hedef === "in_progress" ? "Devam Ettir" : "Beklemeye Al"}
           </GonderButonu>
         </>
       )}

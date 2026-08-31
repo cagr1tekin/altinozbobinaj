@@ -19,6 +19,9 @@ export default function IsFormu({ segmentId }: { segmentId: string }) {
               hatalar={hatalar}
             />
             <Alan ad="description" etiket="Açıklama" cokSatir hatalar={hatalar} />
+            <p className="text-xs text-paper-muted">
+              Eklenen iş doğrudan &quot;devam ediyor&quot; durumunda başlar.
+            </p>
             <GonderButonu>İş Ekle</GonderButonu>
           </div>
         );

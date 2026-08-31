@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Altınöz Bobinaj — Yönetim Paneli, tüm kurulum SQL'i
 --
--- Bu dosya supabase/migrations/ altındaki üç dosyanın SIRAYLA birleştirilmiş
+-- Bu dosya supabase/migrations/ altındaki dosyaların SIRAYLA birleştirilmiş
 -- hâlidir. Supabase panelinde SQL Editor'e tek seferde yapıştırıp
 -- çalıştırabilirsiniz.
 --
@@ -712,6 +712,194 @@ grant execute on function add_job_product(uuid, uuid, integer, numeric) to authe
 -- QR sayfası girişsiz açılıyor: anon yalnızca bu fonksiyonu çağırabilir
 grant execute on function public_job_by_token(text) to anon, authenticated;
 
+-- #############################################################################
+-- # 0004_faz2_fatura_dashboard.sql
+-- # FAZ 2: maliyet hesabi, dashboard, is akisi revizyonu
+-- #############################################################################
+
+-- =============================================================================
+-- Faz 2: Fatura ve dashboard + iş akışı revizyonu
+--
+-- 1) Yeni iş doğrudan "devam ediyor" başlar (kullanıcı isteği): sahada işin
+--    ayrıca "başlat" denmesi gereksiz bir adımdı. "Bekliyor" durumu
+--    kaldırılmadı; iş sonradan beklemeye alınabiliyor.
+-- 2) Maliyet hesabı: adet ve kilogram aynı birim fiyatla toplanıyordu
+--    (geçici çözüm). Artık ürünün takip birimine göre hesaplanıyor.
+-- =============================================================================
+
+-- -----------------------------------------------------------------------------
+-- 1) Yeni işler doğrudan "devam ediyor"
+-- -----------------------------------------------------------------------------
+alter table jobs alter column status set default 'in_progress';
+
+-- -----------------------------------------------------------------------------
+-- 2) Maliyet hesabı
+--
+-- products.purchase_price tek bir alan ama ürün hem adet hem kg ile
+-- izlenebiliyor. Fiyatın hangi birime ait olduğu unit_type_default ile
+-- belirleniyor:
+--   piece -> fiyat adet başına
+--   kg    -> fiyat kilogram başına
+--   both  -> fiyat her iki birim için de geçerli sayılıyor (ikisi toplanır)
+--
+-- 'both' varsayımı matematiksel olarak zayıf; adet ve kg için farklı fiyat
+-- gerekiyorsa products'a ayrı bir fiyat alanı eklenmeli. Şu an ürünlerin
+-- büyük çoğunluğu tek birimle izlendiği için bu varsayımla ilerleniyor ve
+-- arayüzde de belirtiliyor.
+-- -----------------------------------------------------------------------------
+create or replace function job_product_cost(
+  p_unit_type unit_type,
+  p_unit_cost numeric,
+  p_qty_pieces integer,
+  p_qty_kg numeric
+)
+returns numeric
+language sql
+immutable
+as $$
+  select case p_unit_type
+    when 'piece' then p_unit_cost * p_qty_pieces
+    when 'kg'    then p_unit_cost * p_qty_kg
+    else              p_unit_cost * (p_qty_pieces + p_qty_kg)
+  end;
+$$;
+
+-- İş başına toplam malzeme maliyeti
+create or replace view job_costs as
+select
+  j.id as job_id,
+  j.segment_id,
+  coalesce(sum(
+    job_product_cost(p.unit_type_default, jp.unit_cost_snapshot,
+                     jp.qty_pieces_used, jp.qty_kg_used)
+  ), 0)::numeric(14,2) as material_cost
+from jobs j
+left join job_products jp on jp.job_id = j.id
+left join products p on p.id = jp.product_id
+group by j.id, j.segment_id;
+
+-- -----------------------------------------------------------------------------
+-- 3) Dönemsel özet (dashboard)
+--
+-- Gelir faturalardan, maliyet tamamlanmış işlerin malzemelerinden geliyor.
+-- Tamamlanmamış işlerin maliyeti sayılmıyor: malzemesi henüz stoktan
+-- düşmediği için gerçekleşmiş bir gider değil.
+-- -----------------------------------------------------------------------------
+create or replace function dashboard_summary(
+  p_start date,
+  p_end date
+)
+returns jsonb
+language sql
+stable
+security invoker
+set search_path = public, pg_temp
+as $$
+  with gelir as (
+    select
+      coalesce(sum(gross_amount), 0)::numeric(14,2) as brut,
+      coalesce(sum(net_amount), 0)::numeric(14,2)   as net,
+      coalesce(sum(tax_amount), 0)::numeric(14,2)   as vergi,
+      count(*)                                       as fatura_sayisi
+    from invoices
+    where issue_date between p_start and p_end
+  ),
+  maliyet as (
+    select coalesce(sum(jc.material_cost), 0)::numeric(14,2) as toplam
+    from jobs j
+    join job_costs jc on jc.job_id = j.id
+    where j.status = 'completed'
+      and j.completed_at::date between p_start and p_end
+  ),
+  isler as (
+    select
+      count(*) filter (where status = 'completed'
+                         and completed_at::date between p_start and p_end) as tamamlanan,
+      count(*) filter (where status <> 'completed')                        as acik
+    from jobs
+  )
+  select jsonb_build_object(
+    'baslangic', p_start,
+    'bitis', p_end,
+    'brut_gelir', gelir.brut,
+    'net_gelir', gelir.net,
+    'vergi', gelir.vergi,
+    'fatura_sayisi', gelir.fatura_sayisi,
+    'malzeme_maliyeti', maliyet.toplam,
+    'kar_zarar', (gelir.net - maliyet.toplam)::numeric(14,2),
+    'tamamlanan_is', isler.tamamlanan,
+    'acik_is', isler.acik
+  )
+  from gelir, maliyet, isler;
+$$;
+
+-- -----------------------------------------------------------------------------
+-- 4) Müşteri bazlı kırılım (dashboard)
+-- -----------------------------------------------------------------------------
+create or replace function dashboard_by_customer(
+  p_start date,
+  p_end date
+)
+returns table (
+  customer_id uuid,
+  customer_name text,
+  net_gelir numeric,
+  malzeme_maliyeti numeric,
+  kar_zarar numeric,
+  tamamlanan_is bigint
+)
+language sql
+stable
+security invoker
+set search_path = public, pg_temp
+as $$
+  with gelir as (
+    select customer_id, sum(net_amount) as net
+    from invoices
+    where issue_date between p_start and p_end
+    group by customer_id
+  ),
+  maliyet as (
+    select s.customer_id, sum(jc.material_cost) as tutar, count(*) as is_sayisi
+    from jobs j
+    join segments s on s.id = j.segment_id
+    join job_costs jc on jc.job_id = j.id
+    where j.status = 'completed'
+      and j.completed_at::date between p_start and p_end
+    group by s.customer_id
+  )
+  select
+    c.id,
+    c.name,
+    coalesce(g.net, 0)::numeric(14,2),
+    coalesce(m.tutar, 0)::numeric(14,2),
+    (coalesce(g.net, 0) - coalesce(m.tutar, 0))::numeric(14,2),
+    coalesce(m.is_sayisi, 0)
+  from customers c
+  left join gelir g on g.customer_id = c.id
+  left join maliyet m on m.customer_id = c.id
+  where g.net is not null or m.tutar is not null
+  order by (coalesce(g.net, 0) - coalesce(m.tutar, 0)) desc;
+$$;
+
+-- -----------------------------------------------------------------------------
+-- 5) Yetkiler
+--
+-- View'ler security_invoker ile çalışıyor: sorgu, çağıran kullanıcının
+-- yetkisiyle ve dolayısıyla RLS politikalarıyla değerlendiriliyor.
+-- Bu olmadan view sahibinin yetkisiyle çalışır ve RLS baypas edilir.
+-- -----------------------------------------------------------------------------
+alter view job_costs set (security_invoker = on);
+
+revoke all on function dashboard_summary(date, date) from public;
+revoke all on function dashboard_by_customer(date, date) from public;
+revoke all on function job_product_cost(unit_type, numeric, integer, numeric) from public;
+
+grant execute on function dashboard_summary(date, date) to authenticated;
+grant execute on function dashboard_by_customer(date, date) to authenticated;
+grant execute on function job_product_cost(unit_type, numeric, integer, numeric) to authenticated;
+grant select on job_costs to authenticated;
+
 -- =============================================================================
 -- Kurulum tamamlandı. Doğrulama sorgusu:
 -- =============================================================================
@@ -720,11 +908,16 @@ select
      where table_schema = 'public'
        and table_name in ('customers','segments','jobs','products',
                           'job_products','stock_movements','invoices',
-                          'qr_codes','pdf_exports')) as tablo_sayisi_beklenen_9,
+                          'qr_codes','pdf_exports')) as tablo_beklenen_9,
   (select count(*) from information_schema.routines
      where routine_schema = 'public'
        and routine_name in ('complete_job','revert_job_completion',
                             'apply_stock_movement','add_job_product',
-                            'public_job_by_token')) as fonksiyon_sayisi_beklenen_5,
+                            'public_job_by_token','dashboard_summary',
+                            'dashboard_by_customer','job_product_cost'))
+    as fonksiyon_beklenen_8,
   (select count(*) from pg_policies where schemaname = 'public')
-    as politika_sayisi_beklenen_10;
+    as politika_beklenen_10,
+  (select count(*) from information_schema.views
+     where table_schema = 'public' and table_name = 'job_costs')
+    as view_beklenen_1;

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { LayoutDashboard, Users, Package, LogOut } from "lucide-react";
+import { LayoutDashboard, Users, Package, Receipt, LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { cikisYap } from "@/lib/actions/oturum";
@@ -15,6 +15,7 @@ const menu = [
   { href: "/yonetim", etiket: "Özet", ikon: LayoutDashboard },
   { href: "/yonetim/musteriler", etiket: "Müşteriler", ikon: Users },
   { href: "/yonetim/urunler", etiket: "Ürünler & Stok", ikon: Package },
+  { href: "/yonetim/faturalar", etiket: "Faturalar", ikon: Receipt },
 ];
 
 export default async function YonetimLayout({

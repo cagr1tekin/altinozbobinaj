@@ -45,3 +45,6 @@ next-env.d.ts
 # yerel gorsel calisma klasorleri (deploy edilmez)
 /ark/
 /ark.webp/
+
+# kok dizine birakilan belgeler (fatura/irsaliye vb.) repoya girmesin
+/*.pdf

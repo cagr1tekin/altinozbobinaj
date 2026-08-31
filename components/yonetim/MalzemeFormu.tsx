@@ -64,6 +64,12 @@ export default function MalzemeFormu({
               çevrilmez. Yalnızca kullandığınız birimi doldurun.
             </p>
 
+            {/* Stogun ne zaman dustugu belirsiz kaliyordu; acikca yaziliyor */}
+            <p className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-paper-muted">
+              Malzeme eklemek stoğu <strong className="text-paper">düşürmez</strong>.
+              Stok, iş <strong className="text-paper">tamamlandığında</strong> düşülür.
+            </p>
+
             <GonderButonu>Malzeme Ekle</GonderButonu>
           </div>
         );

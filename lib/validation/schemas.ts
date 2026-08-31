@@ -130,6 +130,54 @@ export const isMalzemeSchema = z
     path: ["qty_pieces"],
   });
 
+/* Fatura tutarlari: brut = net + vergi olmali. Muhasebe kaydinin kendi
+   icinde tutarsiz olmasi, dashboard'daki kar/zarar hesabini sessizce
+   bozuyor; bu yuzden girise izin verilmiyor. */
+export const faturaSchema = z
+  .object({
+    customer_id: z.string().uuid("Müşteri seçilmedi"),
+    segment_id: z
+      .string()
+      .trim()
+      .optional()
+      .transform((v) => (v && v.length > 0 ? v : null))
+      .refine((v) => v === null || z.string().uuid().safeParse(v).success, {
+        message: "Geçersiz segment",
+      }),
+    invoice_no: opsiyonelMetin(60),
+    gross_amount: sayi("Brüt tutar"),
+    net_amount: sayi("Net tutar"),
+    tax_amount: sayi("Vergi"),
+    issue_date: z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih seçilmeli"),
+    note: opsiyonelMetin(1000),
+  })
+  .refine((d) => d.net_amount <= d.gross_amount, {
+    message: "Net tutar brüt tutardan büyük olamaz",
+    path: ["net_amount"],
+  })
+  .refine(
+    (d) => Math.abs(d.gross_amount - (d.net_amount + d.tax_amount)) < 0.01,
+    {
+      message: "Brüt tutar, net tutar ile verginin toplamına eşit olmalı",
+      path: ["gross_amount"],
+    }
+  );
+
+/* Dashboard tarih araligi */
+export const donemSchema = z
+  .object({
+    baslangic: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    bitis: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  })
+  .refine((d) => d.baslangic <= d.bitis, {
+    message: "Başlangıç tarihi bitişten sonra olamaz",
+    path: ["baslangic"],
+  });
+
+export type FaturaInput = z.infer<typeof faturaSchema>;
 export type MusteriInput = z.infer<typeof musteriSchema>;
 export type SegmentInput = z.infer<typeof segmentSchema>;
 export type IsInput = z.infer<typeof isSchema>;

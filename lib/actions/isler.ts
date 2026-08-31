@@ -22,9 +22,14 @@ export async function isOlustur(
   if (!parsed.success) return zodHatasi(parsed.error);
 
   const supabase = await createClient();
+
+  /* Yeni iş doğrudan "devam ediyor" başlıyor: sahada ayrıca "başlat"
+     demek gereksiz bir adımdı. Veritabanı varsayılanı da 0004
+     migration'ında in_progress yapıldı; burada açıkça gönderilmesi,
+     varsayılan uygulanmamış bir ortamda da aynı davranışı garantiliyor. */
   const { data, error } = await supabase
     .from("jobs")
-    .insert(parsed.data)
+    .insert({ ...parsed.data, status: "in_progress" })
     .select("id, segment_id")
     .single();
 

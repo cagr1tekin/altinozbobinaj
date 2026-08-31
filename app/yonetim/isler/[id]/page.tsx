@@ -7,7 +7,7 @@ import {
   IsDurumu,
   Kart,
   Miktar,
-  formatKg,
+  formatPara,
   formatTarihSaat,
 } from "@/components/yonetim/ui";
 import MalzemeFormu from "@/components/yonetim/MalzemeFormu";
@@ -41,6 +41,15 @@ export default async function IsDetaySayfasi({
       .order("name", { ascending: true }),
   ]);
 
+  /* Maliyet, ürünün takip birimine göre veritabanında hesaplanıyor
+     (job_costs view'i). Adet ve kilogramı aynı fiyatla toplayan geçici
+     çözüm 0004 migration'ı ile kaldırıldı. */
+  const { data: maliyetSatiri } = await supabase
+    .from("job_costs")
+    .select("material_cost")
+    .eq("job_id", id)
+    .maybeSingle();
+
   if (!is) notFound();
 
   const segment = is.segments as unknown as {
@@ -66,13 +75,7 @@ export default async function IsDetaySayfasi({
   const qr = is.qr_codes as unknown as { token: string } | null;
   const tamamlandiMi = is.status === "completed";
 
-  /* Toplam malzeme maliyeti: unit_cost_snapshot, malzeme eklendiği andaki
-     alış fiyatı. Ürün fiyatı sonradan değişse bile bu iş için sabit. */
-  const toplamMaliyet = malzemeler.reduce(
-    (acc, m) =>
-      acc + Number(m.unit_cost_snapshot) * (m.qty_pieces_used + Number(m.qty_kg_used)),
-    0
-  );
+  const toplamMaliyet = Number(maliyetSatiri?.material_cost ?? 0);
 
   /* Tamamlama öncesi stok kontrolü. Nihai karar veritabanında veriliyor;
      bu yalnızca kullanıcıya önden uyarı göstermek için. */
@@ -155,6 +158,21 @@ export default async function IsDetaySayfasi({
               Kullanılan malzemeler
             </h2>
 
+            {!tamamlandiMi && malzemeler.length > 0 && (
+              <p className="mb-3 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-paper-muted">
+                Bu malzemeler <strong className="text-paper">henüz stoktan
+                düşülmedi</strong>. Düşüm, iş tamamlandığında yapılır.
+              </p>
+            )}
+
+            {tamamlandiMi && malzemeler.length > 0 && (
+              <p className="mb-3 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-paper-muted">
+                Bu malzemeler{" "}
+                <strong className="text-paper">stoktan düşüldü</strong>.
+                Tamamlamayı geri alırsanız stoğa iade edilir.
+              </p>
+            )}
+
             {malzemeler.length === 0 ? (
               <Kart>
                 <p className="text-sm text-paper-muted">
@@ -189,7 +207,7 @@ export default async function IsDetaySayfasi({
                           />
                         </td>
                         <td className="px-5 py-3 text-paper-muted">
-                          {formatKg(m.unit_cost_snapshot)} ₺
+                          {formatPara(m.unit_cost_snapshot)}
                         </td>
                         {!tamamlandiMi && (
                           <td className="px-5 py-3 text-right">
@@ -205,13 +223,13 @@ export default async function IsDetaySayfasi({
 
             {malzemeler.length > 0 && (
               <p className="mt-3 text-sm text-paper-muted">
-                Yaklaşık malzeme maliyeti:{" "}
+                Toplam malzeme maliyeti:{" "}
                 <span className="font-medium text-paper">
-                  {formatKg(toplamMaliyet)} ₺
+                  {formatPara(toplamMaliyet)}
                 </span>{" "}
                 <span className="text-xs">
-                  (adet ve kg aynı birim fiyatla toplanıyor — kesin maliyet
-                  raporlaması Faz 2&apos;de ele alınacak)
+                  (her malzeme, işe eklendiği andaki alış fiyatıyla ve ürünün
+                  takip birimine göre hesaplanır)
                 </span>
               </p>
             )}

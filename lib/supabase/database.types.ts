@@ -126,6 +126,30 @@ export type CompleteJobResult = {
   material_lines: number;
 };
 
+/** dashboard_summary() dönüş şekli */
+export type DashboardOzet = {
+  baslangic: string;
+  bitis: string;
+  brut_gelir: number;
+  net_gelir: number;
+  vergi: number;
+  fatura_sayisi: number;
+  malzeme_maliyeti: number;
+  kar_zarar: number;
+  tamamlanan_is: number;
+  acik_is: number;
+};
+
+/** dashboard_by_customer() satır şekli */
+export type DashboardMusteri = {
+  customer_id: string;
+  customer_name: string;
+  net_gelir: number;
+  malzeme_maliyeti: number;
+  kar_zarar: number;
+  tamamlanan_is: number;
+};
+
 /** public_job_by_token() dönüş şekli — ticari bilgi içermez */
 export type PublicJobView = {
   job_title: string;
@@ -322,7 +346,16 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: Record<never, never>;
+    Views: {
+      job_costs: {
+        Row: {
+          job_id: string;
+          segment_id: string;
+          material_cost: number;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       complete_job: {
         Args: { p_job_id: string; p_allow_negative?: boolean };
@@ -354,6 +387,14 @@ export type Database = {
       public_job_by_token: {
         Args: { p_token: string };
         Returns: PublicJobView | null;
+      };
+      dashboard_summary: {
+        Args: { p_start: string; p_end: string };
+        Returns: DashboardOzet;
+      };
+      dashboard_by_customer: {
+        Args: { p_start: string; p_end: string };
+        Returns: DashboardMusteri[];
       };
     };
     Enums: {

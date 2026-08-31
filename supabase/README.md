@@ -26,7 +26,7 @@ Personel hesapları **Authentication → Users → Add user** ile elle açılır
 **Kolay yol:** `kurulum-tumu.sql` dosyasının tamamını kopyalayıp Supabase
 panelinde **SQL Editor**'e yapıştırın ve çalıştırın. Bu dosya aşağıdaki üç
 migration'ın sırayla birleştirilmiş hâlidir ve sonunda bir doğrulama sorgusu
-çalıştırır — **9 tablo / 5 fonksiyon / 10 politika** görmelisiniz.
+çalıştırır — **9 tablo / 8 fonksiyon / 10 politika / 1 view** görmelisiniz.
 
 Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
 
@@ -37,6 +37,7 @@ Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
 | 1 | `migrations/0001_initial_schema.sql` | Tablolar, enum'lar, indeksler, kısıtlar |
 | 2 | `migrations/0002_functions.sql` | İş akışı fonksiyonları (stok düşümü, QR, geri alma) |
 | 3 | `migrations/0003_rls_policies.sql` | Row Level Security politikaları ve yetkiler |
+| 4 | `migrations/0004_faz2_fatura_dashboard.sql` | Maliyet hesabı, dashboard fonksiyonları, iş akışı revizyonu |
 
 `tests/00_supabase_shim.sql` dosyasını **çalıştırmayın** — o yalnızca yerel
 Postgres'te test için, Supabase'de bu roller zaten var.
@@ -128,6 +129,32 @@ kapatmak gerçekten gerekiyorsa arayüz açık bir onay kutusuyla
 `allow_negative` gönderip devam edebiliyor — tercih kayda geçiyor, sessizce
 olmuyor.
 
+### Maliyet nasıl hesaplanıyor?
+
+`products.purchase_price` tek bir alan ama ürün hem adet hem kilogram ile
+izlenebiliyor. Fiyatın hangi birime ait olduğu `unit_type_default` ile
+belirleniyor (`job_product_cost()` fonksiyonu):
+
+| Takip birimi | Maliyet |
+|---|---|
+| `piece` | fiyat × kullanılan adet |
+| `kg` | fiyat × kullanılan kilogram |
+| `both` | fiyat × (adet + kilogram) |
+
+**`both` varsayımı zayıf:** adet ve kilogram için farklı fiyat gerekiyorsa
+`products`'a ayrı bir fiyat alanı eklenmeli. Şu an ürünlerin büyük çoğunluğu
+tek birimle izlendiği için bu varsayımla ilerleniyor.
+
+Dashboard'da maliyet yalnızca **tamamlanmış** işlerden toplanıyor:
+tamamlanmamış işin malzemesi henüz stoktan düşmediği için gerçekleşmiş bir
+gider değil.
+
+### Stok ne zaman düşüyor?
+
+Yalnızca iş **tamamlandığında**. Malzeme eklemek stoğu düşürmez ve stok
+hareketi oluşturmaz — bu, işe hangi malzemenin gireceğini planlarken stoğun
+erken düşmesini engelliyor. Arayüzde her iki durumda da açıkça belirtiliyor.
+
 ### `stock_movements` neden güncellenemiyor?
 
 RLS bu tabloda `authenticated` rolüne yalnızca `SELECT` ve `INSERT` veriyor.
@@ -157,9 +184,19 @@ docker cp supabase/tests/01_workflow_test.sql altinoz-pg:/tmp/test.sql
 docker exec altinoz-pg psql -U postgres -d altinoz -v ON_ERROR_STOP=1 -f /tmp/test.sql
 ```
 
-17 test: stok düşümü, çift tamamlama engeli, QR bilgi sızıntısı, geri alma,
-yetersiz stok, denetim izi korunması ve kısıt ihlalleri. Test verisi sonunda
-`rollback` ile geri alınıyor.
+```bash
+docker cp supabase/tests/02_faz2_test.sql altinoz-pg:/tmp/t2.sql
+docker exec altinoz-pg psql -U postgres -d altinoz -v ON_ERROR_STOP=1 -f /tmp/t2.sql
+```
+
+29 test:
+- **Faz 1 (17):** stok düşümü, çift tamamlama engeli, QR bilgi sızıntısı, geri
+  alma, yetersiz stok, denetim izi korunması ve kısıt ihlalleri
+- **Faz 2 (12):** yeni işin otomatik "devam ediyor" başlaması, birim tipine
+  göre maliyet hesabı, tamamlanmamış işin maliyete girmemesi, dönem dışı
+  faturanın sayılmaması, müşteri kırılımı
+
+Test verisi sonunda `rollback` ile geri alınıyor.
 
 Form doğrulama şemaları için:
 
