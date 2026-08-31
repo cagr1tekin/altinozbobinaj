@@ -9,6 +9,7 @@ import {
   SegmentDurumu,
   formatTarih,
 } from "@/components/yonetim/ui";
+import { PdfBaglantilari } from "@/components/yonetim/PdfButonlari";
 import IsFormu from "@/components/yonetim/IsFormu";
 import SegmentDurumButonu from "@/components/yonetim/SegmentDurumButonu";
 
@@ -86,9 +87,15 @@ export default async function SegmentDetaySayfasi({
         }
       />
 
-      <p className="mb-6 text-sm text-paper-muted">
-        {isler.length} iş · {tamamlanan} tamamlandı
-      </p>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-paper-muted">
+          {isler.length} iş · {tamamlanan} tamamlandı
+        </p>
+        <PdfBaglantilari
+          temelUrl={`/api/pdf/segment?id=${segment.id}`}
+          etiket="Segment belgesi (PDF)"
+        />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <section aria-labelledby="isler-basligi">

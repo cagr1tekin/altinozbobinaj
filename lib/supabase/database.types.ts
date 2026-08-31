@@ -150,6 +150,16 @@ export type DashboardMusteri = {
   tamamlanan_is: number;
 };
 
+/** stock_reconciliation() satır şekli */
+export type StokFarki = {
+  product_id: string;
+  product_name: string;
+  kayitli_adet: number;
+  hareketlerden_adet: number;
+  kayitli_kg: number;
+  hareketlerden_kg: number;
+};
+
 /** public_job_by_token() dönüş şekli — ticari bilgi içermez */
 export type PublicJobView = {
   job_title: string;
@@ -395,6 +405,14 @@ export type Database = {
       dashboard_by_customer: {
         Args: { p_start: string; p_end: string };
         Returns: DashboardMusteri[];
+      };
+      stock_reconciliation: {
+        Args: Record<string, never>;
+        Returns: StokFarki[];
+      };
+      refresh_monthly_summary: {
+        Args: { p_donem: string };
+        Returns: void;
       };
     };
     Enums: {

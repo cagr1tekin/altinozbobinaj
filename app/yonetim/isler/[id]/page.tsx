@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { QrCode } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/supabase/env";
 import {
@@ -10,6 +11,7 @@ import {
   formatPara,
   formatTarihSaat,
 } from "@/components/yonetim/ui";
+import { PdfBaglantilari } from "@/components/yonetim/PdfButonlari";
 import MalzemeFormu from "@/components/yonetim/MalzemeFormu";
 import MalzemeSilButonu from "@/components/yonetim/MalzemeSilButonu";
 import TamamlamaPaneli from "@/components/yonetim/TamamlamaPaneli";
@@ -252,9 +254,15 @@ export default async function IsDetaySayfasi({
                 <p className="mt-3 break-all rounded-lg border border-white/10 bg-ink px-3 py-2 font-mono text-xs text-paper">
                   {SITE_URL}/j/{qr.token}
                 </p>
-                <p className="mt-3 text-xs text-paper-muted">
-                  QR görseli ve yazdırılabilir etiket Faz 4&apos;te eklenecek.
-                </p>
+                <div className="mt-4">
+                  <Link
+                    href={`/yonetim/isler/${is.id}/etiket`}
+                    className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-medium text-paper transition-colors hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-silver-main"
+                  >
+                    <QrCode className="h-4 w-4" aria-hidden="true" />
+                    Yazdırılabilir etiket
+                  </Link>
+                </div>
               </Kart>
             </section>
           )}
@@ -282,6 +290,19 @@ export default async function IsDetaySayfasi({
               <MalzemeFormu isId={is.id} urunler={urunler ?? []} />
             </Kart>
           )}
+
+          <Kart>
+            <h2 className="mb-1 font-display text-lg font-bold text-paper">
+              Belgeler
+            </h2>
+            <p className="mb-4 text-sm text-paper-muted">
+              Müşteri kopyasında alış fiyatı ve maliyet gösterilmez.
+            </p>
+            <PdfBaglantilari
+              temelUrl={`/api/pdf/is?id=${is.id}`}
+              etiket="İş belgesi (PDF)"
+            />
+          </Kart>
         </div>
       </div>
     </>

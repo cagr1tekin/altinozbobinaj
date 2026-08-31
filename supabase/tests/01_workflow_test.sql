@@ -262,9 +262,12 @@ declare
   v_note text;
 begin
   select qty_kg into v_kg from products where id = '55555555-5555-5555-5555-555555555555';
+  /* Acilis stogu trigger'i da bir purchase_in yaziyor ve ayni transaction
+     icinde created_at ayni degeri aliyor; bu yuzden notla filtreliyoruz. */
   select note into v_note from stock_movements
   where product_id = '55555555-5555-5555-5555-555555555555'
-    and movement_type = 'purchase_in';
+    and movement_type = 'purchase_in'
+    and note = 'Fatura #123';
 
   if v_kg <> 35.500 then raise exception 'BASARISIZ: 35.500 beklenirdi, gelen %', v_kg; end if;
   if v_note <> 'Fatura #123' then raise exception 'BASARISIZ: not kaydedilmedi'; end if;

@@ -18,7 +18,8 @@ const BIRIM_ETIKET: Record<string, string> = {
 export default async function UrunlerSayfasi() {
   const supabase = await createClient();
 
-  const [{ data: urunler, error }, { data: hareketler }] = await Promise.all([
+  const [{ data: urunler, error }, { data: hareketler }, { data: farklar }] =
+    await Promise.all([
     supabase
       .from("products")
       .select("*")
@@ -28,6 +29,10 @@ export default async function UrunlerSayfasi() {
       .select("id, movement_type, qty_pieces_delta, qty_kg_delta, note, created_at, products(name)")
       .order("created_at", { ascending: false })
       .limit(15),
+    /* Stok mutabakatı: products.qty_* ile stock_movements toplamı
+       ayrışmışsa fark burada görünür. 0005 uygulanmamışsa sessizce
+       boş döner (fonksiyon yoksa hata data'ya değil error'a düşer). */
+    supabase.rpc("stock_reconciliation"),
   ]);
 
   const liste = urunler ?? [];
@@ -44,6 +49,30 @@ export default async function UrunlerSayfasi() {
           Ürünler yüklenemedi. Supabase bağlantısını ve migration&apos;ların
           uygulandığını kontrol edin.
         </p>
+      )}
+
+      {(farklar ?? []).length > 0 && (
+        <div className="mb-6 rounded-xl border border-amber-500/40 bg-amber-500/10 p-5">
+          <h2 className="font-semibold text-amber-100">
+            {(farklar ?? []).length} üründe stok kaydı hareket geçmişiyle
+            uyuşmuyor
+          </h2>
+          <p className="mt-1 text-sm text-amber-100/80">
+            Bu genellikle stok alanının doğrudan (fonksiyon dışından)
+            değiştirildiği anlamına gelir. Doğru kaynak hareket geçmişidir;
+            farkı bir sayım düzeltmesiyle kapatın.
+          </p>
+          <ul className="mt-3 space-y-1 text-sm text-amber-100">
+            {(farklar ?? []).map((f) => (
+              <li key={f.product_id}>
+                <span className="font-medium">{f.product_name}</span>: kayıtlı{" "}
+                {f.kayitli_adet} adet / {formatKg(f.kayitli_kg)} kg —
+                hareketlerden {f.hareketlerden_adet} adet /{" "}
+                {formatKg(f.hareketlerden_kg)} kg
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">

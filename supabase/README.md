@@ -26,7 +26,7 @@ Personel hesapları **Authentication → Users → Add user** ile elle açılır
 **Kolay yol:** `kurulum-tumu.sql` dosyasının tamamını kopyalayıp Supabase
 panelinde **SQL Editor**'e yapıştırın ve çalıştırın. Bu dosya aşağıdaki üç
 migration'ın sırayla birleştirilmiş hâlidir ve sonunda bir doğrulama sorgusu
-çalıştırır — **9 tablo / 8 fonksiyon / 10 politika / 1 view** görmelisiniz.
+çalıştırır — **10 tablo / 12 fonksiyon / 11 politika / 1 view** görmelisiniz.
 
 Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
 
@@ -38,6 +38,7 @@ Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
 | 2 | `migrations/0002_functions.sql` | İş akışı fonksiyonları (stok düşümü, QR, geri alma) |
 | 3 | `migrations/0003_rls_policies.sql` | Row Level Security politikaları ve yetkiler |
 | 4 | `migrations/0004_faz2_fatura_dashboard.sql` | Maliyet hesabı, dashboard fonksiyonları, iş akışı revizyonu |
+| 5 | `migrations/0005_faz5_periyodik_ozet.sql` | Aylık özet, pg_cron işi, stok mutabakatı, açılış stoğu trigger'ı |
 
 `tests/00_supabase_shim.sql` dosyasını **çalıştırmayın** — o yalnızca yerel
 Postgres'te test için, Supabase'de bu roller zaten var.
@@ -155,6 +156,32 @@ Yalnızca iş **tamamlandığında**. Malzeme eklemek stoğu düşürmez ve stok
 hareketi oluşturmaz — bu, işe hangi malzemenin gireceğini planlarken stoğun
 erken düşmesini engelliyor. Arayüzde her iki durumda da açıkça belirtiliyor.
 
+### Açılış stoğu neden trigger ile yazılıyor?
+
+`products.qty_*` alanları doğrudan INSERT ile doldurulabiliyordu ve bu,
+`stock_movements` ile kalıcı bir fark bırakıyordu — stok mutabakatı böyle bir
+ürünü hep "tutarsız" gösteriyordu. Uygulama ürünü 0 stokla açıp girişi
+`apply_stock_movement` ile yapıyor, ama şema bunu garanti etmiyordu.
+`products_opening_stock` trigger'ı, sıfırdan farklı açılış stoğuyla oluşturulan
+üründe karşılık gelen `purchase_in` hareketini kendisi yazıyor.
+
+### Periyodik işler nasıl çalışıyor? (Faz 5)
+
+`monthly_summaries` tablosu ay bazlı gelir/maliyet/kâr değerlerini önceden
+hesaplanmış tutuyor. `nightly_summary_refresh()` içinde bulunulan ve bir
+önceki ayı tazeliyor — daha eski aylar değişmediği için hepsini her gece
+yeniden hesaplamak gereksiz.
+
+pg_cron **Supabase panelinde Database → Extensions** bölümünden
+etkinleştirilmeli. Uzantı yoksa 0005 migration'ı hata vermiyor, yalnızca
+zamanlamayı atlıyor; fonksiyonlar elle veya bir Vercel Cron ucundan da
+çağrılabilir. Zamanlanan iş her gece **02:15 UTC** (TSİ 05:15) çalışıyor.
+
+`stock_reconciliation()` ise `products.qty_*` ile hareket geçmişi arasındaki
+farkları listeliyor. Otomatik düzeltmiyor: hangisinin doğru olduğu duruma göre
+değişir ve sessiz düzeltme sorunun kaynağını gizler. Farklar Ürünler
+sayfasında uyarı olarak görünüyor.
+
 ### `stock_movements` neden güncellenemiyor?
 
 RLS bu tabloda `authenticated` rolüne yalnızca `SELECT` ve `INSERT` veriyor.
@@ -189,12 +216,19 @@ docker cp supabase/tests/02_faz2_test.sql altinoz-pg:/tmp/t2.sql
 docker exec altinoz-pg psql -U postgres -d altinoz -v ON_ERROR_STOP=1 -f /tmp/t2.sql
 ```
 
-29 test:
-- **Faz 1 (17):** stok düşümü, çift tamamlama engeli, QR bilgi sızıntısı, geri
+```bash
+docker cp supabase/tests/03_faz5_test.sql altinoz-pg:/tmp/t3.sql
+docker exec altinoz-pg psql -U postgres -d altinoz -v ON_ERROR_STOP=1 -f /tmp/t3.sql
+```
+
+37 test:
+- **Faz 1 (18):** stok düşümü, çift tamamlama engeli, QR bilgi sızıntısı, geri
   alma, yetersiz stok, denetim izi korunması ve kısıt ihlalleri
-- **Faz 2 (12):** yeni işin otomatik "devam ediyor" başlaması, birim tipine
+- **Faz 2 (11):** yeni işin otomatik "devam ediyor" başlaması, birim tipine
   göre maliyet hesabı, tamamlanmamış işin maliyete girmemesi, dönem dışı
   faturanın sayılmaması, müşteri kırılımı
+- **Faz 5 (8):** aylık özet hesabı, upsert davranışı, gecelik işin iki ayı
+  tazelemesi, stok mutabakatı, açılış stoğu trigger'ı
 
 Test verisi sonunda `rollback` ile geri alınıyor.
 
@@ -206,21 +240,50 @@ npx tsx scripts/sema-testi.ts
 
 ---
 
+## PDF çıktıları (Faz 3)
+
+Belgeler talep üzerine üretiliyor ve doğrudan yanıt gövdesinde dönüyor.
+PRD 9.2 Supabase Storage'a yazıp imzalı link vermeyi öneriyor; belgeler küçük
+ve anlık üretildiği için bu tur atlandı. Storage gerekirse `pdf_exports`
+tablosu ve şema hazır.
+
+| Uç | Belge |
+|---|---|
+| `/api/pdf/is?id=…` | İş belgesi (malzemeler + QR adresi) |
+| `/api/pdf/segment?id=…` | Segment belgesi (tüm işler) |
+| `/api/pdf/musteri?id=…` | Müşteri belgesi (segment/iş geçmişi) |
+| `/api/pdf/donem?bas=…&bit=…` | Dönemsel kâr/zarar raporu |
+
+Her uca `&maliyet=0` eklendiğinde **müşteri kopyası** üretiliyor: alış fiyatı
+ve maliyet sütunları hiç çizilmiyor (PRD 5.6 ile aynı gerekçe). Panelde her
+belgenin yanında iki buton var.
+
+**Font neden gömülü?** `@react-pdf/renderer`'ın varsayılan Helvetica'sı
+WinAnsi ile sınırlı; `ğ ş ı İ` ve `₺` glifleri yok ve bu karakterler PDF'te
+sessizce kayboluyor. Roboto TTF `public/fonts/` altında tutuluyor — CDN'den
+indirmek sunucusuz ortamda soğuk başlatmada ağ hatasına açık.
+
+## QR etiketi (Faz 4)
+
+- `/api/qr?token=…` → QR kodunu SVG olarak döndürüyor (oturum gerekli)
+- `/yonetim/isler/<id>/etiket` → yazdırılabilir etiket sayfası
+
+Etiket sayfasında QR sunucuda üretilip doğrudan gömülüyor; ayrı bir istek
+yapılmadığı için yazdırma diyaloğu açıldığında görsel kesin hazır olur.
+Yazdırmada panel çerçevesi ve butonlar gizleniyor (`@media print`).
+
 ## Henüz yapılmayanlar
 
-PRD'deki bu maddeler bu aşamada kapsam dışı:
+- **e-Fatura entegrasyonu.** Üretilen PDF'ler iç belgelerdir ve sayfa altında
+  "resmî fatura yerine geçmez" ibaresi taşır. Resmî e-Fatura GİB
+  entegrasyonu gerektirir ve PRD kapsamı dışındadır.
+- **Tahsilat/ödeme takibi** (PRD 2.1 gereği kapsam dışı).
+- **Çoklu şube/depo** (ilk sürümde tek lokasyon varsayılıyor).
 
-- **Faz 2** — Fatura girişi arayüzü ve dashboard (kâr/zarar özeti).
-  `invoices` tablosu ve kısıtları hazır, arayüzü yok.
-- **Faz 3** — PDF çıktıları (müşteri / segment / iş / dönemsel rapor).
-  `pdf_exports` tablosu hazır. PRD 9.2'nin önerdiği `@react-pdf/renderer`
-  tercih edilmeli; Puppeteer Vercel'in sunucusuz limitlerini zorlar.
-- **Faz 4 (kısmi)** — QR **görüntüleme sayfası** (`/j/<token>`) hazır, ancak
-  QR **görselinin üretimi** ve yazdırılabilir etiket yok. `qrcode` paketi ile
-  iş detay sayfasına eklenebilir.
-- **Faz 5** — `pg_cron` ile periyodik özetleme.
+### Bilinen varsayım: `both` birimli ürünlerde maliyet
 
-İş detay sayfasındaki "yaklaşık malzeme maliyeti", adet ve kilogramı aynı
-birim fiyatla topluyor. Bu bilinçli bir geçici çözüm ve arayüzde de öyle
-etiketli — kesin maliyet hesabı Faz 2'de fatura verisiyle birlikte ele
-alınmalı.
+`products.purchase_price` tek alan ama ürün hem adet hem kilogram ile
+izlenebiliyor. `unit_type_default = 'both'` olan üründe fiyat **her iki birime
+de** uygulanıp toplanıyor. Bu matematiksel olarak zayıf bir varsayım; adet ve
+kilogram için farklı fiyat gerekiyorsa `products`'a ayrı bir fiyat alanı
+eklenmeli.

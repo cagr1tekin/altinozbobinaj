@@ -14,6 +14,7 @@ import {
   formatTarih,
 } from "@/components/yonetim/ui";
 import DonemSecici from "@/components/yonetim/DonemSecici";
+import { FileText } from "lucide-react";
 
 /** ISO tarih (YYYY-MM-DD), yerel saate göre — toISOString UTC'ye kaydırıyor. */
 function isoTarih(d: Date): string {
@@ -89,7 +90,20 @@ export default async function OzetSayfasi({
       <BolumBasligi
         baslik="Özet"
         aciklama="Seçilen dönem için gelir, maliyet ve kâr/zarar."
-        aksiyon={<ButonLink href="/yonetim/faturalar">Fatura Gir</ButonLink>}
+        aksiyon={
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={`/api/pdf/donem?bas=${aralik.baslangic}&bit=${aralik.bitis}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-white/15 px-4 text-sm font-medium text-paper transition-colors hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-silver-main"
+            >
+              <FileText className="h-4 w-4" aria-hidden="true" />
+              Dönem raporu (PDF)
+            </a>
+            <ButonLink href="/yonetim/faturalar">Fatura Gir</ButonLink>
+          </div>
+        }
       />
 
       {kurulumEksik ? (

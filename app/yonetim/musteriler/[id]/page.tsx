@@ -8,6 +8,7 @@ import {
   SegmentDurumu,
   formatTarih,
 } from "@/components/yonetim/ui";
+import { PdfBaglantilari } from "@/components/yonetim/PdfButonlari";
 import MusteriFormu from "@/components/yonetim/MusteriFormu";
 import SegmentFormu from "@/components/yonetim/SegmentFormu";
 
@@ -49,6 +50,12 @@ export default async function MusteriDetaySayfasi({
           musteri.phone
             ? `Telefon: ${musteri.phone}`
             : "Telefon bilgisi girilmemiş"
+        }
+        aksiyon={
+          <PdfBaglantilari
+            temelUrl={`/api/pdf/musteri?id=${musteri.id}`}
+            etiket="Müşteri belgesi (PDF)"
+          />
         }
       />
 
