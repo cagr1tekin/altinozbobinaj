@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# yerel gorsel calisma klasorleri (deploy edilmez)
+/ark/
+/ark.webp/

@@ -2,20 +2,25 @@ import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, Playfair_Display } from "next/font/google";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import MobileCallBar from "@/components/layout/MobileCallBar";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import "./globals.css";
 
+/* latin-ext olmadan ğ, ş, ı, İ glifleri eksik kalıyor ve tarayıcı
+   bu harflerde yedek fonta düşüyor. Site tamamen Türkçe. */
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   display: "swap",
 });
 
 const playfairDisplay = Playfair_Display({
   variable: "--font-playfair-display",
-  subsets: ["latin"],
+  subsets: ["latin", "latin-ext"],
   display: "swap",
 });
+
+const SITE_URL = "https://altinozbobinaj.com";
 
 export const viewport: Viewport = {
   themeColor: "#09090b",
@@ -25,7 +30,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://altinozbobinaj.com"),
+  metadataBase: new URL(SITE_URL),
   title: "Altınöz Bobinaj | Balıkesir Bobinaj ve Motor Sarımı",
   description:
     "Balıkesir Karesi'de profesyonel bobinaj, elektrik motoru sarımı, su pompası revizyonu ve fren bobini sarımı hizmetleri. Endüstriyel motor bakım ve onarımında güvenilir çözüm ortağınız.",
@@ -42,13 +47,19 @@ export const metadata: Metadata = {
     "motor bakım onarım",
   ],
   authors: [{ name: "Altınöz Bobinaj" }],
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" },
+      { url: "/favicon.ico", sizes: "any" },
     ],
-    shortcut: "/favicon.svg",
+    shortcut: "/favicon.ico",
+    /* iOS, apple-touch-icon olarak SVG'yi desteklemiyor; PNG şart. */
     apple: [
-      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
   manifest: "/site.webmanifest",
@@ -59,21 +70,16 @@ export const metadata: Metadata = {
     type: "website",
     locale: "tr_TR",
     siteName: "Altınöz Bobinaj",
-    images: [
-      {
-        url: "/images/referanslar/IMG_5595.webp", // En iyi referans görseli
-        width: 1200,
-        height: 630,
-        alt: "Altınöz Bobinaj Atölye ve Hizmetleri",
-      },
-    ],
+    url: SITE_URL,
+    /* og:image, app/opengraph-image.tsx dosya konvansiyonundan otomatik
+       uretiliyor (1200x630 PNG). Elle images tanimlamak gerekmiyor. */
   },
   twitter: {
     card: "summary_large_image",
     title: "Altınöz Bobinaj | Balıkesir Bobinaj ve Motor Sarımı",
     description:
       "Balıkesir Karesi'de profesyonel bobinaj, elektrik motoru sarımı, su pompası revizyonu ve fren bobini sarımı hizmetleri.",
-    images: ["/images/referanslar/IMG_5595.webp"],
+    /* twitter:image de app/twitter-image.tsx uzerinden geliyor. */
   },
   robots: {
     index: true,
@@ -93,14 +99,19 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  /* ProfessionalService, LocalBusiness'in alt tipi: yerel isletme rich
+     result'larini korur ama hizmet sektorunu dogru tanimlar. */
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "LocalBusiness",
+    "@type": "ProfessionalService",
     name: "Altınöz Bobinaj",
-    image:
-      "https://altinozbobinaj.com/images/referanslar/IMG_5595.webp",
-    "@id": "https://altinozbobinaj.com",
-    url: "https://altinozbobinaj.com",
+    description:
+      "Balıkesir Karesi'de 1976'dan bu yana elektrik motoru sarımı, bobinaj, su pompası revizyonu ve fren bobini sarımı hizmetleri.",
+    image: `${SITE_URL}/images/referanslar/IMG_5595.webp`,
+    logo: `${SITE_URL}/logo2.webp`,
+    "@id": SITE_URL,
+    url: SITE_URL,
+    foundingDate: "1976",
     telephone: "+905425918372",
     email: "altinozbobinajsan@gmail.com",
     address: {
@@ -116,6 +127,26 @@ export default function RootLayout({
       latitude: 39.662356,
       longitude: 27.910002,
     },
+    areaServed: [
+      { "@type": "City", name: "Balıkesir" },
+      { "@type": "Country", name: "Türkiye" },
+    ],
+    contactPoint: [
+      {
+        "@type": "ContactPoint",
+        telephone: "+905425918372",
+        contactType: "customer service",
+        areaServed: "TR",
+        availableLanguage: "Turkish",
+      },
+      {
+        "@type": "ContactPoint",
+        telephone: "+905061210573",
+        contactType: "customer service",
+        areaServed: "TR",
+        availableLanguage: "Turkish",
+      },
+    ],
     openingHoursSpecification: [
       {
         "@type": "OpeningHoursSpecification",
@@ -132,7 +163,39 @@ export default function RootLayout({
       },
     ],
     priceRange: "₺₺",
-    servesCuisine: "Bobinaj ve Motor Bakımı",
+    hasOfferCatalog: {
+      "@type": "OfferCatalog",
+      name: "Bobinaj ve Motor Bakım Hizmetleri",
+      itemListElement: [
+        {
+          "@type": "Offer",
+          itemOffered: {
+            "@type": "Service",
+            name: "Elektrik Motoru Sarımı",
+            description:
+              "AC elektrik motorlarının fabrika standartlarında sarımı, verniklenmesi ve fırınlanması.",
+          },
+        },
+        {
+          "@type": "Offer",
+          itemOffered: {
+            "@type": "Service",
+            name: "Su Pompası Revizyon ve Parça Tedarik",
+            description:
+              "Dalgıç, santrifüj ve hidrofor sistemlerinde salmastra, rulman ve sargı yenileme; yedek parça tedariki.",
+          },
+        },
+        {
+          "@type": "Offer",
+          itemOffered: {
+            "@type": "Service",
+            name: "Fren Bobini Sarımı",
+            description:
+              "Vinç, asansör ve endüstriyel makinelerde elektromanyetik fren bobini sarımı ve testi.",
+          },
+        },
+      ],
+    },
   };
 
   const referencesItemListJsonLd = {
@@ -145,7 +208,7 @@ export default function RootLayout({
       {
         "@type": "ImageObject",
         position: 1,
-        url: "https://altinozbobinaj.com/images/referanslar/IMG_5595.webp",
+        url: `${SITE_URL}/images/referanslar/IMG_5595.webp`,
         name: "Balıkesir Altınöz Bobinaj komple elektrik motor revizyonu referansı",
         description:
           "Balıkesir Altınöz Bobinaj tarafından gerçekleştirilen komple elektrik motor revizyonu ve sarımı referans çalışması.",
@@ -153,7 +216,7 @@ export default function RootLayout({
       {
         "@type": "ImageObject",
         position: 2,
-        url: "https://altinozbobinaj.com/images/referanslar/IMG_5615.webp",
+        url: `${SITE_URL}/images/referanslar/IMG_5615.webp`,
         name: "Yüksek voltajlı elektrik motor sarımı Altınöz Bobinaj Balıkesir",
         description:
           "Balıkesir'de yüksek voltajlı elektrik motor sarımı ve izolasyon işlemi Altınöz Bobinaj referans görseli.",
@@ -161,7 +224,7 @@ export default function RootLayout({
       {
         "@type": "ImageObject",
         position: 3,
-        url: "https://altinozbobinaj.com/images/referanslar/IMG_7183.webp",
+        url: `${SITE_URL}/images/referanslar/IMG_7183.webp`,
         name: "Balıkesir ağır sanayi elektrik motoru sargısı referansı",
         description:
           "Balıkesir ağır sanayi elektrik motoru sargısı ve bakım onarım hizmeti Altınöz Bobinaj referans çalışması.",
@@ -169,7 +232,7 @@ export default function RootLayout({
       {
         "@type": "ImageObject",
         position: 4,
-        url: "https://altinozbobinaj.com/images/referanslar/IMG_5289.webp",
+        url: `${SITE_URL}/images/referanslar/IMG_5289.webp`,
         name: "Servo motor tamiri ve test hattı Altınöz Bobinaj",
         description:
           "Altınöz Bobinaj Balıkesir atölyesinde gerçekleştirilen servo motor tamiri ve test hattı referans görseli.",
@@ -177,7 +240,7 @@ export default function RootLayout({
       {
         "@type": "ImageObject",
         position: 5,
-        url: "https://altinozbobinaj.com/images/referanslar/IMG_4804.webp",
+        url: `${SITE_URL}/images/referanslar/IMG_4804.webp`,
         name: "Balıkesir endüstriyel motor sarımı referans görseli",
         description:
           "Balıkesir'de endüstriyel elektrik motor sarımı ve balans ayarı Altınöz Bobinaj referans fotoğrafı.",
@@ -185,7 +248,7 @@ export default function RootLayout({
       {
         "@type": "ImageObject",
         position: 6,
-        url: "https://altinozbobinaj.com/images/referanslar/IMG_5600.webp",
+        url: `${SITE_URL}/images/referanslar/IMG_5600.webp`,
         name: "Trafo ve özel bobin sargısı Altınöz Bobinaj Balıkesir",
         description:
           "Trafo ve özel bobin sargısı üzerine Balıkesir Altınöz Bobinaj tarafından gerçekleştirilen referans çalışması.",
@@ -195,23 +258,37 @@ export default function RootLayout({
 
   return (
     <html lang="tr">
-      <body className={`${plusJakarta.variable} ${playfairDisplay.variable} font-sans`}>
-        {/* Google Analytics - ID'yi .env dosyasına eklemeyi unutmayın: NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX */}
+      <body
+        className={`${plusJakarta.variable} ${playfairDisplay.variable} font-sans`}
+      >
+        {/* GA ID'si .env dosyasindan okunur: NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX */}
         {process.env.NEXT_PUBLIC_GA_ID && (
           <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_ID} />
         )}
-        
+
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(referencesItemListJsonLd) }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(referencesItemListJsonLd),
+          }}
         />
+
+        {/* Klavye kullanicilari icin icerige atlama linki */}
+        <a
+          href="#hero"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-ink-soft focus:px-4 focus:py-2 focus:text-paper focus:outline focus:outline-2 focus:outline-silver-main"
+        >
+          İçeriğe geç
+        </a>
+
         <Header />
         <main className="min-h-screen pt-20">{children}</main>
         <Footer />
+        <MobileCallBar />
       </body>
     </html>
   );

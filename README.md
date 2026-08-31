@@ -1,36 +1,94 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Altınöz Bobinaj — Kurumsal Landing Page
 
-## Getting Started
+Balıkesir Karesi'de faaliyet gösteren Altınöz Bobinaj'ın tek sayfalık kurumsal
+web sitesi. Next.js App Router üzerinde, SEO ve yerel arama görünürlüğü
+önceliklendirilerek geliştirildi.
 
-First, run the development server:
+## Teknoloji
+
+| Katman | Seçim |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Dil | TypeScript |
+| Styling | Tailwind CSS 3 |
+| Animasyon | Framer Motion |
+| İkonlar | lucide-react |
+| Analytics | Google Analytics 4 |
+| Deploy | Vercel |
+
+## Geliştirme
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm run build   # production build
+npm run lint    # eslint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Ortam Değişkenleri
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Kök dizinde `.env` dosyası:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX
+```
 
-## Learn More
+GA ID tanımlı değilse Google Analytics script'i hiç yüklenmez.
 
-To learn more about Next.js, take a look at the following resources:
+## Dizin Yapısı
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```
+app/
+  layout.tsx        # metadata, OG/Twitter, JSON-LD (ProfessionalService + ItemList), fontlar
+  page.tsx          # bölümlerin sırası
+  not-found.tsx     # 404
+  robots.ts         # robots.txt
+  sitemap.ts        # sitemap.xml
+  globals.css       # Tailwind katmanları + base stiller
+components/
+  layout/           # Header (mobil menü dahil), Footer
+  home/             # Hero, Services, About, References, Contact
+  GoogleAnalytics.tsx
+lib/
+  scroll.ts         # header offset'li yumuşak kaydırma (tek kaynak)
+  motion.ts         # paylaşılan Framer Motion varyantları
+public/images/referanslar/   # referans galerisi görselleri
+scripts/            # tek seferlik yardımcı script'ler
+ark/, ark.webp/     # yerel görsel çalışma klasörleri (gitignore'da)
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tasarım Sistemi
 
-## Deploy on Vercel
+Renkler `tailwind.config.ts` içinde token olarak tanımlı; komponentlerde
+hardcoded hex kullanılmaz.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Token | Değer | Kullanım |
+|---|---|---|
+| `ink` | `#09090b` | Sayfa zemini |
+| `ink-soft` | `#18181b` | Kart / yüzey zemini |
+| `paper` | `#fafafa` | Ana metin |
+| `paper-muted` | `#a1a1aa` | İkincil metin |
+| `silver-light/main/dark` | `#F8FAFC` / `#94A3B8` / `#475569` | Vurgu |
+| `bg-silver-gradient` | 3 duraklı gradient | Dekoratif (metin maskesi) |
+| `bg-silver-cta` | 2 duraklı açık gradient | CTA zemini — üstünde `text-ink` |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> `bg-silver-gradient` üzerine beyaz metin yazılmamalı: gradient'in açık
+> ucunda kontrast WCAG AA'nın altına düşer. CTA'lar için `bg-silver-cta` +
+> `text-ink` kullanılır.
+
+## SEO Notları
+
+- Tek `<h1>` Hero'da; bölüm başlıkları `<h2>`, kart/hizmet başlıkları `<h3>`.
+  Görsel tasarımda gizlenen bölüm başlıkları `sr-only` olarak verilir, boş
+  heading bırakılmaz.
+- Tüm görseller `next/image` ile, anahtar kelime içeren `alt` metinleriyle.
+- `layout.tsx` içinde iki JSON-LD bloğu: işletme bilgisi (`ProfessionalService`)
+  ve referans görselleri (`ItemList`).
+- Adres, telefon ve çalışma saatleri footer'da metin olarak da bulunur.
+
+## Bilinen Açık İşler
+
+- Referans galerisindeki 22 görsel `loading="eager"` ile yükleniyor ve kaynak
+  dosyalar gösterildikleri boyuttan çok büyük (LCP'yi etkiliyor).
+- Sosyal medya hesapları müşteriden gelince footer'a eklenmeli.
+- Admin paneli / iş takip modülü: bkz. `prd.md`.
