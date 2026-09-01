@@ -4,137 +4,77 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { ArrowRight, Phone } from "lucide-react";
+import { handleAnchorClick } from "@/lib/scroll";
+import { fadeUp, fadeInRight, staggerContainer } from "@/lib/motion";
 
 export default function Hero() {
   const shouldReduceMotion = useReducedMotion();
-
-  const handleSmoothScroll = (
-    e: React.MouseEvent<HTMLAnchorElement>,
-    href: string
-  ) => {
-    e.preventDefault();
-    const targetId = href.replace("#", "");
-    const element = document.getElementById(targetId);
-    if (element) {
-      const headerHeight = 80;
-      const elementPosition =
-        element.getBoundingClientRect().top + window.pageYOffset;
-      const offsetPosition = elementPosition - headerHeight;
-
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: "smooth",
-      });
-    }
-  };
-
-  // Animasyon varyantları
-  const containerVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: "easeOut" as const,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: "easeOut" as const,
-      },
-    },
-  };
-
-  const imageVariants = {
-    hidden: { opacity: 0, x: 24 },
-    visible: {
-      opacity: 1,
-      x: 0,
-      transition: {
-        duration: 0.6,
-        ease: "easeOut" as const,
-      },
-    },
-  };
-
-  const cardVariants = {
-    hidden: { opacity: 0, y: 16 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: "easeOut" as const,
-      },
-    },
-  };
+  const initial = shouldReduceMotion ? false : "hidden";
 
   return (
     <section
       id="hero"
-      className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
+      className="relative flex items-center overflow-hidden bg-ink py-16 lg:min-h-[760px] lg:py-20"
     >
-      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12 lg:items-center">
+      <div className="container relative mx-auto w-full px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-center lg:gap-12">
           {/* Sol Taraf: Metin İçeriği */}
           <motion.div
-            variants={containerVariants}
-            initial={shouldReduceMotion ? false : "hidden"}
+            variants={staggerContainer}
+            initial={initial}
             animate="visible"
             className="space-y-6"
           >
             {/* H1 Başlık */}
             <motion.h1
-              variants={itemVariants}
-              className="font-display text-4xl font-bold leading-tight text-[#fafafa] sm:text-5xl md:text-5xl lg:text-6xl"
+              variants={fadeUp}
+              className="font-display text-4xl font-bold leading-tight text-paper sm:text-5xl md:text-5xl lg:text-6xl"
             >
               1976&apos;dan Günümüze{" "}
-              <span className="text-transparent bg-clip-text bg-silver-gradient">
+              <span className="bg-silver-gradient bg-clip-text text-transparent">
                 Altınöz Bobinaj
               </span>
             </motion.h1>
 
             {/* Açıklama Metni */}
-            <p className="text-base leading-relaxed text-gray-400 sm:text-lg md:text-xl">
+            <motion.p
+              variants={fadeUp}
+              className="text-base leading-relaxed text-paper-muted sm:text-lg md:text-xl"
+            >
               Yarım asra yaklaşan tecrübemizle, endüstriyel elektrik motorlarının
-              sarımı, bakımı ve onarımında Türkiye&apos;nin güvenilir çözüm ortağıyız.
-              Geleneksel ustalığı modern teknolojiyle birleştirerek, işletmenizin
-              kalbi olan motorlarınıza ilk günkü performansını kazandırıyoruz.
-              Sadece tamir etmiyor, geleceğe hazırlıyoruz.
-            </p>
+              sarımı, bakımı ve onarımında Türkiye&apos;nin güvenilir çözüm
+              ortağıyız. Geleneksel ustalığı modern teknolojiyle birleştirerek,
+              işletmenizin kalbi olan motorlarınıza ilk günkü performansını
+              kazandırıyoruz. Sadece tamir etmiyor, geleceğe hazırlıyoruz.
+            </motion.p>
 
             {/* Butonlar */}
             <motion.div
-              variants={itemVariants}
+              variants={fadeUp}
               className="flex flex-col gap-4 sm:flex-row sm:gap-6"
             >
               {/* Hizmetlerimiz Butonu */}
               <Link
                 href="#hizmetler"
-                onClick={(e) => handleSmoothScroll(e, "#hizmetler")}
-                className="group flex items-center justify-center gap-2 rounded-xl bg-silver-gradient px-8 py-3.5 text-base font-semibold text-white transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-silver-main/30 sm:text-lg"
+                onClick={(e) => handleAnchorClick(e, "#hizmetler")}
+                className="group flex min-h-[48px] items-center justify-center gap-2 rounded-xl bg-silver-cta px-8 py-3.5 text-base font-semibold text-ink transition-all duration-300 hover:shadow-lg hover:shadow-silver-main/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-silver-light motion-safe:hover:scale-105 sm:text-lg"
                 aria-label="Hizmetlerimizi Görüntüle"
               >
                 Hizmetlerimiz
-                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+                <ArrowRight
+                  className="h-5 w-5 transition-transform group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
               </Link>
 
               {/* Bize Ulaşın Butonu */}
               <Link
                 href="#iletisim"
-                onClick={(e) => handleSmoothScroll(e, "#iletisim")}
-                className="group flex items-center justify-center gap-2 rounded-xl border-2 border-silver-main px-8 py-3.5 text-base font-semibold text-silver-main transition-all duration-300 hover:bg-silver-main hover:text-white sm:text-lg"
+                onClick={(e) => handleAnchorClick(e, "#iletisim")}
+                className="group flex min-h-[48px] items-center justify-center gap-2 rounded-xl border-2 border-silver-main px-8 py-3.5 text-base font-semibold text-silver-main transition-all duration-300 hover:bg-silver-main hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-silver-light sm:text-lg"
                 aria-label="İletişime Geç"
               >
-                <Phone className="h-5 w-5" />
+                <Phone className="h-5 w-5" aria-hidden="true" />
                 Bize Ulaşın
               </Link>
             </motion.div>
@@ -142,20 +82,20 @@ export default function Hero() {
 
           {/* Sağ Taraf: Görsel */}
           <motion.div
-            variants={imageVariants}
-            initial={shouldReduceMotion ? false : "hidden"}
+            variants={fadeInRight}
+            initial={initial}
             animate="visible"
             className="relative w-full"
           >
             {/* Ana Görsel */}
-            <div className="relative w-full aspect-square overflow-hidden rounded-2xl md:rounded-3xl bg-gradient-to-br from-silver-light/10 to-silver-dark/30 shadow-xl md:shadow-2xl md:aspect-[4/5] md:max-h-[600px]">
+            <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-gradient-to-br from-silver-light/10 to-silver-dark/30 shadow-xl md:aspect-[4/5] md:max-h-[600px] md:rounded-3xl md:shadow-2xl">
               <div className="relative h-full w-full">
                 <Image
                   src="/images/referanslar/2.webp"
                   alt="Altınöz Bobinaj Motor Sargı ve Bobinaj Hizmetleri - Endüstriyel Motor"
                   fill
-                  className="w-full h-full object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="h-full w-full object-cover"
+                  sizes="(max-width: 1024px) 100vw, 50vw"
                   priority
                 />
                 {/* Overlay gradient */}
@@ -163,22 +103,23 @@ export default function Hero() {
               </div>
             </div>
 
-            {/* Floating Deneyim Kartı */}
+            {/* Floating Deneyim Kartı
+                Mobilde negatif offset viewport'u aştığı için görsel içine alındı. */}
             <motion.div
-              variants={cardVariants}
-              initial={shouldReduceMotion ? false : "hidden"}
+              variants={fadeUp}
+              initial={initial}
               animate="visible"
-              className="absolute -bottom-6 -left-6 rounded-lg bg-[#18181b]/75 backdrop-blur-sm md:backdrop-blur-md p-5 md:p-6 shadow-lg md:shadow-xl border border-white/10 md:-bottom-8 md:-left-8"
+              className="absolute bottom-4 left-4 rounded-lg border border-white/10 bg-ink-soft/75 p-5 shadow-lg backdrop-blur-sm md:-bottom-8 md:-left-8 md:p-6 md:shadow-xl md:backdrop-blur-md"
             >
               <div className="flex items-center gap-4">
-                <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-silver-gradient text-2xl font-bold text-white">
+                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-silver-cta text-2xl font-bold text-ink">
                   50+
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-300">
+                  <p className="text-sm font-medium text-paper">
                     Yıllık Tecrübe
                   </p>
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-paper-muted">
                     Sektörde lider konumdayız
                   </p>
                 </div>

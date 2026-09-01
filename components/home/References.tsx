@@ -166,94 +166,69 @@ export default function References() {
   return (
     <section
       id="referanslar"
-      className="relative overflow-hidden bg-[#09090b] h-auto lg:h-[760px] py-16 lg:py-10"
+      className="relative flex items-center overflow-hidden bg-ink py-16 lg:min-h-[760px] lg:py-20"
     >
       <div className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(to_bottom,_rgba(148,163,184,0.16),_transparent_40%,_transparent_60%,_rgba(148,163,184,0.1))]" />
 
-      <div className="container relative mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-center h-full">
-        {/* Başlık ve Slogan */}
-        <div className="mb-8 lg:mb-10 text-center">
-          <h2 className="mb-4 text-3xl font-display font-bold text-[#fafafa] sm:text-4xl md:text-5xl">
-            {/* Başlık SEO için tanımlıydı, kullanıcı isteğiyle gizlendi */}
-          </h2>
+      <div className="container relative mx-auto w-full px-4 sm:px-6 lg:px-8">
+        {/* Baslik ve Slogan */}
+        <div className="mb-8 text-center lg:mb-10">
+          {/* Bolum basligi gorsel tasarimda gosterilmiyor ama bos <h2> hem
+              a11y hem SEO ihlali; bu yuzden sr-only olarak veriliyor. */}
+          <h2 className="sr-only">Referanslarımız</h2>
 
-          {/* Açıklama paragrafını tamamen kaldırdık; boşluk için sadece h3 aşağıda kalıyor */}
-
-          <h3 className="font-display text-3xl font-bold leading-tight text-[#fafafa] sm:text-4xl md:text-5xl">
-            <span className="text-transparent bg-clip-text bg-silver-gradient">
+          <p className="font-display text-3xl font-bold leading-tight text-paper sm:text-4xl md:text-5xl">
+            <span className="bg-silver-gradient bg-clip-text text-transparent">
               Referansımız, İşçiliğimizin Kalitesidir.
             </span>
-          </h3>
+          </p>
         </div>
 
-        {/* İki şeritli yatay kaydırılabilir galeri */}
+        {/* Iki seritli yatay kaydirilabilir galeri */}
         <div className="relative">
-          {/* Scroll alanı */}
+          {/* Scroll alani */}
           <div
             ref={scrollRef}
-            role="list"
+            role="region"
+            tabIndex={0}
             aria-label="Altınöz Bobinaj referans görsel galerisi"
-            className="overflow-x-auto overflow-y-visible [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            className="overflow-x-auto overflow-y-visible rounded-xl [-ms-overflow-style:none] [scrollbar-width:none] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-silver-main [&::-webkit-scrollbar]:hidden"
           >
             <div className="inline-flex flex-col gap-3 sm:gap-4 md:gap-5">
-              {/* 1. Şerit */}
-              <div className="flex flex-nowrap gap-3 sm:gap-4 md:gap-5">
-                {row1Images.map((image) => (
-                  <div
-                    key={image.id}
-                    role="listitem"
-                    className="group relative h-52 w-auto shrink-0 overflow-hidden rounded-md sm:rounded-lg md:rounded-xl transition-all duration-500 hover:scale-[1.03]"
-                  >
-                    <figure className="h-full">
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        width={320}
-                        height={200}
-                        className="h-full w-auto object-cover"
-                        style={{ width: "auto", height: "100%" }}
-                        sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
-                        loading="eager"
-                      />
-                      <figcaption className="sr-only">{image.alt}</figcaption>
-                    </figure>
-                  </div>
-                ))}
-              </div>
-
-              {/* 2. Şerit */}
-              <div className="flex flex-nowrap gap-3 sm:gap-4 md:gap-5">
-                {row2Images.map((image) => (
-                  <div
-                    key={image.id}
-                    role="listitem"
-                    className="group relative h-52 w-auto shrink-0 overflow-hidden rounded-md sm:rounded-lg md:rounded-xl transition-all duration-500 hover:scale-[1.03]"
-                  >
-                    <figure className="h-full">
-                      <Image
-                        src={image.src}
-                        alt={image.alt}
-                        width={320}
-                        height={200}
-                        className="h-full w-auto object-cover"
-                        style={{ width: "auto", height: "100%" }}
-                        sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
-                        loading="eager"
-                      />
-                      <figcaption className="sr-only">{image.alt}</figcaption>
-                    </figure>
-                  </div>
-                ))}
-              </div>
+              {[row1Images, row2Images].map((row, rowIndex) => (
+                <ul
+                  key={rowIndex}
+                  className="flex list-none flex-nowrap gap-3 sm:gap-4 md:gap-5"
+                >
+                  {row.map((image) => (
+                    <li
+                      key={image.id}
+                      className="group relative h-52 w-auto shrink-0 overflow-hidden rounded-md transition-all duration-500 hover:scale-[1.03] motion-reduce:transition-none motion-reduce:hover:scale-100 sm:rounded-lg md:rounded-xl"
+                    >
+                      <figure className="h-full">
+                        <Image
+                          src={image.src}
+                          alt={image.alt}
+                          width={320}
+                          height={208}
+                          className="h-full w-auto object-cover"
+                          style={{ width: "auto", height: "100%" }}
+                          sizes="(max-width: 640px) 60vw, 320px"
+                          loading="eager"
+                        />
+                        <figcaption className="sr-only">{image.alt}</figcaption>
+                      </figure>
+                    </li>
+                  ))}
+                </ul>
+              ))}
             </div>
           </div>
 
-          {/* Vinyet + oklar (sadece desktop) */}
+          {/* Vinyet (sadece desktop) */}
           <div className="pointer-events-none absolute inset-y-0 left-0 right-0 hidden md:block">
-            {/* Sol vinyet */}
-            <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-[#09090b] via-[#09090b]/80 to-transparent" />
-            {/* Sağ vinyet */}
-            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-[#09090b] via-[#09090b]/80 to-transparent" />
+            <div className="absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-ink via-ink/80 to-transparent" />
+            <div className="absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-ink via-ink/80 to-transparent" />
           </div>
 
           {/* Sol ok */}
@@ -262,24 +237,28 @@ export default function References() {
             onClick={() => scrollByAmount("left")}
             disabled={!canScrollLeft}
             aria-label="Referansları sola kaydır"
-            className={`hidden md:flex pointer-events-auto absolute left-3 top-1/2 -translate-y-1/2 h-16 w-16 items-center justify-center rounded-xl text-white text-5xl font-bold drop-shadow-[0_0_14px_rgba(0,0,0,0.95)] transition ${
-              canScrollLeft ? "opacity-100" : "opacity-30 cursor-default pointer-events-none"
+            className={`pointer-events-auto absolute left-3 top-1/2 hidden h-16 w-16 -translate-y-1/2 items-center justify-center rounded-xl text-5xl font-bold text-paper drop-shadow-[0_0_14px_rgba(0,0,0,0.95)] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-silver-main md:flex ${
+              canScrollLeft
+                ? "opacity-100"
+                : "pointer-events-none cursor-default opacity-30"
             }`}
           >
-            ‹
+            <span aria-hidden="true">&#8249;</span>
           </button>
 
-          {/* Sağ ok */}
+          {/* Sag ok */}
           <button
             type="button"
             onClick={() => scrollByAmount("right")}
             disabled={!canScrollRight}
             aria-label="Referansları sağa kaydır"
-            className={`hidden md:flex pointer-events-auto absolute right-3 top-1/2 -translate-y-1/2 h-16 w-16 items-center justify-center rounded-xl text-white text-5xl font-bold drop-shadow-[0_0_14px_rgba(0,0,0,0.95)] transition ${
-              canScrollRight ? "opacity-100" : "opacity-30 cursor-default pointer-events-none"
+            className={`pointer-events-auto absolute right-3 top-1/2 hidden h-16 w-16 -translate-y-1/2 items-center justify-center rounded-xl text-5xl font-bold text-paper drop-shadow-[0_0_14px_rgba(0,0,0,0.95)] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-silver-main md:flex ${
+              canScrollRight
+                ? "opacity-100"
+                : "pointer-events-none cursor-default opacity-30"
             }`}
           >
-            ›
+            <span aria-hidden="true">&#8250;</span>
           </button>
         </div>
       </div>
