@@ -39,25 +39,92 @@ GA ID tanımlı değilse Google Analytics script'i hiç yüklenmez.
 
 ```
 app/
-  layout.tsx        # metadata, OG/Twitter, JSON-LD (ProfessionalService + ItemList), fontlar
-  page.tsx          # bölümlerin sırası
+  layout.tsx        # html/body, fontlar, GA (her rota icin ortak)
+  globals.css       # Tailwind katmanlari + base stiller
   not-found.tsx     # 404
   robots.ts         # robots.txt
   sitemap.ts        # sitemap.xml
-  globals.css       # Tailwind katmanları + base stiller
+  (site)/           # pazarlama sitesi — header/footer/cagri bari
+    layout.tsx      #   site metadata, OG/Twitter, JSON-LD
+    page.tsx        #   bolumlerin sirasi
+    opengraph-image.tsx
+  (panel)/          # yonetim paneli — AYRI tasarim sistemi (acik tema)
+    layout.tsx      #   Inter fontu, acik zemin, PWA manifesti
+    manifest.ts     #   panelin kendi PWA manifesti (start_url: /yonetim)
+    giris/          #   personel girisi
+    yonetim/        #   panel sayfalari (korumali)
+    j/[token]/      #   QR ile acilan salt-okunur malzeme sayfasi
 components/
-  layout/           # Header (mobil menü dahil), Footer
-  home/             # Hero, Services, About, References, Contact
-  GoogleAnalytics.tsx
+  layout/           # LANDING: Header, Footer, MobileCallBar
+  home/             # LANDING: Hero, Services, About, References, Contact
+  panel/            # PANEL: alt navigasyon, liste, form, buton, rozet
+design-system/
+  PANEL.md          # panel tasarim sistemi (landing'den bagimsiz)
 lib/
-  scroll.ts         # header offset'li yumuşak kaydırma (tek kaynak)
-  motion.ts         # paylaşılan Framer Motion varyantları
-public/images/referanslar/   # referans galerisi görselleri
-scripts/            # tek seferlik yardımcı script'ler
-ark/, ark.webp/     # yerel görsel çalışma klasörleri (gitignore'da)
+  scroll.ts         # header offset'li yumusak kaydirma (tek kaynak)
+  motion.ts         # paylasilan Framer Motion varyantlari
+  supabase/         # istemciler, middleware, veritabani tipleri
+  actions/          # server action'lar
+  validation/       # zod semalari
+supabase/
+  migrations/       # SQL sema, fonksiyonlar, RLS politikalari
+  tests/            # yerel Postgres davranis testleri
+  README.md         # kurulum ve mimari kararlar
+middleware.ts       # oturum yenileme + panel korumasi
+public/images/referanslar/   # referans galerisi gorselleri
+scripts/            # yardimci script'ler ve sema testi
+ark/, ark.webp/     # yerel gorsel calisma klasorleri (gitignore'da)
 ```
 
-## Tasarım Sistemi
+## Yönetim Paneli
+
+Müşteri → segment → iş → malzeme akışı, stok takibi ve QR ile malzeme
+şeffaflığı. Kurulum ve mimari kararlar: [`supabase/README.md`](supabase/README.md).
+
+Panel Supabase yapılandırılmadan da derlenir; `/yonetim` bu durumda
+kurulum talimatını gösterir.
+
+## Testler
+
+```bash
+npm run e2e              # Playwright uçtan uca testler
+npx tsx scripts/sema-testi.ts   # zod form doğrulama şemaları
+```
+
+Veritabanı davranış testleri için bkz. [`supabase/README.md`](supabase/README.md).
+
+| Katman | Kapsam |
+|---|---|
+| `e2e/landing.spec.ts` | Başlık hiyerarşisi, SEO/JSON-LD, klavye erişimi, 404, OG görseli |
+| `e2e/mobil.spec.ts` | Hamburger menü, sabit çağrı barı, dokunma hedefleri, taşma |
+| `e2e/guvenlik.spec.ts` | Panel koruması, API yetkilendirme, RLS, bilgi sızıntısı |
+| `e2e/panel.spec.ts` | Müşteri→segment→iş→stok→fatura→PDF akışının tamamı |
+| `e2e/panel-tasarim.spec.ts` | Panel/landing tasarım izolasyonu, tek font, flat, mobil ölçüler |
+
+`e2e/panel.spec.ts` bir personel hesabı gerektirir; `.env` içinde
+`E2E_TEST_EPOSTA` / `E2E_TEST_SIFRE` tanımlı değilse o dosya atlanır.
+**Testler gerçek veritabanına kayıt oluşturur** — üretim projesinde değil,
+ayrı bir test projesinde veya ayrı bir hesapla çalıştırın.
+
+## Tasarım Sistemleri
+
+Projede **iki ayrı tasarım sistemi** var ve bunlar bilinçli olarak
+karışmıyor:
+
+| | Pazarlama sitesi (`/`) | Yönetim paneli |
+|---|---|---|
+| Tema | Koyu `#09090b` | Açık `#F8FAFC` |
+| Font | Playfair Display + Plus Jakarta | Yalnızca Inter |
+| Tokenlar | `ink`, `paper`, `silver-*` | `pnl-*` |
+| Bileşenler | `components/home`, `components/layout` | `components/panel` |
+| Stil | Premium, editorial, animasyonlu | Flat, sade, animasyonsuz |
+
+Panel sistemi ayrıntılı olarak [`design-system/PANEL.md`](design-system/PANEL.md)
+içinde. İki sistemin karışmadığını `e2e/panel-tasarim.spec.ts` sürekli
+doğruluyor: panelde `bg-ink` kullanılırsa ya da landing'e Inter sızarsa
+testler kırılır.
+
+### Pazarlama sitesi tokenları
 
 Renkler `tailwind.config.ts` içinde token olarak tanımlı; komponentlerde
 hardcoded hex kullanılmaz.
