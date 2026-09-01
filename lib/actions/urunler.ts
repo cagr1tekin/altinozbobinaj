@@ -73,8 +73,9 @@ export async function stokHareketiUygula(
   const { error } = await supabase.rpc("apply_stock_movement", {
     p_product_id: parsed.data.product_id,
     p_movement_type: parsed.data.movement_type,
-    p_qty_pieces_delta: parsed.data.qty_pieces_delta,
-    p_qty_kg_delta: parsed.data.qty_kg_delta,
+    /* Tek miktar gönderiliyor; fonksiyon ürünün birimine bakıp doğru
+       kolona yazıyor. Yanlış birime yazma ihtimali böylece kalmıyor. */
+    p_miktar: parsed.data.miktar,
     p_note: parsed.data.note,
   });
 

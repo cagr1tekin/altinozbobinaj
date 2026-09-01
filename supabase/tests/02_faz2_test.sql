@@ -27,14 +27,14 @@ begin
 end $$;
 
 -- MALIYET: adet bazli urun (100 TL/adet, 3 adet = 300)
-insert into products (id, name, purchase_price, unit_type_default, qty_pieces, qty_kg)
+insert into products (id, name, purchase_price, unit_type_default, qty_pieces, qty_grams)
   values ('b2c3d4e5-6f7a-4b9c-8d0e-2f3a4b5c6d7e','Rulman',100,'piece',10,0);
 -- kg bazli urun (50 TL/kg, 2.5 kg = 125)
-insert into products (id, name, purchase_price, unit_type_default, qty_pieces, qty_kg)
-  values ('c3d4e5f6-7a8b-4c0d-9e1f-3a4b5c6d7e8f','Bakir tel',50,'kg',0,10.000);
+insert into products (id, name, purchase_price, unit_type_default, qty_pieces, qty_grams)
+  values ('c3d4e5f6-7a8b-4c0d-9e1f-3a4b5c6d7e8f','Bakir tel',50,'gram',0,10000);
 
-select add_job_product('a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d','b2c3d4e5-6f7a-4b9c-8d0e-2f3a4b5c6d7e',3,0);
-select add_job_product('a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d','c3d4e5f6-7a8b-4c0d-9e1f-3a4b5c6d7e8f',0,2.500);
+select add_job_product('a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d','b2c3d4e5-6f7a-4b9c-8d0e-2f3a4b5c6d7e',3);
+select add_job_product('a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d','c3d4e5f6-7a8b-4c0d-9e1f-3a4b5c6d7e8f',2500);
 
 do $$
 declare v numeric;

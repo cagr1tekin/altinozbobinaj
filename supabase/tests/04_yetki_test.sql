@@ -78,8 +78,8 @@ begin
   foreach v_fn in array array[
     'complete_job(uuid, boolean)',
     'revert_job_completion(uuid)',
-    'apply_stock_movement(uuid, movement_type, integer, numeric, text)',
-    'add_job_product(uuid, uuid, integer, numeric)',
+    'apply_stock_movement(uuid, movement_type, integer, text)',
+    'add_job_product(uuid, uuid, integer)',
     'dashboard_summary(date, date)',
     'dashboard_by_customer(date, date)',
     'stock_reconciliation()'

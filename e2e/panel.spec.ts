@@ -144,8 +144,8 @@ test.describe("Panel iş akışı", () => {
 
     // Stok girişi
     await acilirAc(page, /Stok hareketi ekle/);
-    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: urun });
-    await page.getByLabel("Adet", { exact: true }).fill("10");
+    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (adet)` });
+    await page.getByLabel("Miktar (adet)", { exact: true }).fill("10");
     await page.getByLabel("Not").fill("E2E stok girişi");
     await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
 
@@ -179,8 +179,8 @@ test.describe("Panel iş akışı", () => {
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
     await acilirAc(page, /Stok hareketi ekle/);
-    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: urun });
-    await page.getByLabel("Adet", { exact: true }).fill("10");
+    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (adet)` });
+    await page.getByLabel("Miktar (adet)", { exact: true }).fill("10");
     await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
@@ -190,8 +190,8 @@ test.describe("Panel iş akışı", () => {
     await isEkle(page, "Stok düşüm testi");
 
     await acilirAc(page, /Malzeme ekle/);
-    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (stok: 10 adet / 0 kg)` });
-    await page.getByLabel("Adet", { exact: true }).fill("3");
+    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (stok: 10 adet)` });
+    await page.getByLabel("Miktar (adet)", { exact: true }).fill("3");
     await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
@@ -231,8 +231,8 @@ test.describe("Panel iş akışı", () => {
 
     // Stok 0 iken 5 adet malzeme ekle
     await acilirAc(page, /Malzeme ekle/);
-    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (stok: 0 adet / 0 kg)` });
-    await page.getByLabel("Adet", { exact: true }).fill("5");
+    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (stok: 0 adet)` });
+    await page.getByLabel("Miktar (adet)", { exact: true }).fill("5");
     await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
@@ -310,8 +310,8 @@ test.describe("Panel iş akışı", () => {
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
     await acilirAc(page, /Stok hareketi ekle/);
-    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: urun });
-    await page.getByLabel("Adet", { exact: true }).fill("6");
+    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (adet)` });
+    await page.getByLabel("Miktar (adet)", { exact: true }).fill("6");
     await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
@@ -320,8 +320,8 @@ test.describe("Panel iş akışı", () => {
     await isEkle(page, "İade testi");
 
     await acilirAc(page, /Malzeme ekle/);
-    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (stok: 6 adet / 0 kg)` });
-    await page.getByLabel("Adet", { exact: true }).fill("2");
+    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (stok: 6 adet)` });
+    await page.getByLabel("Miktar (adet)", { exact: true }).fill("2");
     await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
@@ -537,5 +537,81 @@ test.describe("Panel iş akışı", () => {
     // Doğrudan panele gitmeye çalışınca yine girişe düşmeli
     await page.goto("/yonetim/musteriler");
     expect(page.url()).toContain("/giris");
+  });
+
+  test("53 — gram ürününde tek miktar alanı gram olarak davranıyor", async ({
+    page,
+  }) => {
+    const urun = testAdi("GramTel");
+
+    await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Yeni ürün ekle/);
+    await page.getByLabel("Ürün adı").fill(urun);
+    await page.getByLabel("Takip birimi").selectOption("gram");
+
+    /* Birim gram seçilince fiyatın kilogram başına olduğu yazmalı:
+       kullanıcı fiyatı neye göre gireceğini bilmeden yazıyordu. */
+    await expect(page.getByLabel(/Alış fiyatı/)).toBeVisible();
+    await expect(page.getByText(/Alış fiyatı \(₺ \/ kilogram\)/)).toBeVisible();
+    await page.getByLabel(/Alış fiyatı/).fill("480");
+    await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    // Stok girişi: tek alan, gram
+    await acilirAc(page, /Stok hareketi ekle/);
+    await page
+      .getByLabel("Ürün", { exact: true })
+      .selectOption({ label: `${urun} (gram)` });
+
+    const miktar = page.getByLabel("Miktar (gram)", { exact: true });
+    await expect(miktar).toBeVisible();
+    // Adet alanı ARTIK OLMAMALI: iki miktar kutusu tereddüt yaratıyordu
+    await expect(page.getByLabel("Miktar (adet)", { exact: true })).toHaveCount(
+      0
+    );
+    await expect(miktar).toHaveAttribute("placeholder", "Örn: 250");
+
+    await miktar.fill("25000");
+    await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    // Liste gram olarak göstermeli
+    await expect(page.getByText("25.000 gram").first()).toBeVisible();
+  });
+
+  test("54 — ondalık miktar reddediliyor ve tekerlek değeri bozmuyor", async ({
+    page,
+  }) => {
+    const urun = testAdi("TamSayi");
+
+    await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Yeni ürün ekle/);
+    await page.getByLabel("Ürün adı").fill(urun);
+    await page.getByLabel(/Alış fiyatı/).fill("50");
+    await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    await acilirAc(page, /Stok hareketi ekle/);
+    await page
+      .getByLabel("Ürün", { exact: true })
+      .selectOption({ label: `${urun} (adet)` });
+
+    const miktar = page.getByLabel("Miktar (adet)", { exact: true });
+
+    /* Sayı alanı odaktayken fare tekerleği değeri bir adım değiştiriyordu:
+       kullanıcı 4 yazıp sayfayı kaydırınca stok sessizce 3'e (eskiden
+       0,001 adımla 3,999'a) düşüyordu. Alan artık tekerlekte odağı
+       bırakıyor, değer korunuyor. */
+    await miktar.fill("4");
+    await miktar.focus();
+    await page.mouse.wheel(0, 120);
+    await expect(miktar).toHaveValue("4");
+
+    // Ondalık giriş reddedilmeli
+    await miktar.fill("3.5");
+    await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
+    await expect(formHatasi(page)).toContainText(/tam sayı/i, {
+      timeout: 15000,
+    });
   });
 });

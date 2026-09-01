@@ -61,9 +61,9 @@ export default async function QrMalzemeSayfasi({
             >
               <span className="font-medium">{m.name}</span>
               <span className="shrink-0 text-sm text-pnl-muted">
-                {m.qty_pieces > 0 && `${formatSayi(m.qty_pieces)} adet`}
-                {m.qty_pieces > 0 && Number(m.qty_kg) > 0 && " · "}
-                {Number(m.qty_kg) > 0 && `${formatSayi(m.qty_kg)} kg`}
+                {`${formatSayi(
+                  m.unit === "piece" ? m.qty_pieces : m.qty_grams
+                )} ${m.unit === "piece" ? "adet" : "gram"}`}
               </span>
             </li>
           ))}

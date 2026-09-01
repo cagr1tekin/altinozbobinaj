@@ -173,6 +173,15 @@ export function Alan({
           placeholder={placeholder}
           aria-invalid={hata ? true : undefined}
           aria-describedby={describedBy}
+          /* type="number" alanı odaktayken fare tekerleği değeri bir adım
+             değiştiriyor. Kullanıcı sayfayı kaydırmak isterken girdiği
+             miktar sessizce bozuluyordu (4 → 3,999). Tekerlek gelince odak
+             bırakılıyor: değer korunuyor, sayfa normal kayıyor. */
+          onWheel={
+            tip === "number"
+              ? (e) => (e.target as HTMLInputElement).blur()
+              : undefined
+          }
           className={girdiSinif}
         />
       )}

@@ -16,8 +16,8 @@ import {
 
 export type PdfMalzeme = {
   ad: string;
-  adet: number;
-  kg: number;
+  birim: "piece" | "gram";
+  miktar: number;
   birimMaliyet: number;
 };
 
@@ -97,8 +97,7 @@ function MalzemeTablosu({
       <View style={stiller.tabloBaslik}>
         <Text style={{ width: 24 }}>#</Text>
         <Text style={{ flex: 1 }}>Malzeme</Text>
-        <Text style={{ width: 60, ...stiller.sag }}>Adet</Text>
-        <Text style={{ width: 70, ...stiller.sag }}>Kilogram</Text>
+        <Text style={{ width: 100, ...stiller.sag }}>Miktar</Text>
         {maliyetGoster && (
           <Text style={{ width: 80, ...stiller.sag }}>Birim maliyet</Text>
         )}
@@ -108,11 +107,8 @@ function MalzemeTablosu({
         <View key={`${m.ad}-${i}`} style={stiller.tabloSatir}>
           <Text style={{ width: 24 }}>{i + 1}</Text>
           <Text style={{ flex: 1 }}>{m.ad}</Text>
-          <Text style={{ width: 60, ...stiller.sag }}>
-            {m.adet > 0 ? formatSayi(m.adet) : "—"}
-          </Text>
-          <Text style={{ width: 70, ...stiller.sag }}>
-            {Number(m.kg) > 0 ? formatSayi(m.kg) : "—"}
+          <Text style={{ width: 100, ...stiller.sag }}>
+            {`${formatSayi(m.miktar)} ${m.birim === "piece" ? "adet" : "gram"}`}
           </Text>
           {maliyetGoster && (
             <Text style={{ width: 80, ...stiller.sag }}>

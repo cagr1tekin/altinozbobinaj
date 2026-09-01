@@ -76,8 +76,7 @@ export async function isMalzemeEkle(
   const { error } = await supabase.rpc("add_job_product", {
     p_job_id: parsed.data.job_id,
     p_product_id: parsed.data.product_id,
-    p_qty_pieces: parsed.data.qty_pieces,
-    p_qty_kg: parsed.data.qty_kg,
+    p_miktar: parsed.data.miktar,
   });
 
   if (error) return veritabaniHatasi(error, "Malzeme eklenemedi");

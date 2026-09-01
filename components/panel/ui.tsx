@@ -199,11 +199,25 @@ export function OzetKarti({
   /* Zarar durumunda renk + metin birlikte kullanılır, renk tek gösterge değil */
   vurgu?: "normal" | "uyari";
 }) {
+  /* Tutar büyüdükçe karttan taşıyordu (₺78.605,00 gibi). Yazı boyutu
+     karakter sayısına ve kartın genişliğine göre hesaplanıyor: cqi birimi
+     kartın iç genişliğinin yüzdesi, 0.55 ise tabular rakamların ölçülmüş
+     ortalama en/boy oranı (küçük bir pay bırakılarak). clamp'in üst sınırı
+     tasarımı koruyor — kısa sayılar eskisi gibi 30px kalıyor; alt sınır
+     yalnızca milyonluk tutarlar + dar telefon gibi uç durumlarda devreye
+     giriyor, orada da kırpmaktansa küçültmek doğru. */
+  const uzunluk = Math.max(String(deger).length, 1);
+  const olcek = (100 / (uzunluk * 0.55)).toFixed(2);
+
   return (
-    <div className="rounded-lg border border-pnl-line bg-pnl-surface p-4">
+    <div
+      className="rounded-lg border border-pnl-line bg-pnl-surface p-4"
+      style={{ containerType: "inline-size" }}
+    >
       <p className="text-sm text-pnl-muted">{etiket}</p>
       <p
-        className={`mt-1 text-3xl font-semibold ${
+        style={{ fontSize: `clamp(0.875rem, ${olcek}cqi, 1.875rem)` }}
+        className={`mt-1 font-semibold leading-tight tabular-nums whitespace-nowrap ${
           vurgu === "uyari" ? "text-pnl-warn" : "text-pnl-text"
         }`}
       >
@@ -379,10 +393,42 @@ export function formatTarihSaat(deger: string | null): string {
   }).format(new Date(deger));
 }
 
-/** Miktar gösterimi: 0 olan birim hiç yazılmaz. */
-export function Miktar({ adet, kg }: { adet: number; kg: number }) {
-  const parcalar: string[] = [];
-  if (adet !== 0) parcalar.push(`${formatSayi(adet)} adet`);
-  if (Number(kg) !== 0) parcalar.push(`${formatSayi(kg)} kg`);
-  return <>{parcalar.length > 0 ? parcalar.join(" · ") : "—"}</>;
+/* -------------------------------------------------------------------------
+ * Birim
+ *
+ * Her ürünün tek bir birimi var: adet ya da gram. Kilogram kaldırıldı —
+ * ondalık giriş hem hata kaynağıydı hem de "adet mi kg mi" ikilemi
+ * atölyede tereddüt yaratıyordu. Gram tam sayı olduğu için miktar
+ * tıpkı adet gibi davranıyor.
+ * ------------------------------------------------------------------------- */
+
+export type Birim = "piece" | "gram";
+
+/** Kullanıcıya gösterilen birim adı. */
+export function birimAdi(birim: Birim): string {
+  return birim === "piece" ? "adet" : "gram";
+}
+
+/** Miktar girişleri için örnek metin: "3" ya da "250". */
+export function birimOrnek(birim: Birim): string {
+  return birim === "piece" ? "Örn: 3" : "Örn: 250";
+}
+
+/** Fiyatın hangi birim başına olduğunu söyler. Gram üründe fiyat ₺/kg. */
+export function fiyatBirimi(birim: Birim): string {
+  return birim === "piece" ? "₺ / adet" : "₺ / kilogram";
+}
+
+/** "12 adet" / "250 gram" — ürünün birimine göre tek değer. */
+export function Miktar({
+  birim,
+  adet,
+  gram,
+}: {
+  birim: Birim;
+  adet: number;
+  gram: number;
+}) {
+  const deger = birim === "piece" ? Number(adet) : Number(gram);
+  return <>{`${formatSayi(deger)} ${birimAdi(birim)}`}</>;
 }

@@ -35,8 +35,8 @@ export default async function OzetSayfasi() {
       .limit(50),
     supabase
       .from("products")
-      .select("id, name, qty_pieces, qty_kg")
-      .or("qty_pieces.lt.0,qty_kg.lt.0"),
+      .select("id, name, unit_type_default, qty_pieces, qty_grams")
+      .or("qty_pieces.lt.0,qty_grams.lt.0"),
   ]);
 
   const isler = acikIsler.data ?? [];
@@ -71,7 +71,11 @@ export default async function OzetSayfasi() {
                 {eksiler.map((u) => (
                   <li key={u.id}>
                     {u.name} —{" "}
-                    <Miktar adet={u.qty_pieces} kg={Number(u.qty_kg)} />
+                    <Miktar
+                      birim={u.unit_type_default}
+                      adet={u.qty_pieces}
+                      gram={Number(u.qty_grams)}
+                    />
                   </li>
                 ))}
               </ul>

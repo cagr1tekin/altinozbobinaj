@@ -16,8 +16,7 @@ import StokHareketFormu from "@/components/panel/StokHareketFormu";
 
 const BIRIM_ETIKET: Record<string, string> = {
   piece: "Adet",
-  kg: "Kilogram",
-  both: "Adet + Kg",
+  gram: "Gram",
 };
 
 const HAREKET_ETIKET: Record<string, string> = {
@@ -36,7 +35,7 @@ export default async function UrunlerSayfasi() {
       supabase
         .from("stock_movements")
         .select(
-          "id, movement_type, qty_pieces_delta, qty_kg_delta, note, created_at, products(name)"
+          "id, movement_type, qty_pieces_delta, qty_grams_delta, note, created_at, products(name, unit_type_default)"
         )
         .order("created_at", { ascending: false })
         .limit(10),
@@ -74,9 +73,14 @@ export default async function UrunlerSayfasi() {
                 {stokFarklari.map((f) => (
                   <li key={f.product_id}>
                     <span className="font-medium">{f.product_name}</span>:
-                    kayıtlı {f.kayitli_adet} adet / {formatSayi(f.kayitli_kg)} kg
-                    — hareketlerden {f.hareketlerden_adet} adet /{" "}
-                    {formatSayi(f.hareketlerden_kg)} kg
+                    kayıtlı{" "}
+                    {f.birim === "piece"
+                      ? `${formatSayi(f.kayitli_adet)} adet`
+                      : `${formatSayi(f.kayitli_gram)} gram`}{" "}
+                    — hareketlerden{" "}
+                    {f.birim === "piece"
+                      ? `${formatSayi(f.hareketlerden_adet)} adet`
+                      : `${formatSayi(f.hareketlerden_gram)} gram`}
                   </li>
                 ))}
               </ul>
@@ -97,7 +101,10 @@ export default async function UrunlerSayfasi() {
           >
             {liste.length > 0 &&
               liste.map((u) => {
-                const eksi = u.qty_pieces < 0 || Number(u.qty_kg) < 0;
+                const eksi =
+                  u.unit_type_default === "piece"
+                    ? u.qty_pieces < 0
+                    : Number(u.qty_grams) < 0;
                 return (
                   <li key={u.id} className="px-4 py-3">
                     <div className="flex items-start justify-between gap-3">
@@ -116,7 +123,11 @@ export default async function UrunlerSayfasi() {
                           eksi ? "text-pnl-warn" : ""
                         }`}
                       >
-                        <Miktar adet={u.qty_pieces} kg={Number(u.qty_kg)} />
+                        <Miktar
+                          birim={u.unit_type_default}
+                          adet={u.qty_pieces}
+                          gram={Number(u.qty_grams)}
+                        />
                         {eksi && (
                           <span className="block text-xs font-medium">
                             eksi stok
@@ -143,9 +154,16 @@ export default async function UrunlerSayfasi() {
           >
             {hareketListesi.length > 0 &&
               hareketListesi.map((h) => {
-                const urun = h.products as unknown as { name: string } | null;
-                const adet = h.qty_pieces_delta;
-                const kg = Number(h.qty_kg_delta);
+                const urun = h.products as unknown as {
+                  name: string;
+                  unit_type_default: "piece" | "gram";
+                } | null;
+                /* Hareket ürünün kendi biriminde: adet ürününde gram
+                   kolonu hep 0 kalıyor, tersi de geçerli. */
+                const gramMi = urun?.unit_type_default !== "piece";
+                const delta = gramMi
+                  ? Number(h.qty_grams_delta)
+                  : h.qty_pieces_delta;
                 return (
                   <li key={h.id} className="flex items-center gap-3 px-4 py-3">
                     <div className="min-w-0 flex-1">
@@ -158,10 +176,9 @@ export default async function UrunlerSayfasi() {
                       </p>
                     </div>
                     <p className="shrink-0 text-sm font-medium">
-                      {adet !== 0 &&
-                        `${adet > 0 ? "+" : ""}${formatSayi(adet)} adet`}
-                      {adet !== 0 && kg !== 0 && " · "}
-                      {kg !== 0 && `${kg > 0 ? "+" : ""}${formatSayi(kg)} kg`}
+                      {`${delta > 0 ? "+" : ""}${formatSayi(delta)} ${
+                        gramMi ? "gram" : "adet"
+                      }`}
                     </p>
                   </li>
                 );

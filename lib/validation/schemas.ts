@@ -79,56 +79,41 @@ export const urunSchema = z.object({
   name: zorunluMetin("Ürün adı"),
   sku: opsiyonelMetin(60),
   purchase_price: sayi("Alış fiyatı"),
-  unit_type_default: z.enum(["piece", "kg", "both"]),
+  unit_type_default: z.enum(["piece", "gram"]),
   notes: opsiyonelMetin(1000),
 });
 
-export const stokHareketSchema = z
-  .object({
-    product_id: z.string().uuid("Ürün seçilmedi"),
-    movement_type: z.enum(["purchase_in", "adjustment"], {
-      message: "Geçersiz hareket tipi",
-    }),
-    // Düzeltme hareketinde eksi girilebilmeli, bu yüzden ham string alıp
-    // ayrıca parse ediyoruz (sayi() negatife izin vermiyor).
-    qty_pieces_delta: z
-      .string()
-      .trim()
-      .transform((v) => Number(v.length === 0 ? "0" : v.replace(",", ".")))
-      .refine((v) => Number.isFinite(v), { message: "Adet sayı olmalı" })
-      .refine((v) => Number.isInteger(v), { message: "Adet tam sayı olmalı" }),
-    qty_kg_delta: z
-      .string()
-      .trim()
-      .transform((v) => Number(v.length === 0 ? "0" : v.replace(",", ".")))
-      .refine((v) => Number.isFinite(v), { message: "Kilogram sayı olmalı" }),
-    note: opsiyonelMetin(500),
-  })
-  .refine((d) => d.qty_pieces_delta !== 0 || d.qty_kg_delta !== 0, {
-    message: "Adet veya kilogram alanlarından en az biri girilmeli",
-    path: ["qty_pieces_delta"],
-  })
-  .refine(
-    (d) =>
-      d.movement_type !== "purchase_in" ||
-      (d.qty_pieces_delta >= 0 && d.qty_kg_delta >= 0),
-    {
-      message: "Stok girişinde miktar negatif olamaz",
-      path: ["qty_pieces_delta"],
-    }
-  );
+/* Miktar tek alan: ürünün birimi (adet / gram) hangi kolona yazılacağını
+   belirliyor, kullanıcı birim seçmiyor. İkisi de tam sayı olduğu için
+   ondalık kabul edilmiyor — virgüllü giriş başlı başına bir hata kaynağıydı. */
+export const stokHareketSchema = z.object({
+  product_id: z.string().uuid("Ürün seçilmedi"),
+  movement_type: z.enum(["purchase_in", "adjustment"], {
+    message: "Geçersiz hareket tipi",
+  }),
+  // Düzeltme hareketinde eksi girilebilmeli, bu yüzden sayi() kullanılmıyor.
+  miktar: z
+    .string()
+    .trim()
+    .transform((v) => Number(v.length === 0 ? "0" : v))
+    .refine((v) => Number.isFinite(v), { message: "Miktar sayı olmalı" })
+    .refine((v) => Number.isInteger(v), {
+      message: "Miktar tam sayı olmalı (ondalık girilemez)",
+    })
+    .refine((v) => v !== 0, { message: "Miktar girilmeli" }),
+  note: opsiyonelMetin(500),
+}).refine(
+  (d) => d.movement_type !== "purchase_in" || d.miktar > 0,
+  { message: "Stok girişinde miktar eksi olamaz", path: ["miktar"] }
+);
 
-export const isMalzemeSchema = z
-  .object({
-    job_id: z.string().uuid(),
-    product_id: z.string().uuid("Ürün seçilmedi"),
-    qty_pieces: sayi("Adet", { tamsayi: true }),
-    qty_kg: sayi("Kilogram"),
-  })
-  .refine((d) => d.qty_pieces > 0 || d.qty_kg > 0, {
-    message: "Adet veya kilogram alanlarından en az biri girilmeli",
-    path: ["qty_pieces"],
-  });
+export const isMalzemeSchema = z.object({
+  job_id: z.string().uuid(),
+  product_id: z.string().uuid("Ürün seçilmedi"),
+  miktar: sayi("Miktar", { tamsayi: true }).refine((v) => v > 0, {
+    message: "Miktar sıfırdan büyük olmalı",
+  }),
+});
 
 /* Fatura tutarlari: brut = net + vergi olmali. Muhasebe kaydinin kendi
    icinde tutarsiz olmasi, dashboard'daki kar/zarar hesabini sessizce

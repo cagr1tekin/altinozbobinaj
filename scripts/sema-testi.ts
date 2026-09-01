@@ -49,20 +49,29 @@ console.log("--- musteriSchema ---");
 console.log("--- urunSchema (Turkce ondalik) ---");
 {
   // Turkce klavyede ondalik ayirici virgul; kullanici "12,5" yazar
-  const r = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "12,5", unit_type_default: "kg" }));
+  const r = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "12,5", unit_type_default: "gram" }));
   bekle("virgullu ondalik kabul ediliyor (12,5 -> 12.5)", r.success && r.data.purchase_price === 12.5, r.success ? r.data.purchase_price : r.error.issues[0]?.message);
 }
 {
-  const r = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "", unit_type_default: "kg" }));
+  const r = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "", unit_type_default: "gram" }));
   bekle("bos fiyat 0 sayiliyor", r.success && r.data.purchase_price === 0);
 }
 {
-  const r = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "-5", unit_type_default: "kg" }));
+  const r = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "-5", unit_type_default: "gram" }));
   bekle("negatif fiyat reddediliyor", !r.success);
 }
 {
-  const r = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "abc", unit_type_default: "kg" }));
+  const r = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "abc", unit_type_default: "gram" }));
   bekle("sayi olmayan fiyat reddediliyor", !r.success, r.success ? r.data : r.error.issues[0]?.message);
+}
+
+{
+  /* 'kg' ve 'both' 0008 ile kaldirildi; eski degerlerin sessizce kabul
+     edilmesi, birimi bozuk bir urun olusturur. */
+  const eski = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "10", unit_type_default: "kg" }));
+  bekle("eski 'kg' birimi reddediliyor", !eski.success);
+  const her = urunSchema.safeParse(fd({ name: "Tel", purchase_price: "10", unit_type_default: "both" }));
+  bekle("eski 'both' birimi reddediliyor", !her.success);
 }
 
 console.log("--- isMalzemeSchema ---");
@@ -72,42 +81,54 @@ console.log("--- isMalzemeSchema ---");
 const uuid1 = "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc";
 const uuid2 = "6dbb15c7-afd3-4608-b32c-d118e9c44784";
 {
-  const r = isMalzemeSchema.safeParse(fd({ job_id: uuid1, product_id: uuid2, qty_pieces: "0", qty_kg: "0" }));
-  bekle("iki birim de 0 ise reddediliyor", !r.success);
+  const r = isMalzemeSchema.safeParse(fd({ job_id: uuid1, product_id: uuid2, miktar: "0" }));
+  bekle("miktar 0 ise reddediliyor", !r.success);
 }
 {
-  const r = isMalzemeSchema.safeParse(fd({ job_id: uuid1, product_id: uuid2, qty_pieces: "2", qty_kg: "0" }));
-  bekle("yalniz adet girilebiliyor", r.success && r.data.qty_pieces === 2);
+  const r = isMalzemeSchema.safeParse(fd({ job_id: uuid1, product_id: uuid2, miktar: "2" }));
+  bekle("miktar girilebiliyor", r.success && r.data.miktar === 2);
 }
 {
-  const r = isMalzemeSchema.safeParse(fd({ job_id: uuid1, product_id: uuid2, qty_pieces: "0", qty_kg: "4,25" }));
-  bekle("yalniz kg girilebiliyor (virgullu)", r.success && r.data.qty_kg === 4.25);
+  const r = isMalzemeSchema.safeParse(fd({ job_id: uuid1, product_id: uuid2, miktar: "250" }));
+  bekle("gram miktari girilebiliyor", r.success && r.data.miktar === 250);
 }
 {
-  const r = isMalzemeSchema.safeParse(fd({ job_id: uuid1, product_id: uuid2, qty_pieces: "1,5", qty_kg: "0" }));
-  bekle("kesirli adet reddediliyor", !r.success);
+  /* Gram ve adet tam sayi: ondalik giris hem sema hem veritabani
+     tarafinda reddedilmeli. Ondalik girisin kendisi bir hata kaynagiydi. */
+  const r = isMalzemeSchema.safeParse(fd({ job_id: uuid1, product_id: uuid2, miktar: "1,5" }));
+  bekle("kesirli miktar reddediliyor", !r.success);
+}
+{
+  const r = isMalzemeSchema.safeParse(fd({ job_id: uuid1, product_id: uuid2, miktar: "-4" }));
+  bekle("negatif miktar reddediliyor", !r.success);
 }
 
 console.log("--- stokHareketSchema ---");
 {
-  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "adjustment", qty_pieces_delta: "-3", qty_kg_delta: "0" }));
-  bekle("duzeltmede negatif adet kabul ediliyor", r.success && r.data.qty_pieces_delta === -3, r.success ? r.data : r.error.issues[0]?.message);
+  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "adjustment", miktar: "-3" }));
+  bekle("duzeltmede negatif miktar kabul ediliyor", r.success && r.data.miktar === -3, r.success ? r.data : r.error.issues[0]?.message);
 }
 {
-  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "purchase_in", qty_pieces_delta: "-3", qty_kg_delta: "0" }));
-  bekle("giriste negatif adet reddediliyor", !r.success);
+  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "purchase_in", miktar: "-3" }));
+  bekle("giriste negatif miktar reddediliyor", !r.success);
 }
 {
-  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "purchase_in", qty_pieces_delta: "0", qty_kg_delta: "0" }));
-  bekle("iki delta da 0 ise reddediliyor", !r.success);
+  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "purchase_in", miktar: "0" }));
+  bekle("miktar 0 ise reddediliyor", !r.success);
 }
 {
-  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "job_out", qty_pieces_delta: "1", qty_kg_delta: "0" }));
+  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "job_out", miktar: "1" }));
   bekle("job_out elle secilemiyor", !r.success);
 }
 {
-  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "purchase_in", qty_pieces_delta: "0", qty_kg_delta: "10,5" }));
-  bekle("kg girisi virgullu kabul ediliyor", r.success && r.data.qty_kg_delta === 10.5);
+  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "purchase_in", miktar: "4500" }));
+  bekle("buyuk gram miktari kabul ediliyor", r.success && r.data.miktar === 4500);
+}
+{
+  /* Tekerlek hatasinin (4 -> 3,999) sema tarafindaki karsiligi: ondalik
+     bir miktar artik hicbir yoldan gecemiyor. */
+  const r = stokHareketSchema.safeParse(fd({ product_id: uuid1, movement_type: "purchase_in", miktar: "3.999" }));
+  bekle("ondalik stok miktari reddediliyor", !r.success);
 }
 
 console.log("");

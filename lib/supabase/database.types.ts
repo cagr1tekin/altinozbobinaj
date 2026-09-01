@@ -15,7 +15,9 @@
 
 export type JobStatus = "pending" | "in_progress" | "completed";
 export type SegmentStatus = "open" | "closed";
-export type UnitType = "piece" | "kg" | "both";
+/* Her ürünün TEK birimi var: ya adet ya gram. "both" kaldırıldı — iki
+   miktar alanını aynı anda göstermek atölyede tereddüt yaratıyordu. */
+export type UnitType = "piece" | "gram";
 export type MovementType =
   | "purchase_in"
   | "job_out"
@@ -62,7 +64,7 @@ export type Product = {
   purchase_price: number;
   unit_type_default: UnitType;
   qty_pieces: number;
-  qty_kg: number;
+  qty_grams: number;
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -73,7 +75,7 @@ export type JobProduct = {
   job_id: string;
   product_id: string;
   qty_pieces_used: number;
-  qty_kg_used: number;
+  qty_grams_used: number;
   unit_cost_snapshot: number;
   created_at: string;
 };
@@ -84,7 +86,7 @@ export type StockMovement = {
   job_id: string | null;
   movement_type: MovementType;
   qty_pieces_delta: number;
-  qty_kg_delta: number;
+  qty_grams_delta: number;
   note: string | null;
   created_at: string;
 };
@@ -169,8 +171,9 @@ export type StokFarki = {
   product_name: string;
   kayitli_adet: number;
   hareketlerden_adet: number;
-  kayitli_kg: number;
-  hareketlerden_kg: number;
+  birim: UnitType;
+  kayitli_gram: number;
+  hareketlerden_gram: number;
 };
 
 /** public_job_by_token() dönüş şekli — ticari bilgi içermez */
@@ -179,8 +182,11 @@ export type PublicJobView = {
   completed_at: string | null;
   materials: Array<{
     name: string;
+    /* Müşteri sayfası hangi birimi yazacağını bilsin diye ürünün birimi
+       de dönüyor. */
+    unit: UnitType;
     qty_pieces: number;
-    qty_kg: number;
+    qty_grams: number;
   }>;
 };
 
@@ -245,7 +251,7 @@ export type Database = {
           | "purchase_price"
           | "unit_type_default"
           | "qty_pieces"
-          | "qty_kg"
+          | "qty_grams"
           | "notes"
         >;
         Update: Partial<Product>;
@@ -258,7 +264,7 @@ export type Database = {
           | "id"
           | "created_at"
           | "qty_pieces_used"
-          | "qty_kg_used"
+          | "qty_grams_used"
           | "unit_cost_snapshot"
         >;
         Update: Partial<JobProduct>;
@@ -287,7 +293,7 @@ export type Database = {
           | "created_at"
           | "job_id"
           | "qty_pieces_delta"
-          | "qty_kg_delta"
+          | "qty_grams_delta"
           | "note"
         >;
         /* RLS bu tabloda UPDATE/DELETE vermiyor (denetim izi); tip
@@ -403,21 +409,21 @@ export type Database = {
         Returns: { job_id: string; reverted_lines: number };
       };
       apply_stock_movement: {
+        /* Tek miktar: ürünün birimi hangi kolona yazılacağını belirliyor,
+           çağıran birim seçmiyor. */
         Args: {
           p_product_id: string;
           p_movement_type: MovementType;
-          p_qty_pieces_delta?: number;
-          p_qty_kg_delta?: number;
+          p_miktar: number;
           p_note?: string | null;
         };
-        Returns: { product_id: string; qty_pieces: number; qty_kg: number };
+        Returns: { product_id: string; birim: "adet" | "gram"; miktar: number };
       };
       add_job_product: {
         Args: {
           p_job_id: string;
           p_product_id: string;
-          p_qty_pieces?: number;
-          p_qty_kg?: number;
+          p_miktar: number;
         };
         Returns: string;
       };

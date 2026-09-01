@@ -28,23 +28,23 @@ values (
   '75 kW asenkron motor sarımı'
 );
 
--- Rulman: adet bazlı. Bakır tel: kg bazlı. PRD 5.3'e göre iki sayaç bağımsız.
-insert into products (id, name, sku, purchase_price, unit_type_default, qty_pieces, qty_kg)
+-- Rulman: adet bazli. Bakir tel: gram bazli. Her urunun TEK birimi var (0008).
+insert into products (id, name, sku, purchase_price, unit_type_default, qty_pieces, qty_grams)
 values
   ('44444444-4444-4444-4444-444444444444', 'Rulman 6206', 'RLM-6206', 120.00, 'piece', 10, 0),
-  ('55555555-5555-5555-5555-555555555555', 'Bakır Tel 1.2mm', 'BKR-12', 480.50, 'kg', 0, 25.500);
+  ('55555555-5555-5555-5555-555555555555', 'Bakır Tel 1.2mm', 'BKR-12', 480.50, 'gram', 0, 25500);
 
 \echo '--- TEST 1: add_job_product alis fiyatini sabitliyor mu ---'
 select add_job_product(
   '33333333-3333-3333-3333-333333333333',
   '44444444-4444-4444-4444-444444444444',
-  2, 0
+  2
 ) as rulman_satiri;
 
 select add_job_product(
   '33333333-3333-3333-3333-333333333333',
   '55555555-5555-5555-5555-555555555555',
-  0, 4.250
+  4250
 ) as tel_satiri;
 
 -- Fiyat degisse bile snapshot sabit kalmali (PRD Soru 3)
@@ -77,13 +77,13 @@ declare
   v_token text;
 begin
   select qty_pieces into v_pieces from products where id = '44444444-4444-4444-4444-444444444444';
-  select qty_kg into v_kg from products where id = '55555555-5555-5555-5555-555555555555';
+  select qty_grams into v_kg from products where id = '55555555-5555-5555-5555-555555555555';
   select status into v_status from jobs where id = '33333333-3333-3333-3333-333333333333';
   select count(*) into v_moves from stock_movements where job_id = '33333333-3333-3333-3333-333333333333';
   select token into v_token from qr_codes where job_id = '33333333-3333-3333-3333-333333333333';
 
   if v_pieces <> 8 then raise exception 'BASARISIZ: adet 8 olmali, gelen %', v_pieces; end if;
-  if v_kg <> 21.250 then raise exception 'BASARISIZ: kg 21.250 olmali, gelen %', v_kg; end if;
+  if v_kg <> 21250 then raise exception 'BASARISIZ: gram 21250 olmali, gelen %', v_kg; end if;
   if v_status <> 'completed' then raise exception 'BASARISIZ: durum completed olmali'; end if;
   if v_moves <> 2 then raise exception 'BASARISIZ: 2 stok hareketi olmali, gelen %', v_moves; end if;
   if v_token is null or length(v_token) <> 32 then
@@ -108,7 +108,7 @@ do $$
 begin
   perform add_job_product(
     '33333333-3333-3333-3333-333333333333',
-    '44444444-4444-4444-4444-444444444444', 1, 0
+    '44444444-4444-4444-4444-444444444444', 1
   );
   raise exception 'BASARISIZ: tamamlanmis ise malzeme eklenebildi';
 exception
@@ -164,14 +164,14 @@ declare
   v_moves integer;
 begin
   select qty_pieces into v_pieces from products where id = '44444444-4444-4444-4444-444444444444';
-  select qty_kg into v_kg from products where id = '55555555-5555-5555-5555-555555555555';
+  select qty_grams into v_kg from products where id = '55555555-5555-5555-5555-555555555555';
   select status, completed_at into v_status, v_completed
   from jobs where id = '33333333-3333-3333-3333-333333333333';
   select count(*) into v_moves from stock_movements
   where job_id = '33333333-3333-3333-3333-333333333333' and movement_type = 'job_revert';
 
   if v_pieces <> 10 then raise exception 'BASARISIZ: adet 10 olmali, gelen %', v_pieces; end if;
-  if v_kg <> 25.500 then raise exception 'BASARISIZ: kg 25.500 olmali, gelen %', v_kg; end if;
+  if v_kg <> 25500 then raise exception 'BASARISIZ: gram 25500 olmali, gelen %', v_kg; end if;
   if v_status <> 'in_progress' then raise exception 'BASARISIZ: durum in_progress olmali'; end if;
   if v_completed is not null then raise exception 'BASARISIZ: completed_at temizlenmeliydi'; end if;
   if v_moves <> 2 then raise exception 'BASARISIZ: 2 iade hareketi olmali, gelen %', v_moves; end if;
@@ -190,7 +190,7 @@ values (
 select add_job_product(
   '66666666-6666-6666-6666-666666666666',
   '44444444-4444-4444-4444-444444444444',
-  999, 0
+  999
 );
 
 do $$
@@ -228,7 +228,7 @@ end $$;
 \echo '--- TEST 11: miktarsiz malzeme satiri engelleniyor mu ---'
 do $$
 begin
-  insert into job_products (job_id, product_id, qty_pieces_used, qty_kg_used, unit_cost_snapshot)
+  insert into job_products (job_id, product_id, qty_pieces_used, qty_grams_used, unit_cost_snapshot)
   values (
     '33333333-3333-3333-3333-333333333333',
     '44444444-4444-4444-4444-444444444444', 0, 0, 10
@@ -243,7 +243,7 @@ end $$;
 do $$
 begin
   perform apply_stock_movement(
-    '44444444-4444-4444-4444-444444444444', 'job_out', -1, 0, null
+    '44444444-4444-4444-4444-444444444444', 'job_out', -1, null
   );
   raise exception 'BASARISIZ: job_out elle uygulanabildi';
 exception
@@ -253,15 +253,15 @@ end $$;
 
 \echo '--- TEST 13: stok girisi hareket kaydi olusturuyor mu ---'
 select apply_stock_movement(
-  '55555555-5555-5555-5555-555555555555', 'purchase_in', 0, 10.000, 'Fatura #123'
+  '55555555-5555-5555-5555-555555555555', 'purchase_in', 10000, 'Fatura #123'
 ) as sonuc;
 
 do $$
 declare
-  v_kg numeric;
+  v_gram integer;
   v_note text;
 begin
-  select qty_kg into v_kg from products where id = '55555555-5555-5555-5555-555555555555';
+  select qty_grams into v_gram from products where id = '55555555-5555-5555-5555-555555555555';
   /* Acilis stogu trigger'i da bir purchase_in yaziyor ve ayni transaction
      icinde created_at ayni degeri aliyor; bu yuzden notla filtreliyoruz. */
   select note into v_note from stock_movements
@@ -269,9 +269,9 @@ begin
     and movement_type = 'purchase_in'
     and note = 'Fatura #123';
 
-  if v_kg <> 35.500 then raise exception 'BASARISIZ: 35.500 beklenirdi, gelen %', v_kg; end if;
+  if v_gram <> 35500 then raise exception 'BASARISIZ: 35500 gram beklenirdi, gelen %', v_gram; end if;
   if v_note <> 'Fatura #123' then raise exception 'BASARISIZ: not kaydedilmedi'; end if;
-  raise notice 'GECTI: stok girisi 25.500->35.500 kg, hareket notu kaydedildi';
+  raise notice 'GECTI: stok girisi 25500->35500 gram, hareket notu kaydedildi';
 end $$;
 
 \echo '--- TEST 14: ayni fatura no iki kez girilemez ---'

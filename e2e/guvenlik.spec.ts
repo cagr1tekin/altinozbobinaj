@@ -121,13 +121,13 @@ test.describe("Güvenlik ve erişim", () => {
         {
           p_product_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
           p_movement_type: "purchase_in",
-          p_qty_pieces_delta: 100,
+          p_miktar: 100,
         },
       ],
       ["add_job_product", {
         p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
         p_product_id: "6dbb15c7-afd3-4608-b32c-d118e9c44784",
-        p_qty_pieces: 1,
+        p_miktar: 1,
       }],
       ["dashboard_summary", { p_start: "2026-01-01", p_end: "2026-12-31" }],
       ["dashboard_by_customer", { p_start: "2026-01-01", p_end: "2026-12-31" }],
@@ -138,7 +138,7 @@ test.describe("Güvenlik ve erişim", () => {
       ["record_opening_stock", {}],
       ["set_updated_at", {}],
       ["job_product_cost", {
-        p_unit_type: "piece", p_unit_cost: 1, p_qty_pieces: 1, p_qty_kg: 0,
+        p_unit_type: "piece", p_unit_cost: 1, p_qty_pieces: 1, p_qty_grams: 0,
       }],
     ] as const;
 

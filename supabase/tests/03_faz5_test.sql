@@ -19,7 +19,7 @@ insert into products (id, name, purchase_price, unit_type_default, qty_pieces)
   values ('a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d', 'Test rulman', 200, 'piece', 20);
 
 select add_job_product('379e8a09-f025-4484-9ae3-3a4b78f9de36',
-                       'a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d', 2, 0);
+                       'a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d', 2);
 select complete_job('379e8a09-f025-4484-9ae3-3a4b78f9de36');
 
 insert into invoices (customer_id, invoice_no, gross_amount, net_amount, tax_amount)

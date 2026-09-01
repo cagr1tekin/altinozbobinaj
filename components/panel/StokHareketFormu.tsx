@@ -1,14 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import type { Product } from "@/lib/supabase/database.types";
 import { stokHareketiUygula } from "@/lib/actions/urunler";
 import { Alan, Form, GonderButonu } from "@/components/panel/Form";
+import { birimAdi, birimOrnek } from "@/components/panel/ui";
+
+type StokUrunu = Pick<Product, "id" | "name" | "unit_type_default">;
 
 export default function StokHareketFormu({
   urunler,
 }: {
-  urunler: Pick<Product, "id" | "name">[];
+  urunler: StokUrunu[];
 }) {
+  /* Miktar alanı tek: hangi birimde olduğu seçilen ürüne bağlı. Bu yüzden
+     seçim burada izleniyor. Varsayılan ilk ürün — select de onu gösteriyor. */
+  const [urunId, setUrunId] = useState(urunler[0]?.id ?? "");
+  const secili = urunler.find((u) => u.id === urunId) ?? urunler[0];
+  const birim = secili?.unit_type_default ?? "piece";
+
   if (urunler.length === 0) {
     return (
       <p className="text-sm text-pnl-muted">
@@ -28,7 +38,12 @@ export default function StokHareketFormu({
               etiket="Ürün"
               zorunlu
               hatalar={hatalar}
-              secenekler={urunler.map((u) => ({ deger: u.id, etiket: u.name }))}
+              deger={urunId}
+              onChange={(e) => setUrunId(e.target.value)}
+              secenekler={urunler.map((u) => ({
+                deger: u.id,
+                etiket: `${u.name} (${birimAdi(u.unit_type_default)})`,
+              }))}
             />
             <Alan
               ad="movement_type"
@@ -40,15 +55,27 @@ export default function StokHareketFormu({
               ipucu="İşe çıkış ve iade hareketleri iş tamamlama akışında otomatik oluşur."
               hatalar={hatalar}
             />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Alan ad="qty_pieces_delta" etiket="Adet" tip="number" adim="1" varsayilan="0" hatalar={hatalar} />
-              <Alan ad="qty_kg_delta" etiket="Kilogram" tip="number" adim="0.001" varsayilan="0" hatalar={hatalar} />
-            </div>
+            {/* Tek miktar alanı: birim ürüne göre belirleniyor, kullanıcı
+                hangi kutuya yazacağını seçmek zorunda kalmıyor. */}
+            <Alan
+              ad="miktar"
+              etiket={`Miktar (${birimAdi(birim)})`}
+              tip="number"
+              adim="1"
+              placeholder={birimOrnek(birim)}
+              zorunlu
+              hatalar={hatalar}
+            />
             <p className="text-xs text-pnl-muted">
               Sayım düzeltmesinde eksi değer girebilirsiniz (örn. -3). Stok
               girişinde miktar eksi olamaz.
             </p>
-            <Alan ad="note" etiket="Not" placeholder="Örn: Fatura #123" hatalar={hatalar} />
+            <Alan
+              ad="note"
+              etiket="Not"
+              placeholder="Örn: Fatura #123"
+              hatalar={hatalar}
+            />
             <GonderButonu>Hareketi Uygula</GonderButonu>
           </div>
         );

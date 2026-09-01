@@ -37,15 +37,15 @@ export default async function IsDetaySayfasi({
       .select(
         `id, title, description, status, completed_at, created_at, segment_id,
          segments(id, segment_date, customers(id, name)),
-         job_products(id, qty_pieces_used, qty_kg_used, unit_cost_snapshot,
-                      products(id, name, qty_pieces, qty_kg)),
+         job_products(id, qty_pieces_used, qty_grams_used, unit_cost_snapshot,
+                      products(id, name, unit_type_default, qty_pieces, qty_grams)),
          qr_codes(token)`
       )
       .eq("id", id)
       .maybeSingle(),
     supabase
       .from("products")
-      .select("id, name, qty_pieces, qty_kg")
+      .select("id, name, unit_type_default, qty_pieces, qty_grams")
       .order("name", { ascending: true }),
   ]);
 
@@ -67,13 +67,14 @@ export default async function IsDetaySayfasi({
   const malzemeler = (is.job_products ?? []) as Array<{
     id: string;
     qty_pieces_used: number;
-    qty_kg_used: number;
+    qty_grams_used: number;
     unit_cost_snapshot: number;
     products: {
       id: string;
       name: string;
       qty_pieces: number;
-      qty_kg: number;
+      unit_type_default: "piece" | "gram";
+      qty_grams: number;
     } | null;
   }>;
 
@@ -89,15 +90,21 @@ export default async function IsDetaySayfasi({
         .filter(
           (m) =>
             m.products !== null &&
-            (m.products.qty_pieces - m.qty_pieces_used < 0 ||
-              Number(m.products.qty_kg) - Number(m.qty_kg_used) < 0)
+            (m.products.unit_type_default === "piece"
+              ? m.products.qty_pieces - m.qty_pieces_used < 0
+              : Number(m.products.qty_grams) - Number(m.qty_grams_used) < 0)
         )
         .map((m) => ({
           urunAdi: m.products!.name,
-          gerekenAdet: m.qty_pieces_used,
-          gerekenKg: Number(m.qty_kg_used),
-          mevcutAdet: m.products!.qty_pieces,
-          mevcutKg: Number(m.products!.qty_kg),
+          birim: m.products!.unit_type_default,
+          gereken:
+            m.products!.unit_type_default === "piece"
+              ? m.qty_pieces_used
+              : Number(m.qty_grams_used),
+          mevcut:
+            m.products!.unit_type_default === "piece"
+              ? m.products!.qty_pieces
+              : Number(m.products!.qty_grams),
         }));
 
   return (
@@ -161,8 +168,9 @@ export default async function IsDetaySayfasi({
                     </p>
                     <p className="mt-0.5 text-sm text-pnl-muted">
                       <Miktar
+                        birim={m.products?.unit_type_default ?? "piece"}
                         adet={m.qty_pieces_used}
-                        kg={Number(m.qty_kg_used)}
+                        gram={Number(m.qty_grams_used)}
                       />
                       {" · "}
                       {formatPara(m.unit_cost_snapshot)} birim

@@ -11,18 +11,24 @@ import type { PdfIs, PdfMusteri, PdfSegment } from "./belgeler";
 
 type HamMalzeme = {
   qty_pieces_used: number;
-  qty_kg_used: number;
+  qty_grams_used: number;
   unit_cost_snapshot: number;
-  products: { name: string } | null;
+  products: { name: string; unit_type_default: "piece" | "gram" } | null;
 };
 
+/* Ürün tek birimle izleniyor: adet ürününde gram kolonu, gram ürününde
+   adet kolonu hep 0. PDF'te tek "Miktar" sütunu yazılıyor. */
 function malzemeleriDonustur(ham: HamMalzeme[] | null) {
-  return (ham ?? []).map((m) => ({
-    ad: m.products?.name ?? "—",
-    adet: m.qty_pieces_used,
-    kg: Number(m.qty_kg_used),
-    birimMaliyet: Number(m.unit_cost_snapshot),
-  }));
+  return (ham ?? []).map((m) => {
+    const birim = m.products?.unit_type_default ?? "piece";
+    return {
+      ad: m.products?.name ?? "—",
+      birim,
+      miktar:
+        birim === "piece" ? m.qty_pieces_used : Number(m.qty_grams_used),
+      birimMaliyet: Number(m.unit_cost_snapshot),
+    };
+  });
 }
 
 /** Birden çok işin maliyetini tek sorguda çeker (N+1 önlemek için). */
@@ -53,7 +59,7 @@ export async function isVerisi(isId: string): Promise<{
     .select(
       `id, title, description, status, completed_at, created_at,
        segments(segment_date, customers(id, name, phone, email, address, tax_number)),
-       job_products(qty_pieces_used, qty_kg_used, unit_cost_snapshot, products(name)),
+       job_products(qty_pieces_used, qty_grams_used, unit_cost_snapshot, products(name, unit_type_default)),
        qr_codes(token)`
     )
     .eq("id", isId)
@@ -122,7 +128,7 @@ export async function segmentVerisi(segmentId: string): Promise<{
       `id, segment_date, note, status,
        customers(id, name, phone, email, address, tax_number),
        jobs(id, title, description, status, completed_at, created_at,
-            job_products(qty_pieces_used, qty_kg_used, unit_cost_snapshot, products(name)))`
+            job_products(qty_pieces_used, qty_grams_used, unit_cost_snapshot, products(name, unit_type_default)))`
     )
     .eq("id", segmentId)
     .maybeSingle();
@@ -186,7 +192,7 @@ export async function musteriVerisi(musteriId: string): Promise<{
       .select(
         `id, segment_date, note, status,
          jobs(id, title, description, status, completed_at, created_at,
-              job_products(qty_pieces_used, qty_kg_used, unit_cost_snapshot, products(name)))`
+              job_products(qty_pieces_used, qty_grams_used, unit_cost_snapshot, products(name, unit_type_default)))`
       )
       .eq("customer_id", musteriId)
       .order("segment_date", { ascending: false }),

@@ -143,6 +143,31 @@ Müşteri, iş, ürün — hepsi aynı satır deseni. Tüm satır tıklanabilir.
 - Hata mesajı input'un **altında**, kırmızı, `aria-describedby` ile bağlı.
 - Sayısal alanlarda `inputMode="decimal"` — telefonda sayı klavyesi açılsın.
 - Zorunlu alan yıldızla işaretli + `sr-only` "(zorunlu)" metni.
+- `type="number"` alanları tekerlek gelince odağı bırakır. Tarayıcı, odaktaki
+  sayı alanında tekerleği bir adım artırma/azaltma sayıyor; kullanıcı sayfayı
+  kaydırırken girdiği miktar sessizce değişiyordu (4 → 3,999). Sessiz veri
+  bozulması, görünür bir hatadan çok daha kötü.
+
+### Miktar: ekranda tek birim
+
+Bir ürün ya adetle ya gramla izlenir; ikisi birden değil. Formda **tek bir
+miktar alanı** olur ve etiketi seçilen ürüne göre değişir:
+
+| Ürünün birimi | Etiket | Örnek metin |
+|---|---|---|
+| Adet | `Miktar (adet)` | `Örn: 3` |
+| Gram | `Miktar (gram)` | `Örn: 250` |
+
+Neden: "Adet" ve "Kilogram" kutuları yan yana dururken hangisinin
+doldurulacağı her seferinde bir karar oluyordu. Atölyede, ayaktayken, aceleyle
+verilen bir karar; yanlış kutuya yazmak da stoğu sessizce bozuyordu.
+
+Gram tam sayıdır — virgül yok. Böylece miktar tıpkı adet gibi davranır ve
+ondalık girişten kaynaklanan yuvarlama sorunları ortadan kalkar.
+
+Fiyat bunun istisnası: gram izlenen üründe fiyat **kilogram başına** girilir
+(`₺ / kilogram`), çünkü malzeme kiloyla satın alınıyor ve gram başına fiyat
+iki ondalıkla yeterince hassas olmuyor. Etiket bunu açıkça yazar.
 
 ### Durum rozeti
 
@@ -261,6 +286,8 @@ Panel telefona kısayol olarak eklenecek.
 | Panelde serif / display font | Tarama hızını düşürür, gereksiz süs |
 | Gölge, gradient, cam efekti | Flat sistemde tutarsızlık; küçük ekranda gürültü |
 | Bir ekranda iki birincil buton | Kullanıcı hangisine basacağını düşünmek zorunda kalır |
+| Aynı anda iki miktar alanı (adet + gram) göstermek | Hangisinin doldurulacağı her seferinde bir karar; yanlış kutu stoğu sessizce bozar |
+| Miktarda ondalık kabul etmek | Virgül/nokta karışıklığı ve yuvarlama; gram tam sayı olarak yeterli |
 | Placeholder'ı etiket yerine kullanma | Yazmaya başlayınca etiket kaybolur |
 | Renkle tek başına durum anlatma | Renk körlüğü ve güneş altında okunamaz ekran |
 | 44px altı dokunma hedefi | Kirli/eldivenli parmakla ıskalanır |

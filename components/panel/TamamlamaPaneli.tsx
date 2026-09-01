@@ -6,10 +6,11 @@ import { Form, GonderButonu } from "@/components/panel/Form";
 
 type StokUyarisi = {
   urunAdi: string;
-  gerekenAdet: number;
-  gerekenKg: number;
-  mevcutAdet: number;
-  mevcutKg: number;
+  /* Ürün tek birimle izleniyor; hangi birim olduğu burada taşınıyor ki
+     uyarı "3 adet" mi "250 gram" mı olduğunu doğru yazsın. */
+  birim: "piece" | "gram";
+  gereken: number;
+  mevcut: number;
 };
 
 /**
@@ -74,10 +75,9 @@ export default function TamamlamaPaneli({
                 {stokUyarilari.map((u) => (
                   <li key={u.urunAdi}>
                     <span className="font-medium">{u.urunAdi}</span>: gereken{" "}
-                    {u.gerekenAdet > 0 && `${u.gerekenAdet} adet`}
-                    {u.gerekenAdet > 0 && u.gerekenKg > 0 && " / "}
-                    {u.gerekenKg > 0 && `${u.gerekenKg} kg`}, mevcut{" "}
-                    {u.mevcutAdet} adet / {u.mevcutKg} kg
+                    {`${u.gereken} ${u.birim === "piece" ? "adet" : "gram"}`}
+                    , mevcut{" "}
+                    {`${u.mevcut} ${u.birim === "piece" ? "adet" : "gram"}`}
                   </li>
                 ))}
               </ul>
