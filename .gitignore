@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ornek dosya commit edilir, gercek degerler icermez
+!.env.example
 
 # vercel
 .vercel
@@ -43,3 +45,11 @@ next-env.d.ts
 # yerel gorsel calisma klasorleri (deploy edilmez)
 /ark/
 /ark.webp/
+
+# kok dizine birakilan belgeler (fatura/irsaliye vb.) repoya girmesin
+/*.pdf
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
