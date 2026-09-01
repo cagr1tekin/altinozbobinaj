@@ -62,17 +62,22 @@ test.describe("Mobil deneyim", () => {
     // Hero'dayken görünmemeli
     await expect(bar).toBeHidden();
 
+    /* Sayfada 22 görsel loading="eager" ile yükleniyor; bu ağı meşgul edip
+       JS'i geciktirdiği için hydration bazen 800ms'yi aşıyor ve bar geç
+       beliriyordu. Sabit bekleme yerine görünene kadar bekleniyor. */
     await page.locator("#hakkimizda").scrollIntoViewIfNeeded();
-    await page.waitForTimeout(800);
-
-    await expect(bar).toBeVisible();
+    await expect(bar).toBeVisible({ timeout: 20000 });
     await expect(page.getByRole("link", { name: /WhatsApp/ })).toBeVisible();
   });
 
   test("19 — çağrı barı footer içeriğinin üstünü kapatmıyor", async ({ page }) => {
     await page.goto("/");
     await page.keyboard.press("End");
-    await page.waitForTimeout(900);
+    // Bar belirene kadar bekle (hydration gecikmesi için)
+    await page
+      .getByRole("link", { name: /Hemen Ara/ })
+      .waitFor({ state: "visible", timeout: 20000 })
+      .catch(() => {});
 
     const telif = page.getByText(/Tüm hakları saklıdır/);
     await telif.scrollIntoViewIfNeeded();

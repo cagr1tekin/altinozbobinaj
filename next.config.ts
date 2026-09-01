@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  /* pdfjs-dist Next tarafindan bundle edilmemeli: paket kendi worker
+     dosyasini (pdf.worker.mjs) calisma aninda goreceli yoldan yukluyor,
+     bundle edilince o dosya chunk klasorune kopyalanmadigi icin
+     "Setting up fake worker failed" hatasi veriyor. Harici birakilinca
+     node_modules'tan dogrudan yukleniyor ve worker'i buluyor. */
+  serverExternalPackages: ["pdfjs-dist"],
   images: {
     /* Projede uzak görsel yok; unsplash izni kaldırıldı.
        Uzak kaynak eklenirse remotePatterns buraya geri gelir. */

@@ -196,7 +196,15 @@ test.describe("Landing sayfası", () => {
       .getAttribute("content");
     expect(ogUrl, "og:image etiketi yok").toBeTruthy();
 
-    const yanit = await request.get(ogUrl!);
+    /* og:image mutlak olmak zorunda: sosyal medya kazıyıcıları göreceli
+       adresi çözemez. Production derlemesinde metadataBase gerçek alan
+       adına dönüştüğü için adres canlı siteyi işaret ediyor; dosyanın
+       kendisi test sunucusundan, yoluyla çekiliyor. */
+    const cozulmus = new URL(ogUrl!);
+    expect(cozulmus.protocol).toBe("https:");
+    expect(cozulmus.hostname).toContain("altinozbobinaj.com");
+
+    const yanit = await request.get(cozulmus.pathname);
     expect(yanit.status()).toBe(200);
     expect(yanit.headers()["content-type"]).toContain("image/png");
 

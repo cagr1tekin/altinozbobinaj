@@ -372,6 +372,37 @@ test.describe("Panel iş akışı", () => {
     await expect(uyari).toContainText(/PDF/i);
   });
 
+  test("45b — gerçek e-Fatura PDF'i okunup kaydediliyor", async ({ page }) => {
+    /* Bu test, ayrıştırıcının Node'da değil NEXT.JS RUNTIME'INDA çalıştığını
+       doğruluyor. Node testleri (scripts/fatura-testi.ts) geçtiği hâlde
+       panelde "PDF açılamadı" hatası alınmıştı: Next, pdfjs-dist'i bundle
+       edince paket kendi worker dosyasını bulamıyordu. serverExternalPackages
+       ile çözüldü; bu test o ayarın kaldırılmasını yakalar. */
+    const fs = await import("node:fs");
+    const ornek = "SLD2026000000090.pdf";
+    test.skip(!fs.existsSync(ornek), "örnek fatura PDF'i yok");
+
+    await musteriOlustur(page, testAdi("PdfOkuma"));
+    await segmentAc(page);
+    await acilirAc(page, /Fatura yükle/);
+
+    await page.getByLabel(/Fatura PDF/).setInputFiles(ornek);
+    await page.getByRole("button", { name: /Faturayı Yükle/ }).click();
+
+    const sonuc = page.locator('form [role="status"], form [role="alert"]');
+    await expect(sonuc).toBeVisible({ timeout: 30000 });
+
+    const metin = (await sonuc.textContent()) ?? "";
+    /* Aynı fatura daha önce yüklenmişse mükerrer uyarısı gelir — o da
+       ayrıştırmanın çalıştığını gösterir. Kabul edilemez olan, okuma
+       hatası almak. */
+    expect(
+      metin,
+      `PDF okunamadı: ${metin}`
+    ).not.toMatch(/açılamadı|okunamadı|başlatılamadı/i);
+    expect(metin).toMatch(/kaydedildi|zaten yüklen/i);
+  });
+
   test("46 — faturalar sekmesi kaldırıldı, raporlar sekmesi var", async ({
     page,
   }) => {

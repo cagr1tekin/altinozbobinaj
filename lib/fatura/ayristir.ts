@@ -153,10 +153,23 @@ export async function faturaOku(veri: Uint8Array): Promise<AyristirmaSonucu> {
   let metin: string;
   try {
     metin = await pdfMetniCikar(veri);
-  } catch {
+  } catch (e) {
+    /* Gerçek hatayı yutmak, sorunu teşhis edilemez hâle getiriyor:
+       "Setting up fake worker failed" (bir yapılandırma hatası) ile
+       gerçekten bozuk bir dosya kullanıcıya aynı mesajı veriyordu.
+       Ayrıntı sunucu günlüğüne yazılıyor, kullanıcıya sadeleşmiş
+       mesaj gösteriliyor. */
+    const hata = e as Error;
+    console.error("[fatura] PDF açılamadı:", hata.name, hata.message);
+
+    /* Altyapı hatası ile bozuk dosyayı ayır: kullanıcı birine bir şey
+       yapabilir, diğerine yapamaz. */
+    const altyapi = /worker|module|import|ENOENT/i.test(hata.message);
     return {
       durum: "hata",
-      mesaj: "PDF açılamadı. Dosya bozuk veya şifreli olabilir.",
+      mesaj: altyapi
+        ? "PDF okuyucu başlatılamadı. Bu bir sistem hatası; geliştiriciye bildirin."
+        : "PDF açılamadı. Dosya bozuk veya şifreli olabilir.",
     };
   }
 

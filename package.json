@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "e2e": "playwright test",
+    "e2e:server": "next build && next start --port 3100",
     "e2e:ui": "playwright test --ui"
   },
   "dependencies": {

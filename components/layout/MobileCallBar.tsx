@@ -16,6 +16,9 @@ const WHATSAPP_URL = `https://wa.me/905425918372?text=${WHATSAPP_MESSAGE}`;
  * Hero'daki CTA ilk ekrandan sonra kaybolduğu için bar Hero geçildiğinde
  * devreye giriyor.
  */
+/** Hero'nun altı bu eşiğin üstüne çıktığında bar beliriyor. */
+const ESIK = 120;
+
 export default function MobileCallBar() {
   const [isVisible, setIsVisible] = useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -24,12 +27,23 @@ export default function MobileCallBar() {
     const hero = document.getElementById("hero");
     if (!hero) return;
 
+    /* Mount anındaki konumu doğrudan ölç.
+       Yalnızca IntersectionObserver'a güvenmek yetmiyordu: kullanıcı sayfa
+       yüklenirken (hydration tamamlanmadan) hızlıca aşağı kaydırırsa,
+       observer kurulduğunda ilk callback gecikiyor ve bar hiç belirmiyordu.
+       Bu ölçüm o boşluğu kapatıyor. */
+    const konumuDegerlendir = () => {
+      const r = hero.getBoundingClientRect();
+      setIsVisible(r.bottom <= ESIK);
+    };
+    konumuDegerlendir();
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         // Hero ekrandan çıktığında göster
         setIsVisible(!entry.isIntersecting);
       },
-      { rootMargin: "-120px 0px 0px 0px", threshold: 0 }
+      { rootMargin: `-${ESIK}px 0px 0px 0px`, threshold: 0 }
     );
 
     observer.observe(hero);
