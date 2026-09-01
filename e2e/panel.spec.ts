@@ -181,7 +181,7 @@ test.describe("Panel iş akışı", () => {
 
     // Stok gerçekten 10 kalmalı
     await page.goto("/yonetim/urunler");
-    const satir = page.locator("tr", { hasText: urun }).first();
+    const satir = page.locator("li", { hasText: urun }).first();
     await expect(satir).toContainText("10 adet");
 
     // Şimdi işi tamamla
@@ -191,7 +191,7 @@ test.describe("Panel iş akışı", () => {
 
     // Stok 7'ye düşmeli
     await page.goto("/yonetim/urunler");
-    await expect(page.locator("tr", { hasText: urun }).first()).toContainText("7 adet");
+    await expect(page.locator("li", { hasText: urun }).first()).toContainText("7 adet");
   });
 
   test("40 — yetersiz stokta tamamlama uyarı veriyor, onayla zorlanabiliyor", async ({
@@ -309,7 +309,7 @@ test.describe("Panel iş akışı", () => {
     await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
 
     await page.goto("/yonetim/urunler");
-    await expect(page.locator("tr", { hasText: urun }).first()).toContainText("6 adet");
+    await expect(page.locator("li", { hasText: urun }).first()).toContainText("6 adet");
   });
 
   test("44 — fatura tutarları tutarsızsa reddediliyor", async ({ page }) => {
@@ -340,7 +340,7 @@ test.describe("Panel iş akışı", () => {
     await musteriOlustur(page, musteri);
 
     await page.goto("/yonetim/faturalar");
-    await page.getByLabel("Müşteri").selectOption({ label: musteri });
+    await page.getByLabel("Müşteri", { exact: true }).selectOption({ label: musteri });
     await page.getByLabel("Net tutar (₺)").fill("1000");
     await page.getByLabel("Vergi (₺)").fill("180");
     await page.getByLabel(/Brüt tutar/).fill("1180");
@@ -351,7 +351,9 @@ test.describe("Panel iş akışı", () => {
     // Özet sayfasında görünmeli
     await page.goto("/yonetim?donem=ay");
     await expect(page.getByText("Net gelir")).toBeVisible();
-    await expect(page.locator("table")).toContainText(musteri);
+    /* Müşteri kırılımı tablo değil liste olarak çiziliyor (panel tasarım
+       sistemi: mobilde tablo yerine liste satırı). */
+    await expect(page.locator("main")).toContainText(musteri);
   });
 
   test("46 — mükerrer fatura numarası engelleniyor", async ({ page }) => {
@@ -386,7 +388,7 @@ test.describe("Panel iş akışı", () => {
     const musteriId = page.url().split("/").pop()!;
 
     // Panel bağlantısı görünür olmalı
-    await expect(page.getByRole("link", { name: /Müşteri belgesi \(PDF\)/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /Müşteri belgesi/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /Müşteri kopyası/ })).toBeVisible();
 
     // Oturum çerezi ile PDF isteği

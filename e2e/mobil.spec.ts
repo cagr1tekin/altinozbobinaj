@@ -15,11 +15,19 @@ test.describe("Mobil deneyim", () => {
     await expect(hamburger).toBeVisible();
     await expect(hamburger).toHaveAttribute("aria-expanded", "false");
 
-    await hamburger.click();
-    await expect(page.getByRole("button", { name: "Menüyü kapat" })).toHaveAttribute(
-      "aria-expanded",
-      "true"
-    );
+    /* Tıklama, React hydration tamamlanmadan gelirse onClick henüz bağlı
+       olmadığı için yutuluyor ve test yavaş makinelerde kırılıyordu.
+       toPass, açılana kadar tıklamayı yeniden deniyor. */
+    await expect(async () => {
+      await hamburger.click({ timeout: 3000 });
+      await expect(
+        page.getByRole("button", { name: "Menüyü kapat" })
+      ).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 25000 });
+
+    await expect(
+      page.getByRole("button", { name: "Menüyü kapat" })
+    ).toHaveAttribute("aria-expanded", "true");
 
     // Panel açıkken arka plan kaydırılamamalı
     const overflow = await page.evaluate(() => document.body.style.overflow);
@@ -36,7 +44,11 @@ test.describe("Mobil deneyim", () => {
   test("17 — mobil menüden bölüme gidiliyor ve menü kapanıyor", async ({ page }) => {
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Menüyü aç" }).click();
+    await expect(async () => {
+      await page.getByRole("button", { name: "Menüyü aç" }).click({ timeout: 3000 });
+      await expect(page.locator("#mobil-menu")).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 25000 });
+
     await page.locator("#mobil-menu").getByRole("link", { name: "Referanslar" }).click();
 
     await expect(page.getByRole("button", { name: "Menüyü aç" })).toBeVisible();

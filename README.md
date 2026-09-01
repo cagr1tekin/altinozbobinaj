@@ -48,13 +48,18 @@ app/
     layout.tsx      #   site metadata, OG/Twitter, JSON-LD
     page.tsx        #   bolumlerin sirasi
     opengraph-image.tsx
-  giris/            # personel girisi
-  yonetim/          # yonetim paneli (korumali)
-  j/[token]/        # QR ile acilan salt-okunur malzeme sayfasi
+  (panel)/          # yonetim paneli — AYRI tasarim sistemi (acik tema)
+    layout.tsx      #   Inter fontu, acik zemin, PWA manifesti
+    manifest.ts     #   panelin kendi PWA manifesti (start_url: /yonetim)
+    giris/          #   personel girisi
+    yonetim/        #   panel sayfalari (korumali)
+    j/[token]/      #   QR ile acilan salt-okunur malzeme sayfasi
 components/
-  layout/           # Header (mobil menu dahil), Footer, MobileCallBar
-  home/             # Hero, Services, About, References, Contact
-  yonetim/          # panel formlari ve ortak arayuz parcalari
+  layout/           # LANDING: Header, Footer, MobileCallBar
+  home/             # LANDING: Hero, Services, About, References, Contact
+  panel/            # PANEL: alt navigasyon, liste, form, buton, rozet
+design-system/
+  PANEL.md          # panel tasarim sistemi (landing'den bagimsiz)
 lib/
   scroll.ts         # header offset'li yumusak kaydirma (tek kaynak)
   motion.ts         # paylasilan Framer Motion varyantlari
@@ -94,13 +99,32 @@ Veritabanı davranış testleri için bkz. [`supabase/README.md`](supabase/READM
 | `e2e/mobil.spec.ts` | Hamburger menü, sabit çağrı barı, dokunma hedefleri, taşma |
 | `e2e/guvenlik.spec.ts` | Panel koruması, API yetkilendirme, RLS, bilgi sızıntısı |
 | `e2e/panel.spec.ts` | Müşteri→segment→iş→stok→fatura→PDF akışının tamamı |
+| `e2e/panel-tasarim.spec.ts` | Panel/landing tasarım izolasyonu, tek font, flat, mobil ölçüler |
 
 `e2e/panel.spec.ts` bir personel hesabı gerektirir; `.env` içinde
 `E2E_TEST_EPOSTA` / `E2E_TEST_SIFRE` tanımlı değilse o dosya atlanır.
 **Testler gerçek veritabanına kayıt oluşturur** — üretim projesinde değil,
 ayrı bir test projesinde veya ayrı bir hesapla çalıştırın.
 
-## Tasarım Sistemi
+## Tasarım Sistemleri
+
+Projede **iki ayrı tasarım sistemi** var ve bunlar bilinçli olarak
+karışmıyor:
+
+| | Pazarlama sitesi (`/`) | Yönetim paneli |
+|---|---|---|
+| Tema | Koyu `#09090b` | Açık `#F8FAFC` |
+| Font | Playfair Display + Plus Jakarta | Yalnızca Inter |
+| Tokenlar | `ink`, `paper`, `silver-*` | `pnl-*` |
+| Bileşenler | `components/home`, `components/layout` | `components/panel` |
+| Stil | Premium, editorial, animasyonlu | Flat, sade, animasyonsuz |
+
+Panel sistemi ayrıntılı olarak [`design-system/PANEL.md`](design-system/PANEL.md)
+içinde. İki sistemin karışmadığını `e2e/panel-tasarim.spec.ts` sürekli
+doğruluyor: panelde `bg-ink` kullanılırsa ya da landing'e Inter sızarsa
+testler kırılır.
+
+### Pazarlama sitesi tokenları
 
 Renkler `tailwind.config.ts` içinde token olarak tanımlı; komponentlerde
 hardcoded hex kullanılmaz.
