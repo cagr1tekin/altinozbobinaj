@@ -6,7 +6,8 @@ export const metadata: Metadata = {
   title: "Sayfa Bulunamadı | Altınöz Bobinaj",
   description:
     "Aradığınız sayfa bulunamadı. Altınöz Bobinaj ana sayfasına dönerek bobinaj ve motor sarımı hizmetlerimizi inceleyebilirsiniz.",
-  robots: { index: false, follow: true },
+  /* robots burada tanımlanmıyor: Next.js not-found sayfasına zaten
+     otomatik noindex ekliyor ve ikinci bir meta etiketi oluşuyordu. */
 };
 
 export default function NotFound() {

@@ -48,3 +48,8 @@ next-env.d.ts
 
 # kok dizine birakilan belgeler (fatura/irsaliye vb.) repoya girmesin
 /*.pdf
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/

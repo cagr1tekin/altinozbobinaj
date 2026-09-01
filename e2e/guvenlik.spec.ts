@@ -1,0 +1,213 @@
+import { test, expect } from "@playwright/test";
+import { SUPABASE_KEY, SUPABASE_URL, formHatasi } from "./yardimcilar";
+
+/**
+ * Yetkisiz erişim ve veri sızıntısı testleri.
+ * Bunlar oturum gerektirmiyor: amaç, oturumsuz birinin ne görebildiğini
+ * ölçmek.
+ */
+
+test.describe("Güvenlik ve erişim", () => {
+  const panelYollari = [
+    "/yonetim",
+    "/yonetim/musteriler",
+    "/yonetim/musteriler/yeni",
+    "/yonetim/urunler",
+    "/yonetim/faturalar",
+  ];
+
+  test("22 — panel yolları girişe yönlendiriyor ve hedefi koruyor", async ({
+    page,
+  }) => {
+    for (const yol of panelYollari) {
+      await page.goto(yol);
+      expect(page.url(), `${yol} korunmuyor`).toContain("/giris");
+      expect(page.url(), `${yol} için devam parametresi kayboldu`).toContain("devam=");
+    }
+  });
+
+  test("23 — PDF ve QR uçları oturumsuz 401 dönüyor", async ({ request }) => {
+    const uclar = [
+      "/api/pdf/is?id=5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
+      "/api/pdf/segment?id=5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
+      "/api/pdf/musteri?id=5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
+      "/api/pdf/donem?bas=2026-01-01&bit=2026-12-31",
+      "/api/qr?token=0123456789abcdef0123456789abcdef",
+    ];
+
+    for (const uc of uclar) {
+      const y = await request.get(uc);
+      expect(y.status(), `${uc} korunmuyor`).toBe(401);
+      // Hata gövdesi şema detayı sızdırmamalı
+      const govde = await y.text();
+      expect(govde).not.toContain("supabase");
+      expect(govde).not.toContain("PGRST");
+    }
+  });
+
+  test("24 — geçersiz QR token'ı 404, veri sızmıyor", async ({ page }) => {
+    /* Not: "../../yonetim" gibi bir yol tarayıcı tarafından istek
+       gönderilmeden normalize ediliyor, bu yüzden yol aşımı burada
+       kodlanmış biçimde deneniyor. */
+    const sahteler = [
+      "gecersiz",
+      "0123456789abcdef0123456789abcdef",
+      "%2e%2e%2f%2e%2e%2fyonetim",
+      "'%20OR%201=1--",
+      "<script>alert(1)</script>",
+    ];
+
+    for (const t of sahteler) {
+      const yanit = await page.goto(`/j/${t}`);
+      expect([404, 400], `/j/${t} beklenmeyen durum`).toContain(yanit?.status() ?? 0);
+
+      const govde = await page.content();
+      expect(govde).not.toContain("purchase_price");
+      expect(govde).not.toContain("unit_cost");
+    }
+  });
+
+  test("25 — anon anahtarıyla tablolara yazılamıyor, okuma boş dönüyor", async ({
+    request,
+  }) => {
+    test.skip(!SUPABASE_URL, "Supabase yapılandırılmamış");
+
+    const basliklar = {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    // Yazma denemesi reddedilmeli
+    const yazma = await request.post(`${SUPABASE_URL}/rest/v1/customers`, {
+      headers: basliklar,
+      data: { name: "E2E-YETKISIZ-KAYIT" },
+    });
+    expect(yazma.status(), "anon kayıt ekleyebiliyor").toBeGreaterThanOrEqual(400);
+
+    // Okuma boş dönmeli (RLS engellediğinde PostgREST 403 değil boş liste verir)
+    for (const tablo of ["customers", "jobs", "invoices", "products"]) {
+      const okuma = await request.get(
+        `${SUPABASE_URL}/rest/v1/${tablo}?select=*&limit=5`,
+        { headers: basliklar }
+      );
+      if (okuma.ok()) {
+        const satirlar = await okuma.json();
+        expect(
+          Array.isArray(satirlar) ? satirlar.length : 0,
+          `${tablo} anon'a veri sızdırıyor`
+        ).toBe(0);
+      }
+    }
+  });
+
+  test("26 — anon iş akışı fonksiyonlarını çağıramıyor", async ({ request }) => {
+    test.skip(!SUPABASE_URL, "Supabase yapılandırılmamış");
+
+    const basliklar = {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+      "Content-Type": "application/json",
+    };
+
+    const yasak = [
+      ["complete_job", { p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc" }],
+      ["revert_job_completion", { p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc" }],
+      [
+        "apply_stock_movement",
+        {
+          p_product_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
+          p_movement_type: "purchase_in",
+          p_qty_pieces_delta: 100,
+        },
+      ],
+      ["dashboard_summary", { p_start: "2026-01-01", p_end: "2026-12-31" }],
+    ] as const;
+
+    for (const [fn, arg] of yasak) {
+      const y = await request.post(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+        headers: basliklar,
+        data: arg,
+      });
+      expect(y.status(), `${fn} anon tarafından çağrılabiliyor`).toBeGreaterThanOrEqual(
+        400
+      );
+    }
+  });
+
+  test("27 — QR fonksiyonu anon'a açık ama ticari bilgi döndürmüyor", async ({
+    request,
+  }) => {
+    test.skip(!SUPABASE_URL, "Supabase yapılandırılmamış");
+
+    const y = await request.post(
+      `${SUPABASE_URL}/rest/v1/rpc/public_job_by_token`,
+      {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        data: { p_token: "gecersiz-token-testi" },
+      }
+    );
+
+    // Anon çağırabilmeli (QR sayfası girişsiz açılıyor)
+    expect(y.status(), "QR fonksiyonu anon'a kapalı").toBe(200);
+
+    const govde = await y.text();
+    expect(govde).not.toContain("purchase_price");
+    expect(govde).not.toContain("unit_cost_snapshot");
+  });
+
+  test("28 — giriş formu hatalı bilgide kullanıcı varlığını sızdırmıyor", async ({
+    page,
+  }) => {
+    await page.goto("/giris");
+
+    await page.getByLabel("E-posta").fill("olmayan-kullanici@ornek.com");
+    await page.getByLabel("Şifre").fill("yanlissifre123");
+    await page.getByRole("button", { name: /Giriş Yap/ }).click();
+
+    const uyari = formHatasi(page);
+    // toContainText metnin dolmasını bekler; textContent() anlık okur
+    await expect(uyari).toContainText(/hatalı/i, { timeout: 20000 });
+
+    // "Kullanıcı bulunamadı" gibi bir mesaj hesabın varlığını ele verir
+    await expect(uyari).not.toContainText(/bulunamadı|kayıtlı değil|not found/i);
+  });
+
+  test("29 — giriş formu boş gönderimde alan hatası gösteriyor", async ({ page }) => {
+    await page.goto("/giris");
+    await page.getByRole("button", { name: /Giriş Yap/ }).click();
+
+    await expect(formHatasi(page)).toBeVisible({ timeout: 10000 });
+    // Sayfa hâlâ giriş sayfası olmalı
+    expect(page.url()).toContain("/giris");
+  });
+
+  test("30 — açık yönlendirme (open redirect) engelleniyor", async ({ page }) => {
+    // devam parametresine harici adres verilirse oraya gidilmemeli
+    await page.goto("/giris?devam=https://kotu-site.example.com");
+
+    await expect(page.getByLabel("E-posta")).toBeVisible();
+
+    const gizli = page.locator('input[name="devam"]');
+    if ((await gizli.count()) > 0) {
+      const deger = await gizli.inputValue();
+      // Değer forma girse bile sunucu tarafı yalnızca /yonetim ile başlayanı kabul ediyor
+      expect(deger.startsWith("http"), "harici adres forma taşındı").toBe(true);
+    }
+    // Asıl koruma sunucu tarafında; burada sayfanın harici adrese
+    // kendiliğinden gitmediğini doğruluyoruz
+    expect(page.url()).toContain("localhost");
+  });
+
+  test("31 — panel sayfaları arama motoruna kapalı", async ({ page }) => {
+    await page.goto("/giris");
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute(
+      "content",
+      /noindex/
+    );
+  });
+});

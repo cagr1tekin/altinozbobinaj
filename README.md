@@ -79,6 +79,27 @@ Müşteri → segment → iş → malzeme akışı, stok takibi ve QR ile malzem
 Panel Supabase yapılandırılmadan da derlenir; `/yonetim` bu durumda
 kurulum talimatını gösterir.
 
+## Testler
+
+```bash
+npm run e2e              # Playwright uçtan uca testler
+npx tsx scripts/sema-testi.ts   # zod form doğrulama şemaları
+```
+
+Veritabanı davranış testleri için bkz. [`supabase/README.md`](supabase/README.md).
+
+| Katman | Kapsam |
+|---|---|
+| `e2e/landing.spec.ts` | Başlık hiyerarşisi, SEO/JSON-LD, klavye erişimi, 404, OG görseli |
+| `e2e/mobil.spec.ts` | Hamburger menü, sabit çağrı barı, dokunma hedefleri, taşma |
+| `e2e/guvenlik.spec.ts` | Panel koruması, API yetkilendirme, RLS, bilgi sızıntısı |
+| `e2e/panel.spec.ts` | Müşteri→segment→iş→stok→fatura→PDF akışının tamamı |
+
+`e2e/panel.spec.ts` bir personel hesabı gerektirir; `.env` içinde
+`E2E_TEST_EPOSTA` / `E2E_TEST_SIFRE` tanımlı değilse o dosya atlanır.
+**Testler gerçek veritabanına kayıt oluşturur** — üretim projesinde değil,
+ayrı bir test projesinde veya ayrı bir hesapla çalıştırın.
+
 ## Tasarım Sistemi
 
 Renkler `tailwind.config.ts` içinde token olarak tanımlı; komponentlerde
