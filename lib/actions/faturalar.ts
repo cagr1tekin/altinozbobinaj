@@ -99,13 +99,33 @@ export async function faturaYukle(
     });
 
   if (yuklemeHatasi) {
-    return {
-      status: "error",
-      message:
-        yuklemeHatasi.message.includes("exists")
-          ? "Bu numarada bir fatura dosyası zaten yüklü."
-          : "Dosya yüklenemedi. Storage bucket'ının oluşturulduğunu kontrol edin.",
-    };
+    /* Gerçek hatayı yutmamak önemli: RLS reddi, eksik bucket ve boyut aşımı
+       çok farklı sorunlar ama hepsi "yüklenemedi" diye görününce teşhis
+       edilemiyor. Ayrıntı sunucu günlüğüne, ayrıştırılmış hâli kullanıcıya. */
+    const m = yuklemeHatasi.message;
+    console.error("[fatura] Storage yükleme hatası:", m);
+
+    let mesaj: string;
+    if (/exists/i.test(m)) {
+      mesaj = "Bu numarada bir fatura dosyası zaten yüklü.";
+    } else if (/bucket not found/i.test(m)) {
+      mesaj =
+        "Depolama alanı (faturalar bucket'ı) bulunamadı. Kurulum SQL'i çalıştırılmalı.";
+    } else if (/row-level security|unauthorized|violates/i.test(m)) {
+      /* En sık karşılaşılan durum: bucket var ama storage.objects üzerindeki
+         izin kuralları oluşmamış. Supabase panelinde bucket satırında
+         POLICIES sütunu 0 görünür. */
+      mesaj =
+        "Depolama izinleri eksik. supabase/depolama-izinleri.sql dosyasını " +
+        "Supabase SQL Editor'de çalıştırın.";
+    } else if (/mime|content type/i.test(m)) {
+      mesaj = "Dosya türü kabul edilmedi. Yalnızca PDF yüklenebilir.";
+    } else if (/exceeded|too large|size/i.test(m)) {
+      mesaj = "Dosya çok büyük. En fazla 10 MB yüklenebilir.";
+    } else {
+      mesaj = `Dosya yüklenemedi: ${m}`;
+    }
+    return { status: "error", message: mesaj };
   }
 
   const { error } = await supabase.from("invoices").insert({

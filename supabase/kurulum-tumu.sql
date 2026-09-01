@@ -1346,7 +1346,20 @@ begin
     create policy faturalar_staff_delete on storage.objects
       for delete to authenticated
       using (bucket_id = 'faturalar');
+
+    raise notice 'Fatura depolama politikalari olusturuldu (3 adet).';
   end if;
+exception
+  when insufficient_privilege then
+    /* Bazi Supabase projelerinde SQL Editor'un rolu storage.objects'in
+       sahibi degil. Bu blogun basarisizligi butun kurulumu dusurmemeli:
+       kalan tablolar/gorunumler dogru kurulsun, eksik olan tek sey
+       raporlansin. Bucket olusur ama POLICIES sutunu 0 kalir ve fatura
+       yukleme reddedilir. */
+    raise notice '';
+    raise notice 'UYARI: storage.objects uzerinde politika olusturulamadi (yetki yok).';
+    raise notice 'Fatura yukleme calismayacak. Duzeltmek icin:';
+    raise notice '  supabase/depolama-izinleri.sql dosyasini SQL Editor de calistirin.';
 end $$;
 
 -- -----------------------------------------------------------------------------
