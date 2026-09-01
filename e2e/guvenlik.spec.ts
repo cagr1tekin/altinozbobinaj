@@ -110,6 +110,10 @@ test.describe("Güvenlik ve erişim", () => {
       "Content-Type": "application/json",
     };
 
+    /* public_job_by_token dışındaki HİÇBİR fonksiyon anon'a açık olmamalı.
+       Supabase, public şemasındaki yeni fonksiyonları varsayılan olarak anon'a
+       grant ediyor; 0006 migration'ı bunu geri alıyor. Bu test o düzeltmenin
+       uygulandığını doğruluyor. */
     const yasak = [
       ["complete_job", { p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc" }],
       ["revert_job_completion", { p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc" }],
@@ -121,18 +125,45 @@ test.describe("Güvenlik ve erişim", () => {
           p_qty_pieces_delta: 100,
         },
       ],
+      ["add_job_product", {
+        p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
+        p_product_id: "6dbb15c7-afd3-4608-b32c-d118e9c44784",
+        p_qty_pieces: 1,
+      }],
       ["dashboard_summary", { p_start: "2026-01-01", p_end: "2026-12-31" }],
+      ["dashboard_by_customer", { p_start: "2026-01-01", p_end: "2026-12-31" }],
+      ["stock_reconciliation", {}],
+      // Bunlar SECURITY DEFINER: RLS'i baypas edip tabloya yazıyorlar
+      ["refresh_monthly_summary", { p_donem: "2026-09-01" }],
+      ["nightly_summary_refresh", {}],
+      ["record_opening_stock", {}],
+      ["set_updated_at", {}],
+      ["job_product_cost", {
+        p_unit_type: "piece", p_unit_cost: 1, p_qty_pieces: 1, p_qty_kg: 0,
+      }],
     ] as const;
 
+    const acikta: string[] = [];
     for (const [fn, arg] of yasak) {
       const y = await request.post(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
         headers: basliklar,
         data: arg,
       });
-      expect(y.status(), `${fn} anon tarafından çağrılabiliyor`).toBeGreaterThanOrEqual(
-        400
-      );
+      /* 404 = fonksiyon yok (migration uygulanmamış olabilir), kabul.
+         401/403 = yetki reddi, beklenen.
+         200/204 = ÇAĞRILABİLİYOR, güvenlik sorunu.
+         500 = fonksiyon çalıştı ama iş kuralı hatası verdi; bu da yetkinin
+               açık olduğu anlamına gelir. */
+      if (y.status() < 400 || y.status() >= 500) {
+        acikta.push(`${fn} (${y.status()})`);
+      }
     }
+
+    expect(
+      acikta,
+      `anon'a açık kalan fonksiyonlar: ${acikta.join(", ")} — ` +
+        `0006_fonksiyon_yetki_duzeltmesi.sql uygulanmalı`
+    ).toHaveLength(0);
   });
 
   test("27 — QR fonksiyonu anon'a açık ama ticari bilgi döndürmüyor", async ({

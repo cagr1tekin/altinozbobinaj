@@ -14,3 +14,9 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 grant usage on schema public to anon, authenticated, service_role;
+
+-- Supabase, public semasinda olusturulan TUM fonksiyonlari otomatik olarak
+-- anon/authenticated rollerine grant ediyor. Yetki testlerinin gercekci
+-- olmasi icin ayni varsayilan burada da kuruluyor.
+alter default privileges in schema public
+  grant all on functions to anon, authenticated, service_role;

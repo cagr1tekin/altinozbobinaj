@@ -26,7 +26,9 @@ Personel hesapları **Authentication → Users → Add user** ile elle açılır
 **Kolay yol:** `kurulum-tumu.sql` dosyasının tamamını kopyalayıp Supabase
 panelinde **SQL Editor**'e yapıştırın ve çalıştırın. Bu dosya aşağıdaki üç
 migration'ın sırayla birleştirilmiş hâlidir ve sonunda bir doğrulama sorgusu
-çalıştırır — **10 tablo / 12 fonksiyon / 11 politika / 1 view** görmelisiniz.
+çalıştırır — **10 tablo / 12 fonksiyon / 11 politika** ve **anon'a açık
+fonksiyon: 0** görmelisiniz. Son sütun 0 değilse yetki düzeltmesi uygulanmamış
+demektir.
 
 Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
 
@@ -39,6 +41,7 @@ Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
 | 3 | `migrations/0003_rls_policies.sql` | Row Level Security politikaları ve yetkiler |
 | 4 | `migrations/0004_faz2_fatura_dashboard.sql` | Maliyet hesabı, dashboard fonksiyonları, iş akışı revizyonu |
 | 5 | `migrations/0005_faz5_periyodik_ozet.sql` | Aylık özet, pg_cron işi, stok mutabakatı, açılış stoğu trigger'ı |
+| 6 | `migrations/0006_fonksiyon_yetki_duzeltmesi.sql` | **Güvenlik:** fonksiyonların anon rolüne açık kalması giderildi |
 
 `tests/00_supabase_shim.sql` dosyasını **çalıştırmayın** — o yalnızca yerel
 Postgres'te test için, Supabase'de bu roller zaten var.
@@ -182,6 +185,30 @@ farkları listeliyor. Otomatik düzeltmiyor: hangisinin doğru olduğu duruma g�
 değişir ve sessiz düzeltme sorunun kaynağını gizler. Farklar Ürünler
 sayfasında uyarı olarak görünüyor.
 
+### Fonksiyon yetkileri neden ayrı bir migration'da?
+
+Supabase, `public` şemasında oluşturulan **her fonksiyonu otomatik olarak**
+`anon` ve `authenticated` rollerine grant ediyor:
+
+```sql
+alter default privileges in schema public
+  grant all on functions to anon, authenticated, service_role;
+```
+
+Bu yüzden migration'lardaki `revoke all on function ... from public` yeterli
+değildi — yetki `public` grubuna değil doğrudan `anon` rolüne verilmişti.
+Sonuç: giriş yapmamış biri anon anahtarıyla `refresh_monthly_summary()` ve
+`nightly_summary_refresh()` fonksiyonlarını çağırabiliyordu. İkisi de
+`SECURITY DEFINER` olduğu için RLS'i baypas edip `monthly_summaries`
+tablosuna yazıyorlardı.
+
+`0006` bu yetkileri `anon`'dan **açıkça** geri alıyor. Yalnızca QR sayfasının
+kullandığı `public_job_by_token` açık kalıyor.
+
+**Yeni fonksiyon eklerken:** yetkiyi açıkça geri alın ve
+`supabase/tests/04_yetki_test.sql` testini çalıştırın — bu test, anon'a açık
+kalmış herhangi bir fonksiyonu isim isim listeleyerek başarısız olur.
+
 ### `stock_movements` neden güncellenemiyor?
 
 RLS bu tabloda `authenticated` rolüne yalnızca `SELECT` ve `INSERT` veriyor.
@@ -221,7 +248,7 @@ docker cp supabase/tests/03_faz5_test.sql altinoz-pg:/tmp/t3.sql
 docker exec altinoz-pg psql -U postgres -d altinoz -v ON_ERROR_STOP=1 -f /tmp/t3.sql
 ```
 
-37 test:
+44 test:
 - **Faz 1 (18):** stok düşümü, çift tamamlama engeli, QR bilgi sızıntısı, geri
   alma, yetersiz stok, denetim izi korunması ve kısıt ihlalleri
 - **Faz 2 (11):** yeni işin otomatik "devam ediyor" başlaması, birim tipine
@@ -229,6 +256,9 @@ docker exec altinoz-pg psql -U postgres -d altinoz -v ON_ERROR_STOP=1 -f /tmp/t3
   faturanın sayılmaması, müşteri kırılımı
 - **Faz 5 (8):** aylık özet hesabı, upsert davranışı, gecelik işin iki ayı
   tazelemesi, stok mutabakatı, açılış stoğu trigger'ı
+- **Yetki (7):** anon'a açık fonksiyon taraması, QR fonksiyonunun açık
+  kalması, bakım fonksiyonlarının kapalı olması, RLS'in tüm tablolarda açık
+  olması, denetim izinin değiştirilemezliği
 
 Test verisi sonunda `rollback` ile geri alınıyor.
 
