@@ -26,7 +26,7 @@ Personel hesapları **Authentication → Users → Add user** ile elle açılır
 **Kolay yol:** `kurulum-tumu.sql` dosyasının tamamını kopyalayıp Supabase
 panelinde **SQL Editor**'e yapıştırın ve çalıştırın. Bu dosya aşağıdaki üç
 migration'ın sırayla birleştirilmiş hâlidir ve sonunda bir doğrulama sorgusu
-çalıştırır — **10 tablo / 12 fonksiyon / 11 politika** ve **anon'a açık
+çalıştırır — **10 tablo / 13 fonksiyon / 2 view** ve **anon'a açık
 fonksiyon: 0** görmelisiniz. Son sütun 0 değilse yetki düzeltmesi uygulanmamış
 demektir.
 
@@ -42,6 +42,7 @@ Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
 | 4 | `migrations/0004_faz2_fatura_dashboard.sql` | Maliyet hesabı, dashboard fonksiyonları, iş akışı revizyonu |
 | 5 | `migrations/0005_faz5_periyodik_ozet.sql` | Aylık özet, pg_cron işi, stok mutabakatı, açılış stoğu trigger'ı |
 | 6 | `migrations/0006_fonksiyon_yetki_duzeltmesi.sql` | **Güvenlik:** fonksiyonların anon rolüne açık kalması giderildi |
+| 7 | `migrations/0007_fatura_dosyasi.sql` | Fatura PDF yükleme, Storage bucket'ı, segment eşleşmesi, aylık trend |
 
 `tests/00_supabase_shim.sql` dosyasını **çalıştırmayın** — o yalnızca yerel
 Postgres'te test için, Supabase'de bu roller zaten var.
@@ -248,7 +249,7 @@ docker cp supabase/tests/03_faz5_test.sql altinoz-pg:/tmp/t3.sql
 docker exec altinoz-pg psql -U postgres -d altinoz -v ON_ERROR_STOP=1 -f /tmp/t3.sql
 ```
 
-44 test:
+52 test:
 - **Faz 1 (18):** stok düşümü, çift tamamlama engeli, QR bilgi sızıntısı, geri
   alma, yetersiz stok, denetim izi korunması ve kısıt ihlalleri
 - **Faz 2 (11):** yeni işin otomatik "devam ediyor" başlaması, birim tipine
@@ -259,6 +260,9 @@ docker exec altinoz-pg psql -U postgres -d altinoz -v ON_ERROR_STOP=1 -f /tmp/t3
 - **Yetki (7):** anon'a açık fonksiyon taraması, QR fonksiyonunun açık
   kalması, bakım fonksiyonlarının kapalı olması, RLS'in tüm tablolarda açık
   olması, denetim izinin değiştirilemezliği
+- **Fatura (8):** segment eşleşmesi, mükerrer ETTN engeli, birden fazla
+  fatura, tutarsız kaydın reddi, aylık trendin boş ayları doldurması,
+  segment silinince fatura kaydının korunması
 
 Test verisi sonunda `rollback` ile geri alınıyor.
 
@@ -301,6 +305,37 @@ indirmek sunucusuz ortamda soğuk başlatmada ağ hatasına açık.
 Etiket sayfasında QR sunucuda üretilip doğrudan gömülüyor; ayrı bir istek
 yapılmadığı için yazdırma diyaloğu açıldığında görsel kesin hazır olur.
 Yazdırmada panel çerçevesi ve butonlar gizleniyor (`@media print`).
+
+## Fatura okuma (0007)
+
+Faturalar elle girilmiyor. Kullanıcı e-Fatura PDF'ini segmente yüklüyor,
+sistem tutarları **PDF'in metin katmanından** okuyup kaydediyor.
+
+**Neden OCR yok?** Yüklenen belgeler e-fatura sağlayıcısından inen dijital
+PDF'ler ve metin katmanları var. Metni doğrudan okumak görüntü tanımaya göre
+hem kesin hem ücretsiz. Taranmış/fotoğraflanmış bir belge gelirse metin
+çıkmaz; sistem bunu fark edip kaydetmez ve nedenini söyler.
+
+Okunan alanlar: fatura no, ETTN, tarih (GGAAYYYY), net tutar (Mal Hizmet
+Toplam Tutarı), KDV, brüt tutar (Vergiler Dahil Toplam Tutar), alıcı ünvanı.
+
+**Doğrulama sıkı tutuluyor** çünkü önizleme yok, okuma başarılıysa doğrudan
+kaydediliyor: `brüt = net + KDV` tutmuyorsa, tutarlar okunamadıysa veya tarih
+çıkarılamadıysa kayıt yapılmıyor. Yanlış rakamı sessizce kaydetmek, kâr/zarar
+raporunu fark edilmeden bozar.
+
+**Mükerrer yükleme:** ETTN (GİB'in ürettiği benzersiz belge kimliği) üzerinde
+kısmi unique index var; aynı fatura ikinci kez yüklenemez.
+
+**Neden segment altında?** Müşteri bir ziyarette birden fazla iş bırakıyor ve
+hepsine tek fatura kesiliyor. Fatura bu yüzden işin değil segmentin karşılığı.
+Bir segmente birden fazla fatura eklenebilir (ek fatura, düzeltme faturası).
+
+Dosyalar `faturalar` bucket'ında, `public = false`. Erişim yalnızca imzalı
+bağlantıyla ve 5 dakikalık ömürle.
+
+Ayrıştırıcı testleri: `npx tsx scripts/fatura-testi.ts` — gerçek e-Fatura
+PDF'leriyle 35 test.
 
 ## Henüz yapılmayanlar
 

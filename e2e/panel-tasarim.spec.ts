@@ -34,7 +34,7 @@ test.describe("Panel tasarım sistemi", () => {
 
     // Panel ana ekrana eklendiğinde /yonetim açılmalı, landing değil
     expect(landingManifest).toBe("/site.webmanifest");
-    expect(panelManifest).toBe("/manifest.webmanifest");
+    expect(panelManifest).toBe("/panel.webmanifest");
   });
 
   test("54 — panel stilleri landing'e sızmıyor", async ({ page }) => {

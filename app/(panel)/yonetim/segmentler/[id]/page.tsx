@@ -2,18 +2,21 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   Bolum,
-  BosDurum,
   Icerik,
   IsDurumu,
   Liste,
   ListeSatiri,
   SegmentDurumu,
   UstCubuk,
+  formatPara,
   formatTarih,
 } from "@/components/panel/ui";
 import { PdfBaglantilari } from "@/components/panel/PdfButonlari";
+import EkleAcilir from "@/components/panel/EkleAcilir";
 import IsFormu from "@/components/panel/IsFormu";
 import SegmentDurumButonu from "@/components/panel/SegmentDurumButonu";
+import FaturaYukleFormu from "@/components/panel/FaturaYukleFormu";
+import FaturaSatiri from "@/components/panel/FaturaSatiri";
 
 export default async function SegmentDetaySayfasi({
   params,
@@ -23,13 +26,22 @@ export default async function SegmentDetaySayfasi({
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: segment } = await supabase
-    .from("segments")
-    .select(
-      "id, segment_date, note, status, customer_id, customers(id, name), jobs(id, title, status, completed_at, created_at)"
-    )
-    .eq("id", id)
-    .maybeSingle();
+  const [{ data: segment }, { data: faturalar }] = await Promise.all([
+    supabase
+      .from("segments")
+      .select(
+        "id, segment_date, note, status, customer_id, customers(id, name), jobs(id, title, status, completed_at, created_at)"
+      )
+      .eq("id", id)
+      .maybeSingle(),
+    supabase
+      .from("invoices")
+      .select(
+        "id, invoice_no, issue_date, net_amount, gross_amount, supplier_name"
+      )
+      .eq("segment_id", id)
+      .order("issue_date", { ascending: false }),
+  ]);
 
   if (!segment) notFound();
 
@@ -54,12 +66,19 @@ export default async function SegmentDetaySayfasi({
   });
 
   const tamamlanan = isler.filter((i) => i.status === "completed").length;
+  const faturaListesi = faturalar ?? [];
+  const faturaToplam = faturaListesi.reduce(
+    (a, f) => a + Number(f.gross_amount),
+    0
+  );
 
   return (
     <>
       <UstCubuk
         baslik={formatTarih(segment.segment_date)}
-        geriHref={musteri ? `/yonetim/musteriler/${musteri.id}` : "/yonetim/musteriler"}
+        geriHref={
+          musteri ? `/yonetim/musteriler/${musteri.id}` : "/yonetim/musteriler"
+        }
         geriEtiket={musteri?.name ?? "Müşteriler"}
         eylem={<SegmentDurumu durum={segment.status} />}
       />
@@ -72,21 +91,16 @@ export default async function SegmentDetaySayfasi({
           {segment.note && ` · ${segment.note}`}
         </p>
 
-        <Bolum baslik="Yeni iş">
-          <div className="rounded-lg border border-pnl-line bg-pnl-surface p-4">
-            <IsFormu segmentId={segment.id} />
-          </div>
-        </Bolum>
-
         <Bolum baslik="İşler">
-          {siraliIsler.length === 0 ? (
-            <BosDurum
-              baslik="Bu segmentte iş yok"
-              aciklama="Yukarıdaki formdan iş kalemi ekleyin."
-            />
-          ) : (
-            <Liste>
-              {siraliIsler.map((is) => (
+          <Liste
+            ekleme={
+              <EkleAcilir etiket="Yeni iş ekle" ilkAcik={isler.length === 0}>
+                <IsFormu segmentId={segment.id} />
+              </EkleAcilir>
+            }
+          >
+            {siraliIsler.length > 0 &&
+              siraliIsler.map((is) => (
                 <ListeSatiri
                   key={is.id}
                   href={`/yonetim/isler/${is.id}`}
@@ -99,8 +113,34 @@ export default async function SegmentDetaySayfasi({
                   sag={<IsDurumu durum={is.status} />}
                 />
               ))}
-            </Liste>
-          )}
+          </Liste>
+        </Bolum>
+
+        {/* Fatura segmentin karşılığı: müşteri bir gelişte birden fazla iş
+            bırakıyor, hepsine tek fatura kesiliyor. */}
+        <Bolum
+          baslik="Fatura"
+          aciklama={
+            faturaListesi.length > 0
+              ? `${faturaListesi.length} fatura · toplam ${formatPara(faturaToplam)}`
+              : undefined
+          }
+        >
+          <Liste
+            ekleme={
+              <EkleAcilir
+                etiket="Fatura yükle"
+                ilkAcik={faturaListesi.length === 0}
+              >
+                <FaturaYukleFormu segmentId={segment.id} />
+              </EkleAcilir>
+            }
+          >
+            {faturaListesi.length > 0 &&
+              faturaListesi.map((f) => (
+                <FaturaSatiri key={f.id} fatura={f} segmentId={segment.id} />
+              ))}
+          </Liste>
         </Bolum>
 
         <Bolum baslik="Belgeler">

@@ -111,14 +111,27 @@ export function Kart({
 
 /**
  * Liste — tam genişlik satırlar.
- * Kart içinde kart yerleşimi mobilde görsel gürültü yarattığı için
- * liste tek bir çerçeve içinde, satırlar ayırıcıyla bölünüyor.
+ *
+ * Kart içinde kart yerleşimi mobilde görsel gürültü yarattığı için liste
+ * tek bir çerçeve içinde, satırlar ayırıcıyla bölünüyor.
+ *
+ * `ekleme` verilirse listenin ilk satırı olarak çiziliyor: "yeni ekle"
+ * formu ayrı bir bölüm olmak yerine listenin parçası oluyor.
  */
-export function Liste({ children }: { children: ReactNode }) {
+export function Liste({
+  children,
+  ekleme,
+}: {
+  children?: ReactNode;
+  ekleme?: ReactNode;
+}) {
   return (
-    <ul className="divide-y divide-pnl-line overflow-hidden rounded-lg border border-pnl-line bg-pnl-surface">
-      {children}
-    </ul>
+    <div className="overflow-hidden rounded-lg border border-pnl-line bg-pnl-surface">
+      {ekleme && (
+        <div className="border-b border-pnl-line last:border-b-0">{ekleme}</div>
+      )}
+      {children && <ul className="divide-y divide-pnl-line">{children}</ul>}
+    </div>
   );
 }
 

@@ -8,6 +8,7 @@ import {
   Icerik,
   IsDurumu,
   Kart,
+  Liste,
   Miktar,
   UstCubuk,
   Uyari,
@@ -16,6 +17,7 @@ import {
   formatTarihSaat,
 } from "@/components/panel/ui";
 import { PdfBaglantilari } from "@/components/panel/PdfButonlari";
+import EkleAcilir from "@/components/panel/EkleAcilir";
 import MalzemeFormu from "@/components/panel/MalzemeFormu";
 import MalzemeSilButonu from "@/components/panel/MalzemeSilButonu";
 import TamamlamaPaneli from "@/components/panel/TamamlamaPaneli";
@@ -138,57 +140,57 @@ export default async function IsDetaySayfasi({
             </div>
           )}
 
-          {malzemeler.length === 0 ? (
-            <Kart>
-              <p className="text-sm text-pnl-muted">
-                Bu işe henüz malzeme eklenmemiş.
-              </p>
-            </Kart>
-          ) : (
-            <>
-              <ul className="divide-y divide-pnl-line overflow-hidden rounded-lg border border-pnl-line bg-pnl-surface">
-                {malzemeler.map((m) => (
-                  <li
-                    key={m.id}
-                    className="flex items-center gap-3 px-4 py-3"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">
-                        {m.products?.name ?? "—"}
-                      </p>
-                      <p className="mt-0.5 text-sm text-pnl-muted">
-                        <Miktar
-                          adet={m.qty_pieces_used}
-                          kg={Number(m.qty_kg_used)}
-                        />
-                        {" · "}
-                        {formatPara(m.unit_cost_snapshot)} birim
-                      </p>
-                    </div>
-                    {!tamamlandiMi && (
-                      <MalzemeSilButonu malzemeId={m.id} isId={is.id} />
-                    )}
-                  </li>
-                ))}
-              </ul>
+          <Liste
+            ekleme={
+              !tamamlandiMi ? (
+                <EkleAcilir
+                  etiket="Malzeme ekle"
+                  ilkAcik={malzemeler.length === 0}
+                >
+                  <MalzemeFormu isId={is.id} urunler={urunler ?? []} />
+                </EkleAcilir>
+              ) : undefined
+            }
+          >
+            {malzemeler.length > 0 &&
+              malzemeler.map((m) => (
+                <li key={m.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium">
+                      {m.products?.name ?? "—"}
+                    </p>
+                    <p className="mt-0.5 text-sm text-pnl-muted">
+                      <Miktar
+                        adet={m.qty_pieces_used}
+                        kg={Number(m.qty_kg_used)}
+                      />
+                      {" · "}
+                      {formatPara(m.unit_cost_snapshot)} birim
+                    </p>
+                  </div>
+                  {!tamamlandiMi && (
+                    <MalzemeSilButonu malzemeId={m.id} isId={is.id} />
+                  )}
+                </li>
+              ))}
+          </Liste>
 
-              <p className="mt-3 text-sm text-pnl-muted">
-                Toplam malzeme maliyeti:{" "}
-                <span className="font-semibold text-pnl-text">
-                  {formatPara(toplamMaliyet)}
-                </span>
-              </p>
-            </>
+          {malzemeler.length > 0 && (
+            <p className="mt-3 text-sm text-pnl-muted">
+              Toplam malzeme maliyeti:{" "}
+              <span className="font-semibold text-pnl-text">
+                {formatPara(toplamMaliyet)}
+              </span>
+            </p>
+          )}
+
+          {malzemeler.length === 0 && tamamlandiMi && (
+            <p className="mt-3 text-sm text-pnl-muted">
+              Bu işe malzeme eklenmemiş (yalnızca işçilik).
+            </p>
           )}
         </Bolum>
 
-        {!tamamlandiMi && (
-          <Bolum baslik="Malzeme ekle">
-            <Kart>
-              <MalzemeFormu isId={is.id} urunler={urunler ?? []} />
-            </Kart>
-          </Bolum>
-        )}
 
         {tamamlandiMi && qr?.token && (
           <Bolum baslik="Malzeme şeffaflığı QR'ı">

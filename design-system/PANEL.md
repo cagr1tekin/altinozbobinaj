@@ -154,6 +154,29 @@ Metin + arka plan. Renk tek başına anlam taşımaz.
 | Devam ediyor | `#DBEAFE` | `#1D4ED8` |
 | Tamamlandı | `#DCFCE7` | `#166534` |
 
+### Ekleme açılırı
+
+"Yeni X ekle" **ayrı bir bölüm değil**, listenin ilk satırı. Kapalıyken tek
+satır yer kaplar, basılınca form açılır.
+
+```
+┌──────────────────────────────────────┐
+│ + Yeni müşteri ekle                  │  ← açılır (listenin 1. satırı)
+├──────────────────────────────────────┤
+│ Test Fabrika A.Ş.                    │
+│ 0266 000 00 00                       │
+├──────────────────────────────────────┤
+│ Öz Metal Ltd.                        │
+└──────────────────────────────────────┘
+```
+
+Neden: üstte form + altta liste düzeni ekranı ikiye bölüyordu; kullanıcı
+listeyi görmek için her seferinde formu geçmek zorunda kalıyordu. Panelde
+liste asıl içerik, ekleme ise ara sıra yapılan bir iş.
+
+**Liste boşsa açılır kendiliğinden açık gelir** — yapılacak tek iş odur.
+Arama sonucu boşsa açılmaz; kullanıcı aramaya gelmiştir, kayıt eklemeye değil.
+
 ### Boş durum
 
 Boş ekran bırakma. Her boş liste şunu içerir: ne olduğu, ne yapılacağı ve
@@ -175,9 +198,16 @@ yapmayı sağlayan buton.
 
 ```
 ┌─────┬─────┬─────┬─────┐
-│Özet │Müşt.│Stok │Fatura│
+│Özet │Müşt.│Stok │Rapor│
 └─────┴─────┴─────┴─────┘
 ```
+
+- **Özet** — açık işler. Atölyede en sık sorulan soru "şu an elimde ne var".
+  İleride kısayollar da buraya gelecek.
+- **Rapor** — finansal özet, aylık kâr/zarar grafiği, müşteri kırılımı, PDF.
+
+Fatura için sekme **yok**: fatura segmentin karşılığı olduğu için segment
+sayfasının içinde, işlerin hemen altında duruyor.
 
 - Yükseklik 56px + `env(safe-area-inset-bottom)`.
 - Aktif sekme: mavi ikon + mavi etiket + kalın ağırlık.

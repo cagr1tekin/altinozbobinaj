@@ -101,6 +101,11 @@ export type Invoice = {
   note: string | null;
   created_at: string;
   updated_at: string;
+  /* 0007: fatura PDF'inden okunan alanlar */
+  file_path: string | null;
+  ettn: string | null;
+  supplier_name: string | null;
+  parsed_at: string | null;
 };
 
 export type QrCode = {
@@ -148,6 +153,14 @@ export type DashboardMusteri = {
   malzeme_maliyeti: number;
   kar_zarar: number;
   tamamlanan_is: number;
+};
+
+/** monthly_trend() satır şekli — raporlar grafiği */
+export type AylikTrend = {
+  donem: string;
+  net_gelir: number;
+  malzeme_maliyeti: number;
+  kar_zarar: number;
 };
 
 /** stock_reconciliation() satır şekli */
@@ -309,6 +322,10 @@ export type Database = {
           | "tax_amount"
           | "issue_date"
           | "note"
+          | "file_path"
+          | "ettn"
+          | "supplier_name"
+          | "parsed_at"
         >;
         Update: Partial<Invoice>;
         Relationships: [
@@ -365,6 +382,16 @@ export type Database = {
         };
         Relationships: [];
       };
+      segment_invoice_totals: {
+        Row: {
+          segment_id: string;
+          fatura_sayisi: number;
+          brut_toplam: number;
+          net_toplam: number;
+          vergi_toplam: number;
+        };
+        Relationships: [];
+      };
     };
     Functions: {
       complete_job: {
@@ -409,6 +436,10 @@ export type Database = {
       stock_reconciliation: {
         Args: Record<string, never>;
         Returns: StokFarki[];
+      };
+      monthly_trend: {
+        Args: { p_ay_sayisi?: number };
+        Returns: AylikTrend[];
       };
       refresh_monthly_summary: {
         Args: { p_donem: string };

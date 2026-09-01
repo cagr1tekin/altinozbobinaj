@@ -19,9 +19,11 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Yönetim | Altınöz Bobinaj",
   robots: { index: false, follow: false },
-  /* Kök layout landing'in manifestini veriyor; panel kendi manifestini
-     kullanmalı ki ana ekrana eklenince /yonetim adresinde açılsın. */
-  manifest: "/manifest.webmanifest",
+  /* Kök layout landing'in manifestini veriyor (site.webmanifest); panel
+     kendi manifestini kullanmalı ki ana ekrana eklenince /yonetim
+     adresinde açılsın. Statik dosya: Next.js manifest.ts'i route group
+     içinde üretmiyor, yalnızca app kökünde tanıyor. */
+  manifest: "/panel.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Altınöz Yönetim",

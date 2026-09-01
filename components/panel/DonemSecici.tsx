@@ -19,10 +19,12 @@ const tarihGirdisi =
   "min-h-[44px] w-full rounded-lg border border-pnl-edge bg-pnl-surface px-3 text-base focus:border-pnl-primary focus:outline-none focus:ring-2 focus:ring-pnl-primary/30";
 
 export default function DonemSecici({
+  temelYol = "/yonetim/raporlar",
   aktifDonem,
   baslangic,
   bitis,
 }: {
+  temelYol?: string;
   aktifDonem: string;
   baslangic: string;
   bitis: string;
@@ -36,7 +38,7 @@ export default function DonemSecici({
             return (
               <li key={d.deger} className="flex-1">
                 <Link
-                  href={`/yonetim?donem=${d.deger}`}
+                  href={`${temelYol}?donem=${d.deger}`}
                   aria-current={aktif ? "true" : undefined}
                   className={`flex min-h-[44px] items-center justify-center rounded-lg border text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pnl-primary ${
                     aktif

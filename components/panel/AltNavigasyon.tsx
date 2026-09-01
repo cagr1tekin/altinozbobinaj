@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Users, Package, Receipt } from "lucide-react";
+import { LayoutGrid, Users, Package, ChartColumn } from "lucide-react";
 
 /**
  * Ana navigasyon.
@@ -18,7 +18,7 @@ const sekmeler = [
   { href: "/yonetim", etiket: "Özet", ikon: LayoutGrid },
   { href: "/yonetim/musteriler", etiket: "Müşteri", ikon: Users },
   { href: "/yonetim/urunler", etiket: "Stok", ikon: Package },
-  { href: "/yonetim/faturalar", etiket: "Fatura", ikon: Receipt },
+  { href: "/yonetim/raporlar", etiket: "Rapor", ikon: ChartColumn },
 ] as const;
 
 function aktifMi(pathname: string, href: string): boolean {

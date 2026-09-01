@@ -2,7 +2,6 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   Bolum,
-  BosDurum,
   Icerik,
   Liste,
   ListeSatiri,
@@ -11,6 +10,7 @@ import {
   formatTarih,
 } from "@/components/panel/ui";
 import { PdfBaglantilari } from "@/components/panel/PdfButonlari";
+import EkleAcilir from "@/components/panel/EkleAcilir";
 import MusteriFormu from "@/components/panel/MusteriFormu";
 import SegmentFormu from "@/components/panel/SegmentFormu";
 
@@ -44,22 +44,19 @@ export default async function MusteriDetaySayfasi({
       />
 
       <Icerik>
-        {/* Ana eylem en üstte: bu sayfaya gelme sebebi genellikle yeni iş girmek */}
-        <Bolum baslik="Yeni segment" aciklama="Bugün gelen işler için grup aç">
-          <div className="rounded-lg border border-pnl-line bg-pnl-surface p-4">
-            <SegmentFormu musteriId={musteri.id} />
-          </div>
-        </Bolum>
-
-        <Bolum baslik="Segmentler">
-          {liste.length === 0 ? (
-            <BosDurum
-              baslik="Henüz segment yok"
-              aciklama="Segment, müşterinin bir ziyarette bıraktığı iş grubudur. Yukarıdaki formdan ilkini açabilirsiniz."
-            />
-          ) : (
-            <Liste>
-              {liste.map((s) => {
+        <Bolum baslik="Segmentler" aciklama="Her ziyaret bir segment">
+          <Liste
+            ekleme={
+              <EkleAcilir
+                etiket="Yeni segment aç"
+                ilkAcik={liste.length === 0}
+              >
+                <SegmentFormu musteriId={musteri.id} />
+              </EkleAcilir>
+            }
+          >
+            {liste.length > 0 &&
+              liste.map((s) => {
                 const isler = (s.jobs ?? []) as Array<{ status: string }>;
                 const tamamlanan = isler.filter(
                   (i) => i.status === "completed"
@@ -78,8 +75,7 @@ export default async function MusteriDetaySayfasi({
                   />
                 );
               })}
-            </Liste>
-          )}
+          </Liste>
         </Bolum>
 
         <Bolum baslik="Belgeler">
@@ -91,9 +87,13 @@ export default async function MusteriDetaySayfasi({
 
         {/* Düzenleme en altta: nadiren kullanılıyor, üstte yer kaplamamalı */}
         <Bolum baslik="Müşteri bilgileri">
-          <div className="rounded-lg border border-pnl-line bg-pnl-surface p-4">
-            <MusteriFormu musteri={musteri} />
-          </div>
+          <Liste
+            ekleme={
+              <EkleAcilir etiket="Bilgileri düzenle">
+                <MusteriFormu musteri={musteri} />
+              </EkleAcilir>
+            }
+          />
         </Bolum>
       </Icerik>
     </>

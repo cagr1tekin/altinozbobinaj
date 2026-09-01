@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   BosDurum,
-  ButonLink,
   Icerik,
   Liste,
   ListeSatiri,
@@ -10,6 +9,8 @@ import {
   formatTarih,
 } from "@/components/panel/ui";
 import MusteriArama from "@/components/panel/MusteriArama";
+import EkleAcilir from "@/components/panel/EkleAcilir";
+import MusteriFormu from "@/components/panel/MusteriFormu";
 
 export default async function MusterilerSayfasi({
   searchParams,
@@ -37,14 +38,7 @@ export default async function MusterilerSayfasi({
 
   return (
     <>
-      <UstCubuk
-        baslik="Müşteriler"
-        eylem={
-          <ButonLink href="/yonetim/musteriler/yeni" tur="birincil">
-            Yeni
-          </ButonLink>
-        }
-      />
+      <UstCubuk baslik="Müşteriler" />
 
       <Icerik>
         <div className="mb-4">
@@ -60,32 +54,33 @@ export default async function MusterilerSayfasi({
           </div>
         )}
 
-        {liste.length === 0 ? (
+        {/* Arama sonucu boşken ekleme formu açık gelmesin: kullanıcı
+            aramaya gelmiş, kayıt eklemeye değil. */}
+        {liste.length === 0 && q ? (
           <BosDurum
-            baslik={q ? "Sonuç bulunamadı" : "Henüz müşteri yok"}
-            aciklama={
-              q
-                ? "Arama terimini değiştirip tekrar deneyin."
-                : "İlk müşteriyi ekleyerek başlayın. Her müşterinin altında ziyaret bazlı segmentler, segmentlerin altında işler yer alır."
-            }
-            eylem={
-              !q ? (
-                <ButonLink href="/yonetim/musteriler/yeni">
-                  Yeni Müşteri
-                </ButonLink>
-              ) : undefined
-            }
+            baslik="Sonuç bulunamadı"
+            aciklama="Arama terimini değiştirip tekrar deneyin."
           />
         ) : (
-          <Liste>
-            {liste.map((m) => (
-              <ListeSatiri
-                key={m.id}
-                href={`/yonetim/musteriler/${m.id}`}
-                baslik={m.name}
-                altBilgi={m.phone ?? `Kayıt: ${formatTarih(m.created_at)}`}
-              />
-            ))}
+          <Liste
+            ekleme={
+              <EkleAcilir
+                etiket="Yeni müşteri ekle"
+                ilkAcik={liste.length === 0 && !q}
+              >
+                <MusteriFormu />
+              </EkleAcilir>
+            }
+          >
+            {liste.length > 0 &&
+              liste.map((m) => (
+                <ListeSatiri
+                  key={m.id}
+                  href={`/yonetim/musteriler/${m.id}`}
+                  baslik={m.name}
+                  altBilgi={m.phone ?? `Kayıt: ${formatTarih(m.created_at)}`}
+                />
+              ))}
           </Liste>
         )}
       </Icerik>

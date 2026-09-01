@@ -11,9 +11,8 @@ test.describe("Güvenlik ve erişim", () => {
   const panelYollari = [
     "/yonetim",
     "/yonetim/musteriler",
-    "/yonetim/musteriler/yeni",
     "/yonetim/urunler",
-    "/yonetim/faturalar",
+    "/yonetim/raporlar",
   ];
 
   test("22 — panel yolları girişe yönlendiriyor ve hedefi koruyor", async ({

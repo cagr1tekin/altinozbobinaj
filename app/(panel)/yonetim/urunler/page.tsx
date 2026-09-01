@@ -2,15 +2,15 @@ import { createClient } from "@/lib/supabase/server";
 import type { StokFarki } from "@/lib/supabase/database.types";
 import {
   Bolum,
-  BosDurum,
   Icerik,
-  Kart,
+  Liste,
   Miktar,
   UstCubuk,
   Uyari,
   formatPara,
   formatSayi,
 } from "@/components/panel/ui";
+import EkleAcilir from "@/components/panel/EkleAcilir";
 import UrunFormu from "@/components/panel/UrunFormu";
 import StokHareketFormu from "@/components/panel/StokHareketFormu";
 
@@ -44,6 +44,7 @@ export default async function UrunlerSayfasi() {
     ]);
 
   const liste = urunler ?? [];
+  const hareketListesi = hareketler ?? [];
   const stokFarklari = (farklar ?? []) as StokFarki[];
 
   return (
@@ -83,22 +84,19 @@ export default async function UrunlerSayfasi() {
           </div>
         )}
 
-        {/* Stok hareketi en üstte: günlük en sık yapılan işlem */}
-        <Bolum baslik="Stok hareketi">
-          <Kart>
-            <StokHareketFormu urunler={liste} />
-          </Kart>
-        </Bolum>
-
-        <Bolum baslik="Ürünler">
-          {liste.length === 0 ? (
-            <BosDurum
-              baslik="Henüz ürün yok"
-              aciklama="Aşağıdaki formdan ilk ürünü tanımlayın. Stok 0 başlar; girişi ayrıca stok hareketi olarak kaydedersiniz."
-            />
-          ) : (
-            <ul className="divide-y divide-pnl-line overflow-hidden rounded-lg border border-pnl-line bg-pnl-surface">
-              {liste.map((u) => {
+        <Bolum
+          baslik="Ürünler"
+          aciklama="Stok 0 başlar; girişi hareket olarak kaydedin"
+        >
+          <Liste
+            ekleme={
+              <EkleAcilir etiket="Yeni ürün ekle" ilkAcik={liste.length === 0}>
+                <UrunFormu />
+              </EkleAcilir>
+            }
+          >
+            {liste.length > 0 &&
+              liste.map((u) => {
                 const eksi = u.qty_pieces < 0 || Number(u.qty_kg) < 0;
                 return (
                   <li key={u.id} className="px-4 py-3">
@@ -129,23 +127,22 @@ export default async function UrunlerSayfasi() {
                   </li>
                 );
               })}
-            </ul>
-          )}
+          </Liste>
         </Bolum>
 
-        <Bolum baslik="Yeni ürün">
-          <Kart>
-            <UrunFormu />
-          </Kart>
-        </Bolum>
-
-        {(hareketler ?? []).length > 0 && (
-          <Bolum
-            baslik="Son hareketler"
-            aciklama="Denetim izi — değiştirilemez"
+        <Bolum
+          baslik="Stok hareketleri"
+          aciklama="Denetim izi — değiştirilemez"
+        >
+          <Liste
+            ekleme={
+              <EkleAcilir etiket="Stok hareketi ekle">
+                <StokHareketFormu urunler={liste} />
+              </EkleAcilir>
+            }
           >
-            <ul className="divide-y divide-pnl-line overflow-hidden rounded-lg border border-pnl-line bg-pnl-surface">
-              {(hareketler ?? []).map((h) => {
+            {hareketListesi.length > 0 &&
+              hareketListesi.map((h) => {
                 const urun = h.products as unknown as { name: string } | null;
                 const adet = h.qty_pieces_delta;
                 const kg = Number(h.qty_kg_delta);
@@ -155,7 +152,7 @@ export default async function UrunlerSayfasi() {
                       <p className="truncate font-medium">
                         {urun?.name ?? "—"}
                       </p>
-                      <p className="mt-0.5 text-sm text-pnl-muted">
+                      <p className="mt-0.5 truncate text-sm text-pnl-muted">
                         {HAREKET_ETIKET[h.movement_type] ?? h.movement_type}
                         {h.note && ` · ${h.note}`}
                       </p>
@@ -169,9 +166,8 @@ export default async function UrunlerSayfasi() {
                   </li>
                 );
               })}
-            </ul>
-          </Bolum>
-        )}
+          </Liste>
+        </Bolum>
       </Icerik>
     </>
   );

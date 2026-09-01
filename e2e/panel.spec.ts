@@ -26,19 +26,31 @@ test.describe("Panel iş akışı", () => {
   });
 
   /** Testler arası bağımlılığı azaltmak için her testte kendi müşterisini kurar. */
+  /* Ekleme formları artık listenin ilk satırındaki açılırın içinde;
+     ayrı /yeni sayfası yok. */
+  async function acilirAc(page: Page, etiket: RegExp) {
+    const dugme = page.getByRole("button", { name: etiket });
+    if ((await dugme.getAttribute("aria-expanded")) === "false") {
+      await dugme.click();
+    }
+  }
+
   async function musteriOlustur(page: Page, ad: string) {
-    await page.goto("/yonetim/musteriler/yeni");
+    await page.goto("/yonetim/musteriler");
+    await acilirAc(page, /Yeni müşteri ekle/);
     await page.getByLabel("Müşteri adı").fill(ad);
     await page.getByRole("button", { name: /Müşteriyi Kaydet/ }).click();
     await page.waitForURL(/\/yonetim\/musteriler\/[0-9a-f-]{36}/, { timeout: 20000 });
   }
 
   async function segmentAc(page: Page) {
+    await acilirAc(page, /Yeni segment aç/);
     await page.getByRole("button", { name: /Segment Aç/ }).click();
     await page.waitForURL(/\/yonetim\/segmentler\/[0-9a-f-]{36}/, { timeout: 20000 });
   }
 
   async function isEkle(page: Page, baslik: string) {
+    await acilirAc(page, /Yeni iş ekle/);
     await page.getByLabel("İş başlığı").fill(baslik);
     await page.getByRole("button", { name: /İş Ekle/ }).click();
     await page.waitForURL(/\/yonetim\/isler\/[0-9a-f-]{36}/, { timeout: 20000 });
@@ -69,17 +81,19 @@ test.describe("Panel iş akışı", () => {
   });
 
   test("34 — zorunlu alan boşken kayıt reddediliyor", async ({ page }) => {
-    await page.goto("/yonetim/musteriler/yeni");
+    await page.goto("/yonetim/musteriler");
+    await acilirAc(page, /Yeni müşteri ekle/);
     await page.getByRole("button", { name: /Müşteriyi Kaydet/ }).click();
 
     await expect(formHatasi(page)).toBeVisible({ timeout: 10000 });
-    expect(page.url(), "boş formla kayıt oluştu").toContain("/musteriler/yeni");
+    expect(page.url(), "boş formla kayıt oluştu").toContain("/musteriler");
   });
 
   test("35 — geçersiz e-posta reddediliyor, alan hatası gösteriliyor", async ({
     page,
   }) => {
-    await page.goto("/yonetim/musteriler/yeni");
+    await page.goto("/yonetim/musteriler");
+    await acilirAc(page, /Yeni müşteri ekle/);
     await page.getByLabel("Müşteri adı").fill(testAdi("EpostaTest"));
     await page.getByLabel("E-posta").fill("bu-bir-eposta-degil");
     await page.getByRole("button", { name: /Müşteriyi Kaydet/ }).click();
@@ -118,6 +132,7 @@ test.describe("Panel iş akışı", () => {
     const urun = testAdi("Rulman");
 
     await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Yeni ürün ekle/);
     await page.getByLabel("Ürün adı").fill(urun);
     await page.getByLabel(/Alış fiyatı/).fill("120,50"); // Türkçe ondalık
     await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
@@ -128,6 +143,7 @@ test.describe("Panel iş akışı", () => {
     await expect(page.getByText("120,50").first()).toBeVisible();
 
     // Stok girişi
+    await acilirAc(page, /Stok hareketi ekle/);
     await page.getByLabel("Ürün", { exact: true }).selectOption({ label: urun });
     await page.getByLabel("Adet", { exact: true }).fill("10");
     await page.getByLabel("Not").fill("E2E stok girişi");
@@ -156,11 +172,13 @@ test.describe("Panel iş akışı", () => {
 
     // Ürün ve stok hazırla
     await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Yeni ürün ekle/);
     await page.getByLabel("Ürün adı").fill(urun);
     await page.getByLabel(/Alış fiyatı/).fill("100");
     await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
+    await acilirAc(page, /Stok hareketi ekle/);
     await page.getByLabel("Ürün", { exact: true }).selectOption({ label: urun });
     await page.getByLabel("Adet", { exact: true }).fill("10");
     await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
@@ -171,6 +189,7 @@ test.describe("Panel iş akışı", () => {
     await segmentAc(page);
     await isEkle(page, "Stok düşüm testi");
 
+    await acilirAc(page, /Malzeme ekle/);
     await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (stok: 10 adet / 0 kg)` });
     await page.getByLabel("Adet", { exact: true }).fill("3");
     await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
@@ -200,6 +219,7 @@ test.describe("Panel iş akışı", () => {
     const urun = testAdi("AzStok");
 
     await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Yeni ürün ekle/);
     await page.getByLabel("Ürün adı").fill(urun);
     await page.getByLabel(/Alış fiyatı/).fill("50");
     await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
@@ -210,6 +230,7 @@ test.describe("Panel iş akışı", () => {
     await isEkle(page, "Yetersiz stok testi");
 
     // Stok 0 iken 5 adet malzeme ekle
+    await acilirAc(page, /Malzeme ekle/);
     await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (stok: 0 adet / 0 kg)` });
     await page.getByLabel("Adet", { exact: true }).fill("5");
     await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
@@ -282,11 +303,13 @@ test.describe("Panel iş akışı", () => {
     const urun = testAdi("IadeUrun");
 
     await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Yeni ürün ekle/);
     await page.getByLabel("Ürün adı").fill(urun);
     await page.getByLabel(/Alış fiyatı/).fill("80");
     await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
+    await acilirAc(page, /Stok hareketi ekle/);
     await page.getByLabel("Ürün", { exact: true }).selectOption({ label: urun });
     await page.getByLabel("Adet", { exact: true }).fill("6");
     await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
@@ -296,6 +319,7 @@ test.describe("Panel iş akışı", () => {
     await segmentAc(page);
     await isEkle(page, "İade testi");
 
+    await acilirAc(page, /Malzeme ekle/);
     await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (stok: 6 adet / 0 kg)` });
     await page.getByLabel("Adet", { exact: true }).fill("2");
     await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
@@ -312,72 +336,54 @@ test.describe("Panel iş akışı", () => {
     await expect(page.locator("li", { hasText: urun }).first()).toContainText("6 adet");
   });
 
-  test("44 — fatura tutarları tutarsızsa reddediliyor", async ({ page }) => {
+  test("44 — fatura yükleme alanı segment sayfasında", async ({ page }) => {
+    /* Faturalar artık ayrı sekmede değil: müşteri bir gelişte birden fazla
+       iş bırakıyor ve hepsine tek fatura kesiliyor, yani fatura segmentin
+       karşılığı. */
     await musteriOlustur(page, testAdi("FaturaMusteri"));
+    await segmentAc(page);
 
-    await page.goto("/yonetim/faturalar");
+    await expect(
+      page.getByRole("button", { name: /Fatura yükle/ })
+    ).toBeVisible();
 
-    // brüt ≠ net + vergi
-    await page.getByLabel("Net tutar (₺)").fill("1000");
-    await page.getByLabel("Vergi (₺)").fill("180");
-    await page.getByLabel(/Brüt tutar/).fill("9999");
-    await page.getByRole("button", { name: /Faturayı Kaydet/ }).click();
+    await acilirAc(page, /Fatura yükle/);
+    await expect(page.getByLabel(/Fatura PDF/)).toBeVisible();
+
+    // Elle tutar girişi olmamalı; tutarlar PDF'ten okunuyor
+    await expect(page.getByLabel("Net tutar (₺)")).toHaveCount(0);
+    await expect(page.getByLabel(/Brüt tutar/)).toHaveCount(0);
+  });
+
+  test("45 — PDF olmayan dosya reddediliyor", async ({ page }) => {
+    await musteriOlustur(page, testAdi("HataliDosya"));
+    await segmentAc(page);
+    await acilirAc(page, /Fatura yükle/);
+
+    await page.getByLabel(/Fatura PDF/).setInputFiles({
+      name: "not.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("bu bir fatura degil"),
+    });
+    await page.getByRole("button", { name: /Faturayı Yükle/ }).click();
 
     const uyari = formHatasi(page);
-    await expect(uyari).toBeVisible({ timeout: 10000 });
-    await expect(uyari).toContainText(/Brüt tutar/i);
-
-    // net > brüt
-    await page.getByLabel("Net tutar (₺)").fill("5000");
-    await page.getByLabel("Vergi (₺)").fill("0");
-    await page.getByLabel(/Brüt tutar/).fill("1000");
-    await page.getByRole("button", { name: /Faturayı Kaydet/ }).click();
-    await expect(formHatasi(page)).toBeVisible({ timeout: 10000 });
+    await expect(uyari).toBeVisible({ timeout: 20000 });
+    await expect(uyari).toContainText(/PDF/i);
   });
 
-  test("45 — geçerli fatura kaydediliyor ve dashboard'a yansıyor", async ({ page }) => {
-    const musteri = testAdi("DashMusteri");
-    await musteriOlustur(page, musteri);
+  test("46 — faturalar sekmesi kaldırıldı, raporlar sekmesi var", async ({
+    page,
+  }) => {
+    await page.goto("/yonetim");
 
-    await page.goto("/yonetim/faturalar");
-    await page.getByLabel("Müşteri", { exact: true }).selectOption({ label: musteri });
-    await page.getByLabel("Net tutar (₺)").fill("1000");
-    await page.getByLabel("Vergi (₺)").fill("180");
-    await page.getByLabel(/Brüt tutar/).fill("1180");
-    await page.getByRole("button", { name: /Faturayı Kaydet/ }).click();
+    const nav = page.getByRole("navigation", { name: "Ana menü" }).first();
+    await expect(nav.getByRole("link", { name: /Rapor/ })).toBeVisible();
+    await expect(nav.getByRole("link", { name: /Fatura/ })).toHaveCount(0);
 
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
-
-    // Özet sayfasında görünmeli
-    await page.goto("/yonetim?donem=ay");
-    await expect(page.getByText("Net gelir")).toBeVisible();
-    /* Müşteri kırılımı tablo değil liste olarak çiziliyor (panel tasarım
-       sistemi: mobilde tablo yerine liste satırı). */
-    await expect(page.locator("main")).toContainText(musteri);
-  });
-
-  test("46 — mükerrer fatura numarası engelleniyor", async ({ page }) => {
-    const musteri = testAdi("MukerrerMusteri");
-    const faturaNo = `E2E-${Date.now().toString(36)}`;
-    await musteriOlustur(page, musteri);
-
-    for (let deneme = 1; deneme <= 2; deneme++) {
-      await page.goto("/yonetim/faturalar");
-      await page.getByLabel("Müşteri").selectOption({ label: musteri });
-      await page.getByLabel("Fatura no").fill(faturaNo);
-      await page.getByLabel("Net tutar (₺)").fill("100");
-      await page.getByLabel("Vergi (₺)").fill("0");
-      await page.getByLabel(/Brüt tutar/).fill("100");
-      await page.getByRole("button", { name: /Faturayı Kaydet/ }).click();
-
-      if (deneme === 1) {
-        await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
-      } else {
-        const uyari = formHatasi(page);
-        await expect(uyari).toBeVisible({ timeout: 15000 });
-        await expect(uyari).toContainText(/zaten kayıtlı|zaten mevcut/i);
-      }
-    }
+    // Eski adres artık yok
+    const yanit = await page.goto("/yonetim/faturalar");
+    expect(yanit?.status()).toBe(404);
   });
 
   test("47 — PDF belgeleri üretiliyor ve müşteri kopyası fiyat içermiyor", async ({
