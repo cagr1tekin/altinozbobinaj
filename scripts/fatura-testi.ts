@@ -70,6 +70,24 @@ async function gercekFaturalar() {
     bekle("net+kdv=brut", Math.abs((a.netTutar! + a.vergiTutar!) - a.brutTutar!) < 0.01);
   }
 
+  /* Ayristirici cagiranin verisini bozmamali: fatura akisinda PDF once
+     okunuyor, ayni baytlar sonra Storage'a yukleniyor. pdfjs tamponun
+     sahipligini devraldigi icin bu bir donem kirilmisti ve yukleme
+     "detached ArrayBuffer" hatasi veriyordu. */
+  console.log("--- cagiranin tamponu korunuyor mu ---");
+  for (const dosya of Object.keys(beklenen)) {
+    if (!existsSync(dosya)) continue;
+    const baytlar = new Uint8Array(readFileSync(dosya));
+    const uzunluk = baytlar.length;
+    await faturaOku(baytlar);
+    let dilimlenebilir = false;
+    try { baytlar.slice(0, 8); dilimlenebilir = true; } catch { /* detached */ }
+    bekle("okuma sonrasi tampon hala gecerli",
+      dilimlenebilir && baytlar.length === uzunluk && baytlar.byteLength > 0,
+      { dilimlenebilir, uzunluk: baytlar.length });
+    break;
+  }
+
   console.log("--- bozuk girdi ---");
   const bos = await faturaOku(new Uint8Array([1, 2, 3, 4]));
   bekle("PDF olmayan dosya reddedilir", bos.durum === "hata", bos.durum === "hata" ? bos.mesaj.slice(0, 40) : "");

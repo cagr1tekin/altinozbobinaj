@@ -126,8 +126,16 @@ export function alanlariDogrula(a: FaturaAlanlari): string | null {
 export async function pdfMetniCikar(veri: Uint8Array): Promise<string> {
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
 
+  /* pdfjs kendisine verilen tamponun sahipliğini devralıyor ve okuma
+     bitince onu geçersiz kılıyor (detached ArrayBuffer). Çağıran aynı
+     baytları sonradan kullanmak isterse — fatura akışında PDF okunduktan
+     sonra Storage'a yükleniyor — "Cannot perform ArrayBuffer.prototype.slice
+     on a detached ArrayBuffer" hatası alıyordu. Kopya vererek çağıranın
+     verisi korunuyor. */
+  const kopya = new Uint8Array(veri);
+
   const belge = await getDocument({
-    data: veri,
+    data: kopya,
     useSystemFonts: false,
     // Sunucuda çalışırken worker gereksiz; ana iş parçacığında okunuyor
     disableFontFace: true,
