@@ -18,6 +18,9 @@ export type SegmentStatus = "open" | "closed";
 /* Her ürünün TEK birimi var: ya adet ya gram. "both" kaldırıldı — iki
    miktar alanını aynı anda göstermek atölyede tereddüt yaratıyordu. */
 export type UnitType = "piece" | "gram";
+
+/** Yapılan işlem. İş tamamlanırken zorunlu olarak seçiliyor. */
+export type ServiceType = "winding" | "revision";
 export type MovementType =
   | "purchase_in"
   | "job_out"
@@ -53,6 +56,8 @@ export type Job = {
   description: string | null;
   status: JobStatus;
   completed_at: string | null;
+  /* Tamamlanmamış işte null; tamamlanmışta zorunlu (şema kısıtı). */
+  service_type: ServiceType | null;
   created_at: string;
   updated_at: string;
 };
@@ -131,6 +136,7 @@ export type CompleteJobResult = {
   job_id: string;
   qr_token: string;
   material_lines: number;
+  service_type: ServiceType;
 };
 
 /** dashboard_summary() dönüş şekli */
@@ -227,6 +233,7 @@ export type StokFarki = {
 export type PublicJobView = {
   job_title: string;
   completed_at: string | null;
+  service_type: ServiceType | null;
   /* YALNIZCA malzeme adı. Miktar bilinçli olarak dönmüyor: kullanılan
      bakır telin gramı işin maliyetini yaklaşık ele veriyor ve fonksiyon
      anon rolüne açık. Gösterilmeyecek veri hiç gönderilmemeli — arayüzde
@@ -271,9 +278,12 @@ export type Database = {
       };
       jobs: {
         Row: Job;
+        /* service_type insert'te opsiyonel: iş açılırken henüz ne
+           yapılacağı belli değil, tamamlanırken seçiliyor. Şema kısıtı
+           yalnızca tamamlanmış işte dolu olmasını şart koşuyor. */
         Insert: InsertOf<
           Job,
-          Zamanlar | "description" | "status" | "completed_at"
+          Zamanlar | "description" | "status" | "completed_at" | "service_type"
         >;
         Update: Partial<Job>;
         Relationships: [
@@ -469,7 +479,13 @@ export type Database = {
         Returns: undefined;
       };
       complete_job: {
-        Args: { p_job_id: string; p_allow_negative?: boolean };
+        /* İşlem türü ZORUNLU: opsiyonel değil, çünkü müşteriye gösterilen
+           belgenin metni buna bağlı. */
+        Args: {
+          p_job_id: string;
+          p_service_type: ServiceType;
+          p_allow_negative?: boolean;
+        };
         Returns: CompleteJobResult;
       };
       revert_job_completion: {

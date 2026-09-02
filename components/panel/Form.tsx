@@ -57,17 +57,20 @@ export function GonderButonu({
   children = "Kaydet",
   tur = "birincil",
   tamGenislik = true,
+  devreDisi = false,
 }: {
   children?: ReactNode;
   tur?: keyof typeof butonStilleri;
   tamGenislik?: boolean;
+  /** Zorunlu bir seçim yapılmadıysa gönderimi baştan engelle */
+  devreDisi?: boolean;
 }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={pending || devreDisi}
       className={`${butonStilleri[tur]} ${tamGenislik ? "w-full" : ""}`}
     >
       {pending ? "Kaydediliyor…" : children}

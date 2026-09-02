@@ -148,7 +148,10 @@ test.describe("Güvenlik ve erişim", () => {
        grant ediyor; 0006 migration'ı bunu geri alıyor. Bu test o düzeltmenin
        uygulandığını doğruluyor. */
     const yasak = [
-      ["complete_job", { p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc" }],
+      ["complete_job", {
+        p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
+        p_service_type: "winding",
+      }],
       ["revert_job_completion", { p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc" }],
       [
         "apply_stock_movement",

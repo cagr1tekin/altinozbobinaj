@@ -186,6 +186,24 @@ Fiyat bunun istisnası: gram izlenen üründe fiyat **kilogram başına** girili
 (`₺ / kilogram`), çünkü malzeme kiloyla satın alınıyor ve gram başına fiyat
 iki ondalıkla yeterince hassas olmuyor. Etiket bunu açıkça yazar.
 
+### Zorunlu seçim (radyo grubu)
+
+İki-üç seçenekli zorunlu bir karar için açılır liste değil **radyo grubu**
+kullanılır: seçenekler aynı anda görünür, tıklayıp aramak gerekmez.
+
+- **Ön seçim yapılmaz.** Varsayılan işaretli olsa acele eden kullanıcı
+  yanlış olanı onaylar. Boş başlamak kararı görünür kılar.
+- Her seçenek kart gibi: 64px yükseklik, kısa bir açıklama satırı.
+- Seçilen kart kenarlık + arka planla ayrışır; radyo düğmesi de görünür
+  kalır (renk tek gösterge değil).
+- **Gönder butonu seçim yapılmadan devre dışı** ve metni ne beklendiğini
+  söyler ("Önce yapılan işlemi seçin"). `required` tek başına yeterli
+  değil: tarayıcı uyarısı gösteriyor ama buton tıklanabilir kalıyor ve
+  kullanıcı neden gönderilmediğini anlamıyor.
+- Zorunluluk üç katmanda: form (devre dışı buton), sunucu eylemi (zod) ve
+  veritabanı (fonksiyon + kısıt). Eylem doğrudan çağrılabildiği için
+  formdaki kural tek başına güvence değil.
+
 ### Durum rozeti
 
 Metin + arka plan. Renk tek başına anlam taşımaz.

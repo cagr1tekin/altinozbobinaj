@@ -7,6 +7,7 @@ import {
   Bolum,
   Icerik,
   IsDurumu,
+  IslemTuru,
   Kart,
   Liste,
   Miktar,
@@ -36,6 +37,7 @@ export default async function IsDetaySayfasi({
       .from("jobs")
       .select(
         `id, title, description, status, completed_at, created_at, segment_id,
+         service_type,
          segments(id, segment_date, customers(id, name)),
          job_products(id, qty_pieces_used, qty_grams_used, unit_cost_snapshot,
                       products(id, name, unit_type_default, qty_pieces, qty_grams)),
@@ -113,7 +115,14 @@ export default async function IsDetaySayfasi({
         baslik={is.title}
         geriHref={segment ? `/yonetim/segmentler/${segment.id}` : "/yonetim"}
         geriEtiket="Segment"
-        eylem={<IsDurumu durum={is.status} />}
+        eylem={
+          /* Tamamlanmış işte hangi işlemin yapıldığı en üstte görünüyor:
+             sonradan bakan biri için durum kadar önemli bir bilgi. */
+          <span className="flex flex-wrap items-center gap-2">
+            {is.service_type && <IslemTuru tur={is.service_type} />}
+            <IsDurumu durum={is.status} />
+          </span>
+        }
       />
 
       <Icerik>

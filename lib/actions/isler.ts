@@ -7,6 +7,7 @@ import {
   isMalzemeSchema,
   isSchema,
   isDurumSchema,
+  isTamamlaSchema,
 } from "@/lib/validation/schemas";
 import {
   type ActionState,
@@ -124,13 +125,10 @@ export async function isTamamla(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const jobId = formData.get("job_id");
-  if (typeof jobId !== "string") {
-    return { status: "error", message: "İş bulunamadı" };
-  }
+  const parsed = isTamamlaSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return zodHatasi(parsed.error);
 
-  // Kullanıcı "stok yetersiz" uyarısını görüp yine de devam etmeyi seçtiyse
-  const eksiyeIzin = formData.get("allow_negative") === "1";
+  const jobId = parsed.data.job_id;
 
   const supabase = await createClient();
 
@@ -139,7 +137,9 @@ export async function isTamamla(
      katmanında sırayla yapmak eşzamanlı isteklerde stoğu bozuyor. */
   const { data, error } = await supabase.rpc("complete_job", {
     p_job_id: jobId,
-    p_allow_negative: eksiyeIzin,
+    p_service_type: parsed.data.service_type,
+    // Kullanıcı "stok yetersiz" uyarısını görüp yine de devam etmeyi seçtiyse
+    p_allow_negative: parsed.data.allow_negative,
   });
 
   if (error) return veritabaniHatasi(error, "İş tamamlanamadı");
