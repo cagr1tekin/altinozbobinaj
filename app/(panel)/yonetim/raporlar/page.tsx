@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
+  AuditKaydi,
   AylikTrend,
   DashboardMusteri,
   DashboardOzet,
@@ -17,6 +18,11 @@ import {
 } from "@/components/panel/ui";
 import DonemSecici from "@/components/panel/DonemSecici";
 import KarZararGrafigi from "@/components/panel/KarZararGrafigi";
+import DenetimGunlugu from "@/components/panel/DenetimGunlugu";
+
+/* Hareket geçmişinde gösterilen kayıt sayısı. Tamamını çekmek sayfayı
+   zamanla yavaşlatır; günlük kullanımda son hareketler yeterli. */
+const DENETIM_LIMIT = 50;
 
 /** ISO tarih, yerel saate göre — toISOString UTC'ye kaydırıyor. */
 function isoTarih(d: Date): string {
@@ -50,7 +56,7 @@ export default async function RaporlarSayfasi({
       ? { baslangic: bas!, bitis: bit! }
       : donemAralik(donem);
 
-  const [ozetSonuc, musteriSonuc, trendSonuc] = await Promise.all([
+  const [ozetSonuc, musteriSonuc, trendSonuc, denetimSonuc] = await Promise.all([
     supabase.rpc("dashboard_summary", {
       p_start: aralik.baslangic,
       p_end: aralik.bitis,
@@ -60,11 +66,19 @@ export default async function RaporlarSayfasi({
       p_end: aralik.bitis,
     }),
     supabase.rpc("monthly_trend", { p_ay_sayisi: 12 }),
+    /* Hareket geçmişi dönemden bağımsız: "en son ne oldu" sorusu tarih
+       aralığıyla değil zamanla ilgili. */
+    supabase
+      .from("audit_log")
+      .select("*")
+      .order("occurred_at", { ascending: false })
+      .limit(DENETIM_LIMIT),
   ]);
 
   const ozet = ozetSonuc.data as DashboardOzet | null;
   const musteriler = (musteriSonuc.data ?? []) as DashboardMusteri[];
   const trend = (trendSonuc.data ?? []) as AylikTrend[];
+  const denetim = (denetimSonuc.data ?? []) as AuditKaydi[];
   const kurulumEksik = Boolean(ozetSonuc.error);
   const karZarar = Number(ozet?.kar_zarar ?? 0);
 
@@ -158,6 +172,18 @@ export default async function RaporlarSayfasi({
               >
                 Dönem raporunu indir (PDF)
               </ButonLink>
+            </Bolum>
+
+            {/* En altta: günlük iş akışının parçası değil, "ne oldu"
+                sorusuna bakılan yer. */}
+            <Bolum
+              baslik="Hareket geçmişi"
+              aciklama="Kim ne zaman ne yaptı"
+            >
+              <DenetimGunlugu
+                kayitlar={denetim}
+                eksik={Boolean(denetimSonuc.error)}
+              />
             </Bolum>
           </>
         )}
