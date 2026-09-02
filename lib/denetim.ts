@@ -1,5 +1,30 @@
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import type { AuditEntity } from "@/lib/supabase/database.types";
+
+/**
+ * İstek, kullanıcının gerçek bir eylemi mi yoksa tarayıcının/Next'in
+ * kendiliğinden yaptığı bir ön yükleme mi?
+ *
+ * next/link viewport'a giren bağlantıyı önceden getiriyor; hedef bir API
+ * rotasıysa rota gerçekten çalışıyor. Asıl düzeltme bu bağlantıları düz
+ * <a> yapmak (bkz. ButonLink), ama denetim günlüğü yanlış kayıt tutmaya
+ * karşı ikinci bir katmanı hak ediyor: bir kez kirlenen günlük güvenilmez
+ * hâle geliyor ve salt-eklenir olduğu için temizlenmesi de kolay değil.
+ */
+async function onYuklemeMi(): Promise<boolean> {
+  try {
+    const h = await headers();
+    return (
+      h.get("next-router-prefetch") === "1" ||
+      h.get("rsc") === "1" ||
+      /prefetch/i.test(h.get("purpose") ?? "") ||
+      /prefetch/i.test(h.get("sec-purpose") ?? "")
+    );
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Veri değişikliği OLMAYAN eylemleri denetim günlüğüne yazar.
@@ -18,6 +43,8 @@ export async function denetimPdfKaydet(
   etiket: string | null,
   ayrinti?: Record<string, unknown>
 ): Promise<void> {
+  if (await onYuklemeMi()) return;
+
   try {
     const supabase = await createClient();
     const { error } = await supabase.rpc("audit_kaydet", {

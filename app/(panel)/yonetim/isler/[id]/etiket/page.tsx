@@ -76,7 +76,9 @@ export default async function EtiketSayfasi({
   });
 
   const tarih = is.completed_at
-    ? new Intl.DateTimeFormat("tr-TR").format(new Date(is.completed_at))
+    ? new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul" }).format(
+        new Date(is.completed_at)
+      )
     : "";
 
   return (

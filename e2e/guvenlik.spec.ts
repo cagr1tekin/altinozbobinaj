@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type APIRequestContext } from "@playwright/test";
 import { SUPABASE_KEY, SUPABASE_URL, formHatasi } from "./yardimcilar";
 
 /**
@@ -11,19 +11,24 @@ test.describe("Güvenlik ve erişim", () => {
   /* Anon anahtarı geçersizse Supabase her isteğe 401 döner ve "anon veri
      göremiyor" testleri boşa geçer: sızıntı kontrolü hiç çalışmadan yeşil
      kalır. Bu, güvenlik testinde en kötü başarısızlık biçimi — sessiz olanı.
-     Bu yüzden anahtarın gerçekten çalıştığı önce doğrulanıyor. */
-  test.beforeAll(async ({ request }) => {
-    if (!SUPABASE_URL) return;
-    const y = await request.get(`${SUPABASE_URL}/rest/v1/customers?select=id&limit=1`, {
-      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
-    });
+
+     Kontrol beforeAll'da DEĞİL: orada başarısız olması, Supabase'e hiç
+     ihtiyacı olmayan testleri (panel yönlendirmesi gibi) de düşürüyordu.
+     Yalnızca anahtarı gerçekten kullanan testler bunu çağırıyor. */
+  async function anahtarCalisiyorMu(
+    request: APIRequestContext
+  ): Promise<void> {
+    const y = await request.get(
+      `${SUPABASE_URL}/rest/v1/customers?select=id&limit=1`,
+      { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` } }
+    );
     expect(
       y.status(),
       `Supabase anon anahtarı çalışmıyor (HTTP ${y.status()}). .env içindeki ` +
         "NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SUPABASE_URL ile aynı " +
-        "projeye ait olmalı; yoksa anon testleri hiçbir şey ölçmez."
+        "projeye ait olmalı; yoksa bu test hiçbir şey ölçmez."
     ).not.toBe(401);
-  });
+  }
 
   const panelYollari = [
     "/yonetim",
@@ -88,6 +93,9 @@ test.describe("Güvenlik ve erişim", () => {
   }) => {
     test.skip(!SUPABASE_URL, "Supabase yapılandırılmamış");
 
+    await anahtarCalisiyorMu(request);
+
+
     const basliklar = {
       apikey: SUPABASE_KEY,
       Authorization: `Bearer ${SUPABASE_KEY}`,
@@ -127,6 +135,7 @@ test.describe("Güvenlik ve erişim", () => {
 
   test("26 — anon iş akışı fonksiyonlarını çağıramıyor", async ({ request }) => {
     test.skip(!SUPABASE_URL, "Supabase yapılandırılmamış");
+    await anahtarCalisiyorMu(request);
 
     const basliklar = {
       apikey: SUPABASE_KEY,
@@ -201,6 +210,7 @@ test.describe("Güvenlik ve erişim", () => {
     request,
   }) => {
     test.skip(!SUPABASE_URL, "Supabase yapılandırılmamış");
+    await anahtarCalisiyorMu(request);
 
     const y = await request.post(
       `${SUPABASE_URL}/rest/v1/rpc/public_job_by_token`,

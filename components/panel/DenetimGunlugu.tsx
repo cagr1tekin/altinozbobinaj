@@ -1,5 +1,5 @@
 import type { AuditKaydi } from "@/lib/supabase/database.types";
-import { Liste } from "@/components/panel/ui";
+import { ATOLYE_DILIMI, Liste } from "@/components/panel/ui";
 
 /**
  * Hareket geçmişi — kim, ne zaman, neyi değiştirdi.
@@ -79,6 +79,7 @@ function zamanMetni(iso: string): string {
     month: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: ATOLYE_DILIMI,
   }).format(new Date(iso));
 }
 
