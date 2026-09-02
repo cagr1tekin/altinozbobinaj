@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/supabase/env";
 import { etiketQrSvg } from "@/lib/qr";
+import { Bolum, Icerik, UstCubuk } from "@/components/panel/ui";
 
 export const metadata: Metadata = {
   title: "QR Etiketi | Altınöz Bobinaj",
@@ -46,23 +46,22 @@ export default async function EtiketSayfasi({
 
   if (!qr?.token) {
     return (
-      <div className="mx-auto max-w-lg px-4 py-10">
-        <h1 className="text-xl font-bold text-pnl-text">
-          Bu iş için QR kodu yok
-        </h1>
-        <p className="mt-2 text-sm text-pnl-muted">
-          QR kodu, iş tamamlandığında otomatik olarak üretilir. Önce işi
-          tamamlayın.
-        </p>
-        <p className="mt-6">
-          <Link
-            href={`/yonetim/isler/${id}`}
-            className="text-pnl-primary-dark underline-offset-4 hover:underline"
-          >
-            İş detayına dön
-          </Link>
-        </p>
-      </div>
+      <>
+        <UstCubuk
+          baslik="QR Etiketi"
+          geriHref={`/yonetim/isler/${id}`}
+          geriEtiket="İş detayı"
+        />
+        <Icerik>
+          <div className="rounded-lg border border-pnl-line bg-pnl-surface p-4">
+            <p className="font-semibold">Bu iş için QR kodu yok</p>
+            <p className="mt-1 text-sm text-pnl-muted">
+              QR kodu, iş tamamlandığında otomatik olarak üretilir. Önce işi
+              tamamlayın.
+            </p>
+          </div>
+        </Icerik>
+      </>
     );
   }
 
@@ -115,28 +114,28 @@ export default async function EtiketSayfasi({
         }}
       />
 
-      <div className="yazdirma-gizle mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-pnl-text">
-            QR Etiketi
-          </h1>
-          <p className="mt-1 text-sm text-pnl-muted">
-            Yazdırıp işin veya ürünün üzerine yapıştırın. Müşteri okuttuğunda
-            yalnızca kullanılan malzemeleri görür; fiyat bilgisi görünmez.
-          </p>
-        </div>
-        <Link
-          href={`/yonetim/isler/${id}`}
-          className="inline-flex min-h-[44px] items-center rounded-xl border border-pnl-edge px-5 text-sm font-semibold text-pnl-text hover:bg-pnl-bg"
-        >
-          İş detayına dön
-        </Link>
+      {/* Panelin standart kabuğu: üst çubuk + Icerik.
+          Sayfa daha önce kendi başlığını yazıp içeriği doğrudan
+          döndürüyordu; Icerik olmadığı için içerik ekranın sol kenarına
+          yapışıyor ve alttaki çıkış satırıyla hizasız kalıyordu.
+          Yazdırmada ikisi de gizleniyor (.yazdirma-gizle / visibility). */}
+      <div className="yazdirma-gizle">
+        <UstCubuk
+          baslik="QR Etiketi"
+          geriHref={`/yonetim/isler/${id}`}
+          geriEtiket="İş detayı"
+        />
       </div>
 
+      <Icerik>
+        <Bolum
+          baslik="Etiket"
+          aciklama="Yazdırıp işin veya ürünün üzerine yapıştırın. Müşteri okuttuğunda yalnızca kullanılan malzemeleri görür; fiyat ve miktar görünmez."
+        >
       {/* Etiket — beyaz zemin, yazdırmaya hazır */}
       <div
         id="etiket-alani"
-        className="rounded-xl border border-pnl-line bg-white p-6 text-black"
+        className="rounded-lg border border-pnl-line bg-white p-6 text-black"
         style={{ maxWidth: 480 }}
       >
         <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
@@ -188,12 +187,20 @@ export default async function EtiketSayfasi({
         </div>
       </div>
 
-      <p className="yazdirma-gizle mt-4 text-sm text-pnl-muted">
-        Yazdırmak için <kbd className="rounded border border-pnl-edge px-1.5 py-0.5 text-xs">Ctrl</kbd>{" "}
-        + <kbd className="rounded border border-pnl-edge px-1.5 py-0.5 text-xs">P</kbd>{" "}
-        tuşlarına basın. Yazıcı seçiminde &quot;PDF olarak kaydet&quot;
-        seçeneğiyle dosyaya da alabilirsiniz.
-      </p>
+          <p className="yazdirma-gizle mt-3 text-sm text-pnl-muted">
+            Yazdırmak için{" "}
+            <kbd className="rounded border border-pnl-edge px-1.5 py-0.5 text-xs">
+              Ctrl
+            </kbd>{" "}
+            +{" "}
+            <kbd className="rounded border border-pnl-edge px-1.5 py-0.5 text-xs">
+              P
+            </kbd>{" "}
+            tuşlarına basın. Yazıcı seçiminde &quot;PDF olarak kaydet&quot;
+            seçeneğiyle dosyaya da alabilirsiniz.
+          </p>
+        </Bolum>
+      </Icerik>
     </>
   );
 }
