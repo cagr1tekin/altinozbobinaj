@@ -836,4 +836,49 @@ test.describe("Panel iş akışı", () => {
     await expect(page.getByRole("link", { name: /0542/ })).toBeVisible();
     await expect(page.getByRole("link", { name: /WhatsApp/ })).toBeVisible();
   });
+
+  test("64 — tamamlama formunun durumu başka forma/işe sızmıyor", async ({
+    page,
+  }) => {
+    /* İki dal da TamamlamaPaneli'nin kökünde bir <Form> render ediyor ve
+       React konuma göre eşleştirdiği için örneği yeniden kullanıyordu:
+       useActionState durumu hayatta kalıyor, bir formun mesajı öbüründe
+       görünüyordu. Kullanıcı bunu "geri al butonunda seçim hatası"
+       olarak bildirdi.
+
+       Aynı sızıntının ikinci yolu iki iş sayfası arasında gezinmek:
+       route aynı olduğu için ağaç korunuyor. Bu test onu ölçüyor —
+       hata durumunu tetiklemek gerekmediği için kararlı. */
+    const musteri = testAdi("SizintiMusteri");
+    await musteriOlustur(page, musteri);
+    await segmentAc(page);
+    const segmentUrl = page.url();
+
+    await isEkle(page, "Sızıntı işi A");
+    const isA = page.url();
+
+    // A'yı tamamla — başarı mesajı geri alma formunun üstünde görünür
+    await page.getByRole("radio", { name: /Motor sarımı/ }).check();
+    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
+
+    // İkinci bir iş aç (tamamlanmamış)
+    await page.goto(segmentUrl);
+    await isEkle(page, "Sızıntı işi B");
+
+    /* B tamamlanmamış: tamamlama formu görünüyor ve A'dan gelen HİÇBİR
+       mesaj burada olmamalı. */
+    await expect(
+      page.getByRole("button", { name: /Önce yapılan işlemi seçin/ })
+    ).toBeVisible({ timeout: 15000 });
+    await expect(formBasarisi(page)).toHaveCount(0);
+    await expect(formHatasi(page)).toHaveCount(0);
+
+    // Ters yön: A'ya dönünce B'den bir kalıntı olmamalı
+    await page.goto(isA);
+    await expect(
+      page.getByRole("button", { name: /Tamamlamayı Geri Al/ })
+    ).toBeVisible({ timeout: 15000 });
+    await expect(formHatasi(page)).toHaveCount(0);
+  });
 });

@@ -46,7 +46,19 @@ export default function TamamlamaPaneli({
 
   if (tamamlandiMi) {
     return (
-      <Form action={isTamamlamaGeriAl}>
+      /* key ZORUNLU — süs değil.
+         İki dal da bu bileşenin kökünde bir <Form> render ediyor. React
+         konuma göre eşleştirdiği için aynı tipi görüp örneği yeniden
+         kullanıyor ve Form'un içindeki useActionState durumu hayatta
+         kalıyor. Sonuç: tamamlama formunda oluşan "Yapılan işlemi seçin"
+         hatası, iş tamamlandıktan sonra GERİ AL butonunun üstünde
+         görünüyordu — orada anlamsız bir uyarı.
+
+         Aynı sızıntının ikinci yolu: iki farklı iş sayfası arasında
+         istemci tarafı gezinme. Route aynı olduğu için ağaç korunuyor ve
+         bir işteki hata öbür işte görünüyor. Bu yüzden key'e isId de
+         giriyor; iş değişince durum sıfırlanıyor. */
+      <Form key={`geri-al-${isId}`} action={isTamamlamaGeriAl}>
         {() => (
           <div className="space-y-3">
             <p className="text-sm text-pnl-muted">
@@ -65,7 +77,7 @@ export default function TamamlamaPaneli({
   const stokYetersiz = stokUyarilari.length > 0;
 
   return (
-    <Form action={isTamamla}>
+    <Form key={`tamamla-${isId}`} action={isTamamla}>
       {(state) => (
         <div className="space-y-4">
           <input type="hidden" name="job_id" value={isId} />
