@@ -140,7 +140,31 @@ begin
     raise exception 'BASARISIZ: cikti musteri kimligi iceriyor';
   end if;
 
-  raise notice 'GECTI: QR ciktisi yalnizca malzeme adi/miktari donuyor';
+  /* MIKTAR DONMEMELI (0010).
+     Kullanilan bakir telin grami isin maliyetini yaklasik ele veriyor;
+     piyasa fiyatiyla carpilarak maliyet tahmin edilebiliyor. Fonksiyon
+     anon rolune acik oldugu icin arayuzde saklamak yeterli degil —
+     musteri ag sekmesinden ya da uca dogrudan istek atarak gorebilir. */
+  if v_text like '%qty_%' or v_text like '%unit%' then
+    raise exception 'BASARISIZ: cikti miktar/birim alani iceriyor: %', v_text;
+  end if;
+  -- 2 adet rulman ve 4250 gram tel kullanildi; hicbiri gorunmemeli
+  if v_text like '%4250%' or v_text like '%"2"%' or v_text like '%: 2%' then
+    raise exception 'BASARISIZ: cikti miktar degeri iceriyor: %', v_text;
+  end if;
+
+  /* Malzeme nesnesinde YALNIZCA ad olmali. Fazladan bir alan eklenirse
+     bu kontrol yakalar. */
+  if exists (
+    select 1
+    from jsonb_array_elements(v_json -> 'materials') m,
+         jsonb_object_keys(m) k
+    where k <> 'name'
+  ) then
+    raise exception 'BASARISIZ: malzeme nesnesinde ad disinda alan var: %', v_text;
+  end if;
+
+  raise notice 'GECTI: QR ciktisi yalnizca malzeme ADI donuyor (miktar yok)';
 end $$;
 
 \echo '--- TEST 6: gecersiz token null donuyor ---'

@@ -227,14 +227,11 @@ export type StokFarki = {
 export type PublicJobView = {
   job_title: string;
   completed_at: string | null;
-  materials: Array<{
-    name: string;
-    /* Müşteri sayfası hangi birimi yazacağını bilsin diye ürünün birimi
-       de dönüyor. */
-    unit: UnitType;
-    qty_pieces: number;
-    qty_grams: number;
-  }>;
+  /* YALNIZCA malzeme adı. Miktar bilinçli olarak dönmüyor: kullanılan
+     bakır telin gramı işin maliyetini yaklaşık ele veriyor ve fonksiyon
+     anon rolüne açık. Gösterilmeyecek veri hiç gönderilmemeli — arayüzde
+     saklamak, ağ sekmesinden bakan biri için gizlemek değil. */
+  materials: Array<{ name: string }>;
 };
 
 /** Sunucu tarafında üretilen alanlar insert'te opsiyonel olmalı */

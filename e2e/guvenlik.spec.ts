@@ -230,6 +230,11 @@ test.describe("Güvenlik ve erişim", () => {
     const govde = await y.text();
     expect(govde).not.toContain("purchase_price");
     expect(govde).not.toContain("unit_cost_snapshot");
+    /* Miktar da dönmemeli (0010): kullanılan telin gramı, piyasa fiyatıyla
+       çarpılarak işin maliyetini yaklaşık ele veriyor. Fonksiyon anon'a
+       açık olduğu için arayüzde saklamak yeterli değil. */
+    expect(govde).not.toContain("qty_");
+    expect(govde).not.toContain("unit_type");
   });
 
   test("28 — giriş formu hatalı bilgide kullanıcı varlığını sızdırmıyor", async ({
