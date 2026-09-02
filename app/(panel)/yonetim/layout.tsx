@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { PANEL_EPOSTA_BASLIGI } from "@/lib/supabase/middleware";
 import { cikisYap } from "@/lib/actions/oturum";
 import AltNavigasyon from "@/components/panel/AltNavigasyon";
 import { Uyari } from "@/components/panel/ui";
@@ -50,14 +51,16 @@ export default async function YonetimLayout({
     );
   }
 
-  /* Middleware zaten yönlendiriyor; buradaki kontrol savunma amaçlı.
-     Gerçek yetki sınırı RLS. */
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  /* Oturum middleware'de getUser() ile doğrulanıyor ve doğrulanmış e-posta
+     başlık üzerinden buraya taşınıyor. Burada tekrar getUser() çağırmak
+     aynı doğrulamayı ikinci kez ağ üzerinden yapmak olurdu — fonksiyon ile
+     veritabanı ayrı kıtalarda olduğu için sayfa başına ~200 ms bedeli vardı.
+     Başlığın YOKLUĞU oturumsuzluk demek; boş olması değil (e-postasız bir
+     oturumda değer boş gelir ama kullanıcı geçerlidir). Gerçek yetki
+     sınırı yine RLS. */
+  const eposta = (await headers()).get(PANEL_EPOSTA_BASLIGI);
 
-  if (!user) redirect("/giris");
+  if (eposta === null) redirect("/giris");
 
   return (
     <>
@@ -68,8 +71,8 @@ export default async function YonetimLayout({
           Günde bir kez kullanılan bir eylem sekme hak etmiyor. */}
       <div className="mx-auto max-w-4xl px-4 pb-[calc(88px+env(safe-area-inset-bottom))] pt-2 md:pb-10">
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-pnl-line pt-4">
-          <p className="truncate text-sm text-pnl-faint" title={user.email ?? ""}>
-            {user.email}
+          <p className="truncate text-sm text-pnl-faint" title={eposta}>
+            {eposta || "Oturum açık"}
           </p>
           <form action={cikisYap}>
             <button
