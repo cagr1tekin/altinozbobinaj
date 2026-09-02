@@ -149,12 +149,17 @@ export function formatSayi(v: number | string | null | undefined): string {
   }).format(Number(v ?? 0));
 }
 
+/* PDF'ler sunucuda üretiliyor ve sunucu UTC (Vercel). timeZone verilmezse
+   belgedeki bütün tarih/saatler 3 saat geride basılıyor. */
+const ATOLYE_DILIMI = "Europe/Istanbul";
+
 export function formatTarih(v: string | null | undefined): string {
   if (!v) return "—";
   return new Intl.DateTimeFormat("tr-TR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: ATOLYE_DILIMI,
   }).format(new Date(v));
 }
 
@@ -166,6 +171,7 @@ export function formatTarihSaat(v: string | null | undefined): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: ATOLYE_DILIMI,
   }).format(new Date(v));
 }
 

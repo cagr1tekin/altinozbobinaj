@@ -252,11 +252,34 @@ export function ButonLink({
   tur?: keyof typeof butonStilleri;
   tamGenislik?: boolean;
 }) {
+  const sinif = `${butonStilleri[tur]} ${tamGenislik ? "w-full" : ""}`;
+
+  /* API rotaları next/link ile bağlanmamalı.
+     next/link, viewport'a giren bağlantıyı önceden getiriyor (prefetch) ve
+     bu bir API rotası olduğunda rota GERÇEKTEN çalışıyor. Raporlar
+     sayfasındaki PDF butonu bu yüzden her sayfa açılışında bir "PDF alındı"
+     denetim kaydı yazıyordu — kullanıcı butona hiç dokunmamışken.
+     Ölçüldü: 1 açılış + 3 yenileme = 4 çalıştırma.
+
+     Zaten doğru davranış da bu: next/link sayfalar arası istemci tarafı
+     gezinme içindir; PDF döndüren bir uç gezinilecek bir sayfa değil.
+     Kontrol bilinçli olarak otomatik — bir sonraki API butonunda aynı
+     tuzağa düşmemek için. */
+  if (href.startsWith("/api/")) {
+    return (
+      <a
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={sinif}
+      >
+        {children}
+      </a>
+    );
+  }
+
   return (
-    <Link
-      href={href}
-      className={`${butonStilleri[tur]} ${tamGenislik ? "w-full" : ""}`}
-    >
+    <Link href={href} className={sinif}>
       {children}
     </Link>
   );
@@ -373,12 +396,21 @@ export function formatSayi(deger: number | string): string {
   );
 }
 
+/* Sunucu saat dilimi UTC (Vercel), atölye ise Türkiye saatinde. timeZone
+   verilmediğinde Intl sunucunun dilimini kullanıyor ve sayfalar sunucuda
+   render edildiği için bütün saatler 3 saat geride görünüyordu. Diğer
+   yönde de bozuk: tarayıcıda render edilen bir bileşen ziyaretçinin
+   dilimini kullanır. İşletme tek bir yerde, o yüzden diliminin sabit
+   olması doğru. */
+export const ATOLYE_DILIMI = "Europe/Istanbul";
+
 export function formatTarih(deger: string | null): string {
   if (!deger) return "—";
   return new Intl.DateTimeFormat("tr-TR", {
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    timeZone: ATOLYE_DILIMI,
   }).format(new Date(deger));
 }
 
@@ -390,6 +422,7 @@ export function formatTarihSaat(deger: string | null): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: ATOLYE_DILIMI,
   }).format(new Date(deger));
 }
 
