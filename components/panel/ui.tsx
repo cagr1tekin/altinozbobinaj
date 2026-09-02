@@ -7,6 +7,20 @@ import type {
   ServiceType,
 } from "@/lib/supabase/database.types";
 
+/* Biçimlendirme ve işlem sözlüğü lib/bicim.ts'e taşındı: müşteriye açık
+   belge sayfası da aynı kaynaktan okuyor ve panelin arayüz modülüne
+   bağımlı olmuyor. Buradan yeniden ihraç ediliyor, çağrı yerleri değişmedi. */
+export {
+  ATOLYE_DILIMI,
+  ISLEM_TURU,
+  ISLEM_TURU_CUMLE,
+  formatTarih,
+  formatTarihSaat,
+} from "@/lib/bicim";
+/* Yeniden ihraç değerleri bu modülün kapsamına sokmuyor; rozet bileşeni
+   ISLEM_TURU'yu kullandığı için ayrıca ithal ediliyor. */
+import { ISLEM_TURU } from "@/lib/bicim";
+
 /**
  * Panel bileşenleri — design-system/PANEL.md
  *
@@ -313,16 +327,6 @@ const IS_DURUM: Record<JobStatus, { etiket: string; sinif: string }> = {
  * belge panelde görünenden farklı olur.
  * ------------------------------------------------------------------------- */
 
-export const ISLEM_TURU: Record<ServiceType, string> = {
-  winding: "Motor sarımı",
-  revision: "Revizyon",
-};
-
-/** Müşteriye gösterilen metinde geçen hâli (küçük harf, cümle içinde). */
-export const ISLEM_TURU_CUMLE: Record<ServiceType, string> = {
-  winding: "motor sarımı",
-  revision: "revizyon",
-};
 
 /* Renk tek gösterge değil: rozette metin de yazıyor. İki tür birbirinden
    renkle değil kelimeyle ayrışıyor; renk yalnızca taramayı hızlandırıyor. */
@@ -436,35 +440,6 @@ export function formatSayi(deger: number | string): string {
   );
 }
 
-/* Sunucu saat dilimi UTC (Vercel), atölye ise Türkiye saatinde. timeZone
-   verilmediğinde Intl sunucunun dilimini kullanıyor ve sayfalar sunucuda
-   render edildiği için bütün saatler 3 saat geride görünüyordu. Diğer
-   yönde de bozuk: tarayıcıda render edilen bir bileşen ziyaretçinin
-   dilimini kullanır. İşletme tek bir yerde, o yüzden diliminin sabit
-   olması doğru. */
-export const ATOLYE_DILIMI = "Europe/Istanbul";
-
-export function formatTarih(deger: string | null): string {
-  if (!deger) return "—";
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: ATOLYE_DILIMI,
-  }).format(new Date(deger));
-}
-
-export function formatTarihSaat(deger: string | null): string {
-  if (!deger) return "—";
-  return new Intl.DateTimeFormat("tr-TR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: ATOLYE_DILIMI,
-  }).format(new Date(deger));
-}
 
 /* -------------------------------------------------------------------------
  * Birim

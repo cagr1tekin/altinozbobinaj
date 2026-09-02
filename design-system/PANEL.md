@@ -18,6 +18,38 @@ Bu üç cümle sistemin tamamını belirliyor:
 - **Ekran başına tek belirgin eylem.** İkincil işler görsel olarak geride.
 - **Süs yok.** Gölge, gradient, dekoratif animasyon yok.
 
+## Üç tasarım alanı
+
+Projede iki değil **üç** alan var. Karışmamaları için rota grupları ayrı:
+
+| Alan | Rota grubu | Kim görüyor | Tasarım |
+|---|---|---|---|
+| Pazarlama sitesi | `app/(site)/` | Herkes | Koyu, marka, tam menü |
+| Yönetim paneli | `app/(panel)/` | Personel | Açık, `pnl-` tokenları, tek font |
+| Müşteri belgesi | `app/(belge)/` | Müşteri (QR) | Koyu marka, **menü yok** |
+
+**Müşteri belgesi (`/j/…`) neden ayrı bir alan?**
+
+Panel değil: bu sayfayı personel değil müşteri görüyor. Panelin açık teması
+atölyede hızlı kullanım için tasarlandı; belgenin işi marka izlenimi
+bırakmak. Sayfa bir dönem panelin içindeydi ama bu bilinçli bir karar
+değildi — klasör olarak orada durduğu için öyle görünüyordu.
+
+Pazarlama grubu da değil: o layout başlık ve footer'ı getiriyor.
+Başlıktaki menü `#hizmetler` gibi çapa bağlantıları kullanıyor ve
+`scrollToSection` hedefi bulamazsa **hiçbir şey yapmıyor** — ana sayfa
+dışında o linkler tıklanıp tepki vermeyen ölü bağlantılara dönüşür.
+Mobil çağrı barı da `#hero` arıyor, belgede yok.
+
+Bu yüzden belge kabuğu pazarlamanın RENK ve FONT dilini alıyor, GEZİNMESİNİ
+almıyor. Müşteri bir belge gördüğünü hissediyor, reklam sayfası değil.
+
+**Giriş sayfası (`/giris`) neden panelde kaldı?**
+
+Personel giriş yapıp hemen panele düşüyor; koyu→açık geçişi her girişte
+gözü yorar. Landing menüsü de orada gidilecek yeri olmayan bir gürültü.
+Yalnızca logo eklendi — marka belli oluyor, panel tokenları korunuyor.
+
 ## Neden landing'den ayrı?
 
 | | Landing | Panel |
@@ -318,6 +350,8 @@ Panel telefona kısayol olarak eklenecek.
 | Yapma | Neden |
 |---|---|
 | Landing tokenlarını (`ink`, `paper`, `silver-*`) panelde kullanma | İki sistem karışır, ayrım anlamını yitirir |
+| Panel tokenlarını (`pnl-*`) müşteri belgesinde kullanma | Belge markayı temsil ediyor; panelin atölye arayüzü değil |
+| Belge/giriş sayfasına pazarlama menüsü koyma | Çapa bağlantıları hedef bulamaz, ölü link olur |
 | Panelde serif / display font | Tarama hızını düşürür, gereksiz süs |
 | Gölge, gradient, cam efekti | Flat sistemde tutarsızlık; küçük ekranda gürültü |
 | Bir ekranda iki birincil buton | Kullanıcı hangisine basacağını düşünmek zorunda kalır |

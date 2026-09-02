@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { Uyari } from "@/components/panel/ui";
@@ -19,8 +20,31 @@ export default async function GirisSayfasi({
   return (
     <div className="flex min-h-screen flex-col justify-center px-4 py-10">
       <div className="mx-auto w-full max-w-sm">
-        <h1 className="text-2xl font-semibold">Altınöz Bobinaj</h1>
-        <p className="mt-1 text-pnl-muted">Yönetim paneli girişi</p>
+        {/* Marka dokunuşu: logo + ad.
+            Panel tokenlarında kalıyoruz — landing'in koyu teması ve
+            display fontu buraya gelmiyor. Sebebi işlevsel: personel giriş
+            yapıp hemen panele düşüyor, koyu→açık geçişi her girişte gözü
+            yorar. Logo markayı belli etmeye yetiyor.
+
+            Logo koyu zemin için tasarlandığı (beyaz) için açık zeminde
+            ters çevriliyor: `invert` olmadan beyaz üstünde beyaz kalıyor. */}
+        <div className="relative mx-auto h-14 w-40">
+          <Image
+            src="/logo2.webp"
+            alt="Altınöz Bobinaj"
+            fill
+            priority
+            sizes="160px"
+            className="object-contain invert filter"
+          />
+        </div>
+
+        <h1 className="mt-6 text-center text-2xl font-semibold">
+          Yönetim Paneli
+        </h1>
+        <p className="mt-1 text-center text-pnl-muted">
+          Devam etmek için giriş yapın
+        </p>
 
         {isSupabaseConfigured() ? (
           <div className="mt-8">

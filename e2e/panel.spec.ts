@@ -802,5 +802,38 @@ test.describe("Panel iş akışı", () => {
     });
     // Miktar müşteriye gösterilmiyor (0010)
     await expect(page.getByText(/\d+\s*(gram|adet)/)).toHaveCount(0);
+
+    /* Belge sayfası pazarlama sitesinin tasarım dilini kullanıyor: müşterinin
+       gördüğü tek sayfa ve işi marka izlenimi bırakmak. Panel tokenları
+       buraya sızmamalı — panel-tasarim.spec.ts'teki 55 numaralı testin
+       aynadaki karşılığı. */
+    const sizinti = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("[class]"))
+        .filter((e) => /pnl-|font-panel/.test(e.className.toString()))
+        .map((e) => e.className.toString().slice(0, 60))
+    );
+    expect(
+      sizinti,
+      `belge sayfasında panel tokeni kullanılmış: ${sizinti.join(" | ")}`
+    ).toHaveLength(0);
+
+    // Koyu tema ve marka: panelin açık teması değil
+    await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute(
+      "content",
+      "#09090b"
+    );
+    await expect(
+      page.getByRole("img", { name: /Altınöz Bobinaj/i })
+    ).toBeVisible();
+
+    /* Pazarlama menüsü OLMAMALI: başlıktaki çapa bağlantıları bu sayfada
+       hedef bulamayacağı için tıklanıp tepki vermeyen ölü linklere
+       dönüşürdü. */
+    await expect(page.getByRole("link", { name: /^Hizmetler$/ })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /^Referanslar$/ })).toHaveCount(0);
+
+    // Müşteri soru sormak isterse iletişim elinin altında olmalı
+    await expect(page.getByRole("link", { name: /0542/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /WhatsApp/ })).toBeVisible();
   });
 });
