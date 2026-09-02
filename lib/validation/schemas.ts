@@ -107,6 +107,21 @@ export const stokHareketSchema = z.object({
   { message: "Stok girişinde miktar eksi olamaz", path: ["miktar"] }
 );
 
+/* İş tamamlama: işlem türü ZORUNLU.
+   Form tarafında da zorunlu ama eylem doğrudan çağrılabilir; asıl kural
+   burada ve veritabanı kısıtında. Boş bırakılmış bir işlem türü müşteriye
+   gösterilecek belgeyi eksik bırakır. */
+export const isTamamlaSchema = z.object({
+  job_id: z.string().uuid("İş bulunamadı"),
+  service_type: z.enum(["winding", "revision"], {
+    message: "Yapılan işlemi seçin: motor sarımı veya revizyon",
+  }),
+  allow_negative: z
+    .string()
+    .optional()
+    .transform((v) => v === "1"),
+});
+
 export const isMalzemeSchema = z.object({
   job_id: z.string().uuid(),
   product_id: z.string().uuid("Ürün seçilmedi"),

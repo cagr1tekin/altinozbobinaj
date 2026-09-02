@@ -20,7 +20,7 @@ insert into products (id, name, purchase_price, unit_type_default, qty_pieces)
 
 select add_job_product('379e8a09-f025-4484-9ae3-3a4b78f9de36',
                        'a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d', 2);
-select complete_job('379e8a09-f025-4484-9ae3-3a4b78f9de36');
+select complete_job('379e8a09-f025-4484-9ae3-3a4b78f9de36', 'winding');
 
 insert into invoices (customer_id, invoice_no, gross_amount, net_amount, tax_amount)
   values ('5f7cf10e-6c49-48e9-a144-4ecbb1106ddc', 'FTR-OZET-1', 2360, 2000, 360);

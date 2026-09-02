@@ -92,7 +92,7 @@ end $$;
 do $$
 declare v_p products; v_r products;
 begin
-  perform complete_job('9c3a6e4d-bf53-41a2-c8e7-4d0a2f6b3c15');
+  perform complete_job('9c3a6e4d-bf53-41a2-c8e7-4d0a2f6b3c15', 'winding');
   select * into v_p from products where id='1d4b7f5e-c064-42b3-d9f8-5e1b3a7c4d26';
   select * into v_r from products where id='2e5c8a6f-d175-43c4-eaf9-6f2c4b8d5e37';
 

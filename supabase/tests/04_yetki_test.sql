@@ -76,7 +76,7 @@ declare
   v_fn text;
 begin
   foreach v_fn in array array[
-    'complete_job(uuid, boolean)',
+    'complete_job(uuid, service_type, boolean)',
     'revert_job_completion(uuid)',
     'apply_stock_movement(uuid, movement_type, integer, text)',
     'add_job_product(uuid, uuid, integer)',

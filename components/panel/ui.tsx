@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import type { ReactNode } from "react";
-import type { JobStatus, SegmentStatus } from "@/lib/supabase/database.types";
+import type {
+  JobStatus,
+  SegmentStatus,
+  ServiceType,
+} from "@/lib/supabase/database.types";
 
 /**
  * Panel bileşenleri — design-system/PANEL.md
@@ -300,6 +304,42 @@ const IS_DURUM: Record<JobStatus, { etiket: string; sinif: string }> = {
     sinif: "bg-pnl-chip-ok text-pnl-chip-ok-text",
   },
 };
+
+/* -------------------------------------------------------------------------
+ * İşlem türü
+ *
+ * Tek kaynak: hem panel hem müşteri sayfası hem PDF aynı metni kullanıyor.
+ * İki yerde ayrı yazılsa biri değişip diğeri kalır ve müşteriye giden
+ * belge panelde görünenden farklı olur.
+ * ------------------------------------------------------------------------- */
+
+export const ISLEM_TURU: Record<ServiceType, string> = {
+  winding: "Motor sarımı",
+  revision: "Revizyon",
+};
+
+/** Müşteriye gösterilen metinde geçen hâli (küçük harf, cümle içinde). */
+export const ISLEM_TURU_CUMLE: Record<ServiceType, string> = {
+  winding: "motor sarımı",
+  revision: "revizyon",
+};
+
+/* Renk tek gösterge değil: rozette metin de yazıyor. İki tür birbirinden
+   renkle değil kelimeyle ayrışıyor; renk yalnızca taramayı hızlandırıyor. */
+const ISLEM_SINIF: Record<ServiceType, string> = {
+  winding: "bg-pnl-chip-info text-pnl-chip-info-text",
+  revision: "bg-pnl-chip-neutral text-pnl-muted",
+};
+
+export function IslemTuru({ tur }: { tur: ServiceType }) {
+  return (
+    <span
+      className={`inline-flex items-center rounded-md px-2 py-1 text-[13px] font-medium ${ISLEM_SINIF[tur]}`}
+    >
+      {ISLEM_TURU[tur]}
+    </span>
+  );
+}
 
 export function IsDurumu({ durum }: { durum: JobStatus }) {
   const d = IS_DURUM[durum];

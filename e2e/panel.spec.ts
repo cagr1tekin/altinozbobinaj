@@ -205,6 +205,7 @@ test.describe("Panel iş akışı", () => {
 
     // Şimdi işi tamamla
     await page.goBack();
+    await page.getByRole("radio", { name: /Motor sarımı/ }).check();
     await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
 
@@ -258,6 +259,7 @@ test.describe("Panel iş akışı", () => {
     await segmentAc(page);
     await isEkle(page, "QR testi işi");
 
+    await page.getByRole("radio", { name: /Motor sarımı/ }).check();
     await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
 
@@ -289,6 +291,7 @@ test.describe("Panel iş akışı", () => {
     await segmentAc(page);
     await isEkle(page, "Kilitli iş testi");
 
+    await page.getByRole("radio", { name: /Motor sarımı/ }).check();
     await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
 
@@ -325,6 +328,7 @@ test.describe("Panel iş akışı", () => {
     await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
+    await page.getByRole("radio", { name: /Motor sarımı/ }).check();
     await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
 
@@ -477,6 +481,7 @@ test.describe("Panel iş akışı", () => {
     await segmentAc(page);
     await isEkle(page, "Etiket testi işi");
 
+    await page.getByRole("radio", { name: /Motor sarımı/ }).check();
     await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
 
@@ -726,5 +731,76 @@ test.describe("Panel iş akışı", () => {
       timeout: 20000,
     });
     await expect(gecmis.getByText(musteri).first()).toBeVisible();
+  });
+
+  test("61 — işlem türü seçilmeden iş tamamlanamıyor", async ({ page }) => {
+    await musteriOlustur(page, testAdi("IslemTuruMusteri"));
+    await segmentAc(page);
+    await isEkle(page, "İşlem türü testi");
+
+    /* Seçim yapılmadan buton devre dışı: required tek başına yeterli değil,
+       tarayıcı uyarısı gösteriyor ama kullanıcı neden gönderilmediğini
+       anlamıyor. */
+    const buton = page.getByRole("button", { name: /Önce yapılan işlemi seçin/ });
+    await expect(buton).toBeVisible();
+    await expect(buton).toBeDisabled();
+
+    // İki seçenek de aynı anda görünmeli, ön seçim OLMAMALI
+    const sarim = page.getByRole("radio", { name: /Motor sarımı/ });
+    const revizyon = page.getByRole("radio", { name: /Revizyon/ });
+    await expect(sarim).toBeVisible();
+    await expect(revizyon).toBeVisible();
+    await expect(sarim).not.toBeChecked();
+    await expect(revizyon).not.toBeChecked();
+
+    // Seçince buton etkinleşiyor
+    await revizyon.check();
+    await expect(
+      page.getByRole("button", { name: /^İşi Tamamla/ })
+    ).toBeEnabled();
+  });
+
+  test("62 — seçilen işlem türü iş detayında görünüyor", async ({ page }) => {
+    await musteriOlustur(page, testAdi("TurGorunumMusteri"));
+    await segmentAc(page);
+    await isEkle(page, "Revizyon işi");
+
+    await page.getByRole("radio", { name: /Revizyon/ }).check();
+    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
+
+    /* Sonradan bakan biri hangi işlemin yapıldığını görmeli — durum kadar
+       önemli bir bilgi, o yüzden üst çubukta. */
+    await expect(page.getByText("Revizyon").first()).toBeVisible();
+    await expect(page.getByText("Tamamlandı").first()).toBeVisible();
+  });
+
+  test("63 — müşteri QR sayfasında işlem türü yazıyor, miktar yazmıyor", async ({
+    page,
+  }) => {
+    await musteriOlustur(page, testAdi("QrTurMusteri"));
+    await segmentAc(page);
+    await isEkle(page, "QR tür testi");
+    const isUrl = page.url();
+
+    await page.getByRole("radio", { name: /Motor sarımı/ }).check();
+    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
+
+    // QR bağlantısını iş sayfasından al
+    await page.goto(isUrl);
+    const qrMetni = await page
+      .getByText(/\/j\/[0-9a-f]{32}/)
+      .first()
+      .textContent();
+    const token = qrMetni?.match(/\/j\/([0-9a-f]{32})/)?.[1];
+    expect(token, "QR token bulunamadı").toBeTruthy();
+
+    await page.goto(`/j/${token}`);
+    await expect(page.getByText(/motor sarımı işlemi/i)).toBeVisible({
+      timeout: 15000,
+    });
+    // Miktar müşteriye gösterilmiyor (0010)
+    await expect(page.getByText(/\d+\s*(gram|adet)/)).toHaveCount(0);
   });
 });
