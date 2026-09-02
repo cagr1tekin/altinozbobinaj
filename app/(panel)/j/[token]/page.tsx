@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { PublicJobView } from "@/lib/supabase/database.types";
-import { formatSayi, formatTarih } from "@/components/panel/ui";
+import { formatTarih } from "@/components/panel/ui";
 
 export const metadata: Metadata = {
   title: "İşinizde Kullanılan Malzemeler | Altınöz Bobinaj",
@@ -55,16 +55,8 @@ export default async function QrMalzemeSayfasi({
       ) : (
         <ul className="divide-y divide-pnl-line overflow-hidden rounded-lg border border-pnl-line bg-pnl-surface">
           {is.materials.map((m, i) => (
-            <li
-              key={`${m.name}-${i}`}
-              className="flex items-baseline justify-between gap-3 px-4 py-3"
-            >
+            <li key={`${m.name}-${i}`} className="px-4 py-3">
               <span className="font-medium">{m.name}</span>
-              <span className="shrink-0 text-sm text-pnl-muted">
-                {`${formatSayi(
-                  m.unit === "piece" ? m.qty_pieces : m.qty_grams
-                )} ${m.unit === "piece" ? "adet" : "gram"}`}
-              </span>
             </li>
           ))}
         </ul>
