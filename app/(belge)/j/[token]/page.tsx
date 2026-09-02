@@ -46,7 +46,15 @@ export default async function QrMalzemeSayfasi({
           ama sayfanın kendisi bir belge olarak duruyor. */}
       <header className="border-b border-white/10">
         <div className="mx-auto flex max-w-lg items-center justify-center px-4 py-5">
-          <Link href="/" aria-label="Altınöz Bobinaj ana sayfası">
+          {/* Odak halkası ve hover açıkça yazılıyor.
+              Tarayıcı varsayılanı (outline: auto 1px) görünür ama
+              uygulamanın geri kalanı 2px marka halkası kullanıyor;
+              klavyeyle gezen biri için tutarlı olmalı. */}
+          <Link
+            href="/"
+            aria-label="Altınöz Bobinaj ana sayfası"
+            className="rounded-lg transition-opacity hover:opacity-80 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-silver-main"
+          >
             {/* Logo kaynağı beyaz; koyu zeminde filtre gerekmiyor. */}
             <span className="relative block h-12 w-36">
               <Image
