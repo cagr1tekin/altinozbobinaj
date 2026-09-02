@@ -31,7 +31,11 @@ export default async function UrunlerSayfasi() {
 
   const [{ data: urunler, error }, { data: hareketler }, { data: farklar }] =
     await Promise.all([
-      supabase.from("products").select("*").order("name", { ascending: true }),
+      supabase
+        .from("products")
+        .select("*")
+        .is("deleted_at", null)
+        .order("name", { ascending: true }),
       supabase
         .from("stock_movements")
         .select(

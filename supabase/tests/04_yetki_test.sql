@@ -24,7 +24,14 @@ begin
   join pg_namespace n on n.oid = p.pronamespace
   where n.nspname = 'public'
     and has_function_privilege('anon', p.oid, 'EXECUTE')
-    and p.proname <> 'public_job_by_token'
+    /* BILINCLI ISTISNALAR — her biri gerekcesiyle:
+         public_job_by_token: QR sayfasi girissiz aciliyor, musteri
+           okutunca calisiyor. Yalnizca okuyor ve ticari bilgi dondurmuyor.
+         giris_kaydet: giris denemesi henuz oturum acilmadan kaydediliyor.
+           Yalnizca INSERT yapiyor, hicbir sey OKUMUYOR.
+       Bu listeye ekleme yapmadan once "anon bununla ne gorebilir/ne
+       yapabilir" sorusu cevaplanmali. */
+    and p.proname not in ('public_job_by_token', 'giris_kaydet')
     -- Uzanti fonksiyonlari (pgcrypto vb.) Supabase varsayilani, kapsam disi
     and p.oid not in (
       select d.objid from pg_depend d
@@ -35,7 +42,25 @@ begin
   if v_sayi > 0 then
     raise exception 'KALDI: anon % fonksiyonu calistirabiliyor: %', v_sayi, v_liste;
   end if;
-  raise notice 'GECTI: anon yalnizca public_job_by_token calistirabiliyor';
+  raise notice 'GECTI: anon yalnizca beyaz listedeki 2 fonksiyonu calistirabiliyor';
+end $$;
+
+\echo '--- TEST 1b: anon''a acik fonksiyonlar VERI OKUYAMAZ ---'
+do $$
+begin
+  /* Beyaz liste tek basina yeterli degil: acik birakilan fonksiyonun
+     ne dondurdugu de onemli. giris_kaydet void donuyor, yani okuma
+     yuzeyi yok. */
+  if (select prorettype::regtype::text from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public' and p.proname = 'giris_kaydet') <> 'void' then
+    raise exception 'KALDI: giris_kaydet artik veri donduruyor, anon''a acik olmamali';
+  end if;
+  -- anon giris gunlugunu OKUYAMAMALI
+  if has_table_privilege('anon', 'login_log', 'SELECT') then
+    raise exception 'KALDI: anon giris gunlugunu okuyabiliyor';
+  end if;
+  raise notice 'GECTI: giris_kaydet void donuyor, anon gunlugu okuyamiyor';
 end $$;
 
 \echo '--- TEST 2: QR fonksiyonu anon icin acik kalmali ---'

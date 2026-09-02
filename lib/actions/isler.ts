@@ -104,6 +104,7 @@ export async function isMalzemeSil(
     .from("jobs")
     .select("status")
     .eq("id", jobId)
+    .is("deleted_at", null)
     .single();
 
   if (job?.status === "completed") {
@@ -114,7 +115,10 @@ export async function isMalzemeSil(
     };
   }
 
-  const { error } = await supabase.from("job_products").delete().eq("id", id);
+  const { error } = await supabase.rpc("kayit_sil", {
+    p_tablo: "job_products",
+    p_id: id,
+  });
   if (error) return veritabaniHatasi(error, "Malzeme silinemedi");
 
   revalidatePath(`/yonetim/isler/${jobId}`);

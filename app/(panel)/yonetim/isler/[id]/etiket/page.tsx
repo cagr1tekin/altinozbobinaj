@@ -34,6 +34,7 @@ export default async function EtiketSayfasi({
       "id, title, status, completed_at, segments(customers(name)), qr_codes(token)"
     )
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (!is) notFound();

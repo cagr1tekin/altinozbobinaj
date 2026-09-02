@@ -49,6 +49,7 @@ export async function faturaYukle(
     .from("segments")
     .select("id, customer_id")
     .eq("id", segmentId)
+    .is("deleted_at", null)
     .maybeSingle();
 
   if (!segment) return { status: "error", message: "Segment bulunamadı" };
@@ -70,6 +71,9 @@ export async function faturaYukle(
       .from("invoices")
       .select("id, segment_id")
       .eq("ettn", a.ettn)
+      /* Silinmiş fatura mükerrer kontrolünü engellememeli: aynı fatura
+         yanlışlıkla silinmişse tekrar yüklenebilmeli. */
+      .is("deleted_at", null)
       .maybeSingle();
 
     if (mevcut) {
@@ -179,9 +183,14 @@ export async function faturaSil(
     .from("invoices")
     .select("file_path")
     .eq("id", id)
+    .is("deleted_at", null)
     .maybeSingle();
 
-  const { error } = await supabase.from("invoices").delete().eq("id", id);
+  /* Fatura kaydi muhasebe belgesi: isaretleniyor, silinmiyor. */
+  const { error } = await supabase.rpc("kayit_sil", {
+    p_tablo: "invoices",
+    p_id: id,
+  });
   if (error) return veritabaniHatasi(error, "Fatura silinemedi");
 
   /* Kayıt gittiyse dosya da gitmeli; aksi hâlde Storage'da sahipsiz

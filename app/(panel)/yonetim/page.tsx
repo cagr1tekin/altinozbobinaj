@@ -41,11 +41,15 @@ export default async function OzetSayfasi({
         "id, title, status, created_at, segments(segment_date, customers(name))"
       )
       .neq("status", "completed")
+      .is("deleted_at", null)
+      /* Silinmiş segmentin işi açık işler listesinde görünmemeli. */
+      .is("segments.deleted_at", null)
       .order("created_at", { ascending: true })
       .limit(50),
     supabase
       .from("products")
       .select("id, name, unit_type_default, qty_pieces, qty_grams")
+      .is("deleted_at", null)
       .or("qty_pieces.lt.0,qty_grams.lt.0"),
   ]);
 

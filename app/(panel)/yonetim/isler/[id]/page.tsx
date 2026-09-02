@@ -45,10 +45,14 @@ export default async function IsDetaySayfasi({
          qr_codes(token)`
       )
       .eq("id", id)
+      .is("deleted_at", null)
+      /* Silinmiş malzeme satırı listede ve maliyette görünmemeli. */
+      .is("job_products.deleted_at", null)
       .maybeSingle(),
     supabase
       .from("products")
       .select("id, name, unit_type_default, qty_pieces, qty_grams")
+      .is("deleted_at", null)
       .order("name", { ascending: true }),
   ]);
 

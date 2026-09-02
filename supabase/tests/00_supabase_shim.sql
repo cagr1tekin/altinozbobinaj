@@ -50,3 +50,17 @@ language sql stable as $$
 $$;
 
 grant usage on schema auth to anon, authenticated, service_role;
+
+-- -----------------------------------------------------------------------------
+-- auth.users taklidi
+--
+-- Supabase'de bu tabloyu GoTrue yonetiyor. Signup engeli trigger'i buna
+-- baglandigi icin yerelde de bir karsiligi olmali; yoksa engel hic test
+-- edilemez ve canliya dogrulanmamis gider. Yalnizca trigger'in ihtiyac
+-- duydugu kolonlar var.
+-- -----------------------------------------------------------------------------
+create table if not exists auth.users (
+  id         uuid primary key default gen_random_uuid(),
+  email      text unique,
+  created_at timestamptz not null default now()
+);

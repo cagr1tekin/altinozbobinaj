@@ -23,6 +23,7 @@ export default async function MusterilerSayfasi({
   let sorgu = supabase
     .from("customers")
     .select("id, name, phone, created_at")
+    .is("deleted_at", null)
     .order("name", { ascending: true })
     .limit(200);
 

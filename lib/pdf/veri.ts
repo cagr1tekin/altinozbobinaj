@@ -63,6 +63,10 @@ export async function isVerisi(isId: string): Promise<{
        qr_codes(token)`
     )
     .eq("id", isId)
+    /* Silinmiş kayıt müşteriye giden belgede görünmemeli; gömülü
+       job_products filtresi de şart, yoksa silinen malzeme PDF'te kalır. */
+    .is("deleted_at", null)
+    .is("job_products.deleted_at", null)
     .maybeSingle();
 
   if (!data) return null;
@@ -131,6 +135,9 @@ export async function segmentVerisi(segmentId: string): Promise<{
             job_products(qty_pieces_used, qty_grams_used, unit_cost_snapshot, products(name, unit_type_default)))`
     )
     .eq("id", segmentId)
+    .is("deleted_at", null)
+    .is("jobs.deleted_at", null)
+    .is("jobs.job_products.deleted_at", null)
     .maybeSingle();
 
   if (!data) return null;
@@ -186,6 +193,7 @@ export async function musteriVerisi(musteriId: string): Promise<{
       .from("customers")
       .select("id, name, phone, email, address, tax_number")
       .eq("id", musteriId)
+      .is("deleted_at", null)
       .maybeSingle(),
     supabase
       .from("segments")
@@ -195,6 +203,9 @@ export async function musteriVerisi(musteriId: string): Promise<{
               job_products(qty_pieces_used, qty_grams_used, unit_cost_snapshot, products(name, unit_type_default)))`
       )
       .eq("customer_id", musteriId)
+      .is("deleted_at", null)
+      .is("jobs.deleted_at", null)
+      .is("jobs.job_products.deleted_at", null)
       .order("segment_date", { ascending: false }),
   ]);
 

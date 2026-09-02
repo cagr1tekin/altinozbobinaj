@@ -23,11 +23,19 @@ export default async function MusteriDetaySayfasi({
   const supabase = await createClient();
 
   const [{ data: musteri }, { data: segmentler }] = await Promise.all([
-    supabase.from("customers").select("*").eq("id", id).maybeSingle(),
+    supabase
+      .from("customers")
+      .select("*")
+      .eq("id", id)
+      .is("deleted_at", null)
+      .maybeSingle(),
     supabase
       .from("segments")
       .select("id, segment_date, note, status, jobs(id, status)")
       .eq("customer_id", id)
+      .is("deleted_at", null)
+      /* Silinmiş iş, segmentin "açık iş" sayacında görünmemeli. */
+      .is("jobs.deleted_at", null)
       .order("segment_date", { ascending: false }),
   ]);
 

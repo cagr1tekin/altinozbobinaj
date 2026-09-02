@@ -33,6 +33,11 @@ export default async function SegmentDetaySayfasi({
         "id, segment_date, note, status, customer_id, customers(id, name), jobs(id, title, status, completed_at, created_at)"
       )
       .eq("id", id)
+      .is("deleted_at", null)
+      /* Gömülü filtre: silinmiş iş segment listesinde görünmeye devam
+         ederdi. PostgREST'te iç içe tabloya "tablo.kolon" ile filtre
+         uygulanıyor. */
+      .is("jobs.deleted_at", null)
       .maybeSingle(),
     supabase
       .from("invoices")
@@ -40,6 +45,7 @@ export default async function SegmentDetaySayfasi({
         "id, invoice_no, issue_date, net_amount, gross_amount, supplier_name"
       )
       .eq("segment_id", id)
+      .is("deleted_at", null)
       .order("issue_date", { ascending: false }),
   ]);
 

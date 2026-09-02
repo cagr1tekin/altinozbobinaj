@@ -37,6 +37,9 @@ export type Customer = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
+     ama veritabanında durur. Fiziksel silme RLS ile engelli. */
+  deleted_at: string | null;
 };
 
 export type Segment = {
@@ -47,6 +50,9 @@ export type Segment = {
   status: SegmentStatus;
   created_at: string;
   updated_at: string;
+  /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
+     ama veritabanında durur. Fiziksel silme RLS ile engelli. */
+  deleted_at: string | null;
 };
 
 export type Job = {
@@ -61,6 +67,9 @@ export type Job = {
   service_types: ServiceType[] | null;
   created_at: string;
   updated_at: string;
+  /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
+     ama veritabanında durur. Fiziksel silme RLS ile engelli. */
+  deleted_at: string | null;
 };
 
 export type Product = {
@@ -74,6 +83,9 @@ export type Product = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
+     ama veritabanında durur. Fiziksel silme RLS ile engelli. */
+  deleted_at: string | null;
 };
 
 export type JobProduct = {
@@ -84,6 +96,9 @@ export type JobProduct = {
   qty_grams_used: number;
   unit_cost_snapshot: number;
   created_at: string;
+  /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
+     ama veritabanında durur. Fiziksel silme RLS ile engelli. */
+  deleted_at: string | null;
 };
 
 export type StockMovement = {
@@ -114,6 +129,9 @@ export type Invoice = {
   ettn: string | null;
   supplier_name: string | null;
   parsed_at: string | null;
+  /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
+     ama veritabanında durur. Fiziksel silme RLS ile engelli. */
+  deleted_at: string | null;
 };
 
 export type QrCode = {
@@ -256,8 +274,7 @@ export type Database = {
         Row: Customer;
         Insert: InsertOf<
           Customer,
-          Zamanlar | "phone" | "email" | "address" | "tax_number" | "notes"
-        >;
+          Zamanlar | "phone" | "email" | "address" | "tax_number" | "notes" | "deleted_at">;
         Update: Partial<Customer>;
         Relationships: [];
       };
@@ -265,8 +282,7 @@ export type Database = {
         Row: Segment;
         Insert: InsertOf<
           Segment,
-          Zamanlar | "segment_date" | "note" | "status"
-        >;
+          Zamanlar | "segment_date" | "note" | "status" | "deleted_at">;
         Update: Partial<Segment>;
         Relationships: [
           {
@@ -285,8 +301,7 @@ export type Database = {
            yalnızca tamamlanmış işte dolu olmasını şart koşuyor. */
         Insert: InsertOf<
           Job,
-          Zamanlar | "description" | "status" | "completed_at" | "service_types"
-        >;
+          Zamanlar | "description" | "status" | "completed_at" | "service_types" | "deleted_at">;
         Update: Partial<Job>;
         Relationships: [
           {
@@ -308,7 +323,7 @@ export type Database = {
           | "unit_type_default"
           | "qty_pieces"
           | "qty_grams"
-          | "notes"
+          | "notes" | "deleted_at"
         >;
         Update: Partial<Product>;
         Relationships: [];
@@ -321,7 +336,7 @@ export type Database = {
           | "created_at"
           | "qty_pieces_used"
           | "qty_grams_used"
-          | "unit_cost_snapshot"
+          | "unit_cost_snapshot" | "deleted_at"
         >;
         Update: Partial<JobProduct>;
         Relationships: [
@@ -387,7 +402,7 @@ export type Database = {
           | "file_path"
           | "ettn"
           | "supplier_name"
-          | "parsed_at"
+          | "parsed_at" | "deleted_at"
         >;
         Update: Partial<Invoice>;
         Relationships: [
@@ -465,6 +480,30 @@ export type Database = {
       };
     };
     Functions: {
+      /* Yumuşak silme: fiziksel DELETE yetkisi RLS'te yok. */
+      kayit_sil: {
+        Args: {
+          p_tablo:
+            | "customers"
+            | "segments"
+            | "jobs"
+            | "job_products"
+            | "invoices"
+            | "products";
+          p_id: string;
+        };
+        Returns: undefined;
+      };
+      giris_kaydet: {
+        Args: {
+          p_eposta: string | null;
+          p_country: string | null;
+          p_outcome: "allowed" | "blocked_country" | "unknown_country";
+          p_ip_prefix?: string | null;
+          p_user_agent?: string | null;
+        };
+        Returns: undefined;
+      };
       panel_arama: {
         Args: { p_terim: string; p_limit?: number };
         Returns: AramaSonucu[];

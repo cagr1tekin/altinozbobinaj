@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 import { isSupabaseConfigured } from "./env";
+import { konumKontrol } from "@/lib/guvenlik/konum";
 
 /** Girişsiz erişilebilen panel yolları */
 const PUBLIC_PANEL_PATHS = ["/giris"];
@@ -22,6 +23,33 @@ export const PANEL_EPOSTA_BASLIGI = "x-panel-eposta";
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
+
+  /* Coğrafi kısıt: Türkiye dışından panele erişilemiyor.
+     Bunun bir FİLTRE olduğunu, güvenlik sınırı OLMADIĞINI bilerek
+     koyuyoruz — VPN kullanan biri geçer. Gerçek sınır kimlik doğrulama
+     ve RLS; bu katman otomatik tarayıcıları ve yurt dışı kaba kuvvet
+     denemelerini giriş formuna ulaşmadan kesiyor.
+
+     Kimlik doğrulamadan ÖNCE: engellenmiş bir istek Supabase'e hiç
+     ulaşmıyor, yani oran sınırını da tüketmiyor. */
+  const konum = konumKontrol(request);
+  if (!konum.izinli) {
+    /* Sayfa döndürülüyor, yönlendirme değil: yönlendirme "başka bir yerde
+       çalışan bir panel var" bilgisini sızdırır. */
+    return new NextResponse(
+      "Bu panele yalnızca Türkiye içinden erişilebilir. " +
+        "Yurt dışındaysanız işletmeyle iletişime geçin.",
+      {
+        status: 403,
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          /* Arama motorları ve önbellekler bu yanıtı saklamamalı. */
+          "Cache-Control": "no-store",
+          "X-Robots-Tag": "noindex",
+        },
+      }
+    );
+  }
 
   // Supabase henüz yapılandırılmadıysa middleware'i çökertmeyelim:
   // /yonetim sayfası kurulum talimatını kendisi gösteriyor.

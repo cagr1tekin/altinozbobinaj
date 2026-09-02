@@ -65,7 +65,13 @@ export async function musteriSil(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.from("customers").delete().eq("id", id);
+  /* Fiziksel silme YOK: RLS'te DELETE yetkisi kaldirildi ve kayit_sil()
+     yalnizca isaretliyor. Musteri listelerden ve raporlardan kalkiyor ama
+     gecmisi veritabaninda duruyor — yanlislikla silinen geri getirilebilir. */
+  const { error } = await supabase.rpc("kayit_sil", {
+    p_tablo: "customers",
+    p_id: id,
+  });
 
   // Faturası olan müşteri silinemez (invoices.customer_id on delete restrict).
   // Bu bilinçli: muhasebe kaydı müşteriyle birlikte yok olmamalı.
@@ -116,7 +122,8 @@ export async function segmentDurumDegistir(
     .from("jobs")
     .select("id", { count: "exact", head: true })
     .eq("segment_id", id)
-    .neq("status", "completed");
+    .neq("status", "completed")
+    .is("deleted_at", null);
 
   const { error } = await supabase
     .from("segments")
