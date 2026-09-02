@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import QRCode from "qrcode";
 import { createClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/supabase/env";
+import { etiketQrSvg } from "@/lib/qr";
 
 export const metadata: Metadata = {
   title: "QR Etiketi | Altınöz Bobinaj",
@@ -67,13 +67,10 @@ export default async function EtiketSayfasi({
   }
 
   const url = `${SITE_URL}/j/${qr.token}`;
-  const qrSvg = await QRCode.toString(url, {
-    type: "svg",
-    errorCorrectionLevel: "M",
-    margin: 0,
-    width: 360,
-    color: { dark: "#000000", light: "#ffffff" },
-  });
+  /* Ölçü SVG'ye öznitelik olarak BASILMIYOR; aşağıdaki CSS belirliyor.
+     Öznitelik olsaydı CSS'ten önce geldiği için kod kabına sığmayıp
+     metnin üstüne binerdi — bkz. lib/qr.ts. */
+  const qrSvg = await etiketQrSvg(url);
 
   const tarih = is.completed_at
     ? new Intl.DateTimeFormat("tr-TR", { timeZone: "Europe/Istanbul" }).format(
@@ -88,16 +85,31 @@ export default async function EtiketSayfasi({
       <style
         dangerouslySetInnerHTML={{
           __html: `
+            /* SVG'nin kabına sığması. qrcode'un ürettiği svg'de width/height
+               özniteliği yok (üretimde width verilmiyor), ölçü buradan
+               geliyor. display:block satır-içi boşluğu kaldırıyor. */
+            #etiket-qr svg {
+              display: block;
+              width: 100%;
+              height: auto;
+            }
+
             @media print {
               body { background: #fff !important; }
               body * { visibility: hidden !important; }
               #etiket-alani, #etiket-alani * { visibility: visible !important; }
               #etiket-alani {
-                position: absolute; left: 0; top: 0; width: 100%;
-                padding: 12mm;
+                position: absolute; left: 0; top: 0;
+                /* Baskıda ölçü mm cinsinden sabit: px kullanıldığında çıktı
+                   yazıcının DPI'ına göre değişiyor ve QR taranamayacak kadar
+                   küçülebiliyor. */
+                width: 120mm;
+                margin: 0; padding: 0; border: 0;
+                border-radius: 0; box-shadow: none;
               }
+              #etiket-qr { width: 34mm !important; }
               .yazdirma-gizle { display: none !important; }
-              @page { size: A4; margin: 10mm; }
+              @page { size: A4; margin: 12mm; }
             }
           `,
         }}
@@ -124,12 +136,13 @@ export default async function EtiketSayfasi({
       {/* Etiket — beyaz zemin, yazdırmaya hazır */}
       <div
         id="etiket-alani"
-        className="rounded-xl bg-white p-8 text-black"
-        style={{ maxWidth: 520 }}
+        className="rounded-xl border border-pnl-line bg-white p-6 text-black"
+        style={{ maxWidth: 480 }}
       >
-        <div style={{ display: "flex", gap: 20, alignItems: "flex-start" }}>
+        <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
           <div
-            style={{ width: 150, flexShrink: 0 }}
+            id="etiket-qr"
+            style={{ width: 132, flexShrink: 0 }}
             dangerouslySetInnerHTML={{ __html: qrSvg }}
             aria-hidden="true"
           />
@@ -142,7 +155,15 @@ export default async function EtiketSayfasi({
               1976&apos;dan beri · Karesi / Balıkesir
             </p>
 
-            <p style={{ fontSize: 13, fontWeight: 600, marginTop: 12 }}>
+            <p
+              style={{
+                fontSize: 13,
+                fontWeight: 600,
+                marginTop: 10,
+                /* Uzun motor adı kutuyu genişletip QR'ı ezmesin */
+                overflowWrap: "anywhere",
+              }}
+            >
               {is.title}
             </p>
             {musteriAdi && (

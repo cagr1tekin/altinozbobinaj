@@ -1,5 +1,5 @@
-import QRCode from "qrcode";
 import { SITE_URL } from "@/lib/supabase/env";
+import { dosyaQrSvg } from "@/lib/qr";
 import { oturumVarMi, yetkisiz } from "@/lib/pdf/yanit";
 
 /**
@@ -24,13 +24,9 @@ export async function GET(request: Request) {
 
   const url = `${SITE_URL}/j/${token}`;
 
-  const svg = await QRCode.toString(url, {
-    type: "svg",
-    errorCorrectionLevel: "M",
-    margin: 1,
-    width: 512,
-    color: { dark: "#000000", light: "#ffffff" },
-  });
+  /* Tek başına servis edilen dosya: ölçüsü kendi içinde olmalı,
+     çünkü onu saran bir CSS yok. */
+  const svg = await dosyaQrSvg(url);
 
   return new Response(svg, {
     headers: {
