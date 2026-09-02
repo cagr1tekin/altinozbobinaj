@@ -1,6 +1,7 @@
 import { DonemRaporu } from "@/lib/pdf/belgeler";
 import { donemVerisi } from "@/lib/pdf/veri";
 import { dosyaAdi, oturumVarMi, pdfYanit, yetkisiz } from "@/lib/pdf/yanit";
+import { denetimPdfKaydet } from "@/lib/denetim";
 
 const TARIH = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -22,6 +23,12 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+
+  /* Dönem raporu bir kayda bağlı değil: entity_id null, aralık ayrıntıda. */
+  await denetimPdfKaydet("report", null, `Dönem raporu ${bas} — ${bit}`, {
+    bas,
+    bit,
+  });
 
   return pdfYanit(
     (

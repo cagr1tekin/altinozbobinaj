@@ -20,3 +20,33 @@ grant usage on schema public to anon, authenticated, service_role;
 -- olmasi icin ayni varsayilan burada da kuruluyor.
 alter default privileges in schema public
   grant all on functions to anon, authenticated, service_role;
+
+-- -----------------------------------------------------------------------------
+-- auth semasi taklidi
+--
+-- Supabase'de auth.uid() ve auth.jwt() mevcut; denetim (audit) trigger'i her
+-- yazmada bunlari cagiriyor. Yerelde olmazsa trigger patlar ve audit edilen
+-- her tabloya insert basarisiz olur. Gercek imzalara yakin bir taklit:
+-- degerler `set request.jwt.claims` ile verilebiliyor, verilmezse null.
+-- -----------------------------------------------------------------------------
+create schema if not exists auth;
+
+create or replace function auth.uid() returns uuid
+language sql stable as $$
+  -- Supabase claims'i tek JSON olarak veriyor; eski projelerde ayri ayarda.
+  -- Ikisi de destekleniyor ki testler gercekcı olsun.
+  select coalesce(
+    nullif(current_setting('request.jwt.claim.sub', true), ''),
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+  )::uuid;
+$$;
+
+create or replace function auth.jwt() returns jsonb
+language sql stable as $$
+  select coalesce(
+    nullif(current_setting('request.jwt.claims', true), '')::jsonb,
+    '{}'::jsonb
+  );
+$$;
+
+grant usage on schema auth to anon, authenticated, service_role;

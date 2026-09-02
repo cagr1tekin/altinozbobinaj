@@ -8,6 +8,7 @@ import {
   yetkisiz,
 } from "@/lib/pdf/yanit";
 import { SITE_URL } from "@/lib/supabase/env";
+import { denetimPdfKaydet } from "@/lib/denetim";
 
 export async function GET(request: Request) {
   if (!(await oturumVarMi())) return yetkisiz();
@@ -24,6 +25,12 @@ export async function GET(request: Request) {
   if (!veri) return bulunamadi();
 
   const qrUrl = veri.is.qrToken ? `${SITE_URL}/j/${veri.is.qrToken}` : null;
+
+  /* PDF alma bir satırı değiştirmiyor, trigger göremiyor; açıkça bildiriliyor. */
+  await denetimPdfKaydet("job", id, veri.is.baslik, {
+    musteri: veri.musteri.ad,
+    maliyet_gosterildi: maliyetGoster,
+  });
 
   return pdfYanit(
     (

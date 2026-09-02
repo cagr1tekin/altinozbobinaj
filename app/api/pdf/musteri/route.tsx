@@ -1,5 +1,6 @@
 import { MusteriBelgesi } from "@/lib/pdf/belgeler";
 import { musteriVerisi } from "@/lib/pdf/veri";
+import { denetimPdfKaydet } from "@/lib/denetim";
 import {
   bulunamadi,
   dosyaAdi,
@@ -19,6 +20,11 @@ export async function GET(request: Request) {
 
   const veri = await musteriVerisi(id);
   if (!veri) return bulunamadi();
+
+  await denetimPdfKaydet("customer", id, veri.musteri.ad, {
+    segment_sayisi: veri.segmentler.length,
+    maliyet_gosterildi: maliyetGoster,
+  });
 
   return pdfYanit(
     (

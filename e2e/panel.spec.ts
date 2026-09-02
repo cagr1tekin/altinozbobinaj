@@ -614,4 +614,117 @@ test.describe("Panel iş akışı", () => {
       timeout: 15000,
     });
   });
+
+  test("55 — özet aramasında motor müşteri › segment kırılımıyla bulunuyor", async ({
+    page,
+  }) => {
+    const musteri = testAdi("AramaMusteri");
+    const motor = testAdi("Siemens Sarım");
+
+    await musteriOlustur(page, musteri);
+    await segmentAc(page);
+    await isEkle(page, motor);
+
+    await page.goto("/yonetim");
+    await page.getByLabel(/Müşteri veya motor ara/).fill(motor);
+    await page.getByRole("button", { name: /^Ara$/ }).click();
+
+    // Sonuç URL'de kalmalı: geri tuşu ve paylaşılabilir bağlantı çalışsın
+    await expect(page).toHaveURL(/[?&]ara=/, { timeout: 15000 });
+
+    const bolum = page.getByRole("region", { name: /Arama sonuçları/ }).or(
+      page.locator("section", { hasText: /Arama sonuçları/ })
+    );
+
+    // Motorun kendi adı ve kırılımdaki müşteri adı aynı satırda görünmeli
+    await expect(page.getByText(motor, { exact: false }).first()).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(bolum.getByText(musteri, { exact: false }).first()).toBeVisible();
+    // Tür etiketi: kullanıcı ne bulduğunu anlamalı
+    await expect(bolum.getByText("Motor", { exact: false }).first()).toBeVisible();
+  });
+
+  test("56 — müşteri adıyla arama çalışıyor, sonuçsuz arama açıklıyor", async ({
+    page,
+  }) => {
+    const musteri = testAdi("BulunanMusteri");
+    await musteriOlustur(page, musteri);
+
+    await page.goto(`/yonetim?ara=${encodeURIComponent(musteri)}`);
+    await expect(page.getByText(musteri).first()).toBeVisible({ timeout: 15000 });
+
+    // Olmayan bir şey arandığında boş liste değil açıklama görünmeli
+    await page.goto("/yonetim?ara=zzzyokboylebirsey");
+    await expect(page.getByText(/sonuç bulunamadı/i)).toBeVisible({
+      timeout: 15000,
+    });
+  });
+
+  test("57 — tek harflik arama tüm listeyi döndürmüyor", async ({ page }) => {
+    /* Tek harf neredeyse her kaydı eşleştirir; arama kutusu liste dökümü
+       hâline gelmemeli. */
+    await page.goto("/yonetim?ara=a");
+    await expect(page.getByText(/sonuç bulunamadı/i)).toBeVisible({
+      timeout: 15000,
+    });
+  });
+
+  test("58 — yapılan işlem hareket geçmişine düşüyor", async ({ page }) => {
+    const musteri = testAdi("DenetimMusteri");
+    await musteriOlustur(page, musteri);
+
+    await page.goto("/yonetim/raporlar");
+
+    const gecmis = page.locator("section", { hasText: /Hareket geçmişi/ });
+    await expect(gecmis).toBeVisible({ timeout: 20000 });
+
+    // Az önce eklenen müşteri en üstte olmalı
+    await expect(gecmis.getByText(musteri).first()).toBeVisible({
+      timeout: 15000,
+    });
+    await expect(gecmis.getByText(/Müşteri/).first()).toBeVisible();
+    await expect(gecmis.getByText(/eklendi/).first()).toBeVisible();
+  });
+
+  test("59 — güncelleme hangi alanın değiştiğini yazıyor", async ({ page }) => {
+    const musteri = testAdi("GuncellenenMusteri");
+    await musteriOlustur(page, musteri);
+
+    // Müşteri detayında telefon ekle
+    await acilirAc(page, /Bilgileri düzenle/).catch(() => {});
+    const telefon = page.getByLabel("Telefon");
+    if (await telefon.count()) {
+      await telefon.fill("5551234567");
+      await page.getByRole("button", { name: /Kaydet/ }).first().click();
+      await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+      await page.goto("/yonetim/raporlar");
+      const gecmis = page.locator("section", { hasText: /Hareket geçmişi/ });
+      await expect(gecmis.getByText(/güncellendi/).first()).toBeVisible({
+        timeout: 15000,
+      });
+      await expect(gecmis.getByText(/Değişen:.*telefon/i).first()).toBeVisible();
+    } else {
+      test.skip(true, "Müşteri düzenleme formu bulunamadı");
+    }
+  });
+
+  test("60 — PDF indirmek hareket geçmişine düşüyor", async ({ page }) => {
+    const musteri = testAdi("PdfDenetim");
+    await musteriOlustur(page, musteri);
+    const musteriUrl = page.url();
+    const id = musteriUrl.split("/").pop()!;
+
+    /* PDF rotası doğrudan çağrılıyor: indirme diyaloğu testte gereksiz. */
+    const yanit = await page.request.get(`/api/pdf/musteri?id=${id}`);
+    expect(yanit.status()).toBe(200);
+
+    await page.goto("/yonetim/raporlar");
+    const gecmis = page.locator("section", { hasText: /Hareket geçmişi/ });
+    await expect(gecmis.getByText(/PDF alındı/).first()).toBeVisible({
+      timeout: 20000,
+    });
+    await expect(gecmis.getByText(musteri).first()).toBeVisible();
+  });
 });

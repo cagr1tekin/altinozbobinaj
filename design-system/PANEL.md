@@ -121,6 +121,23 @@ Müşteri, iş, ürün — hepsi aynı satır deseni. Tüm satır tıklanabilir.
   kart-içinde-kart görsel gürültü yaratıyor.
 - Sağda `>` işareti yok; tüm satırın tıklanabilirliği yeterli ve daha temiz.
 
+### Arama sonucu satırı (liste satırının tersi)
+
+Arama sonuçlarında bağlam **üstte**, bulunan kaydın adı **altta**:
+
+```
+Motor › İSMAİL ŞAHİN › 12.08.2026     ← küçük, soluk
+Siemens 7.5kW Motor Sarımı   [Devam]  ← kalın
+```
+
+Panelin geri kalanında (`ListeSatiri`) ad üstte, bağlam altta. Buradaki ters
+sıra bilinçli: "Motor Sarımı" diye bir sonuç tek başına hangi müşterinin
+hangi ziyaretine ait olduğunu söylemiyor ve o bilgi olmadan sonuç işe
+yaramıyor. Ölçüler, dokunma hedefi (64px) ve odak halkası aynı kalıyor.
+
+Her iki tür (müşteri / motor) **aynı** satır biçimini kullanıyor; müşteri
+satırında yalnızca kırılım kısa oluyor.
+
 ### Buton
 
 Üç tür, fazlası yok:
@@ -291,6 +308,7 @@ Panel telefona kısayol olarak eklenecek.
 | Placeholder'ı etiket yerine kullanma | Yazmaya başlayınca etiket kaybolur |
 | Renkle tek başına durum anlatma | Renk körlüğü ve güneş altında okunamaz ekran |
 | 44px altı dokunma hedefi | Kirli/eldivenli parmakla ıskalanır |
+| Arama sonucunu bağlamsız göstermek | "Motor Sarımı" hangi müşterinin, bilinmezse sonuç işe yaramaz |
 | Sayfa geçiş animasyonu | Tekrar eden işte her seferinde bekleme |
 | Masaüstü için ayrı navigasyon modeli | İki model bakımı, tutarsız alışkanlık |
 

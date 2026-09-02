@@ -1,4 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
+import type { AramaSonucu } from "@/lib/supabase/database.types";
+import PanelArama from "@/components/panel/PanelArama";
+import AramaSonuclari from "@/components/panel/AramaSonuclari";
 import {
   Bolum,
   BosDurum,
@@ -21,7 +24,14 @@ import {
  *
  * İleride kısayollar da bu sayfaya eklenecek.
  */
-export default async function OzetSayfasi() {
+export default async function OzetSayfasi({
+  searchParams,
+}: {
+  searchParams: Promise<{ ara?: string }>;
+}) {
+  const { ara } = await searchParams;
+  const terim = (ara ?? "").trim();
+  const aramaVar = terim.length > 0;
   const supabase = await createClient();
 
   const [acikIsler, eksiStoklar] = await Promise.all([
@@ -39,6 +49,13 @@ export default async function OzetSayfasi() {
       .or("qty_pieces.lt.0,qty_grams.lt.0"),
   ]);
 
+  /* Arama yapılmadıysa sorgu hiç gönderilmiyor: her sayfa açılışına
+     gereksiz bir gidiş-dönüş eklemenin anlamı yok. */
+  const aramaSonuc = aramaVar
+    ? await supabase.rpc("panel_arama", { p_terim: terim, p_limit: 30 })
+    : null;
+  const sonuclar = (aramaSonuc?.data ?? []) as AramaSonucu[];
+
   const isler = acikIsler.data ?? [];
   const eksiler = eksiStoklar.data ?? [];
   const kurulumEksik = Boolean(acikIsler.error);
@@ -54,6 +71,32 @@ export default async function OzetSayfasi() {
       <UstCubuk baslik="Özet" />
 
       <Icerik>
+        <div className="mb-4">
+          <PanelArama varsayilan={terim} />
+        </div>
+
+        {/* Arama yapıldığında açık iş listesi yerine sonuçlar öne geçiyor:
+            kullanıcı bir şey aradıysa onu görmek istiyor. */}
+        {aramaVar && (
+          <div className="mb-6">
+            <Bolum
+              baslik={`Arama sonuçları${
+                sonuclar.length > 0 ? ` (${sonuclar.length})` : ""
+              }`}
+              aciklama="Müşteri ve motor adında arandı"
+            >
+              {aramaSonuc?.error ? (
+                <Uyari tur="hata" baslik="Arama yapılamadı">
+                  <code>supabase/kurulum-tumu.sql</code> dosyasını Supabase SQL
+                  Editor&apos;de çalıştırın.
+                </Uyari>
+              ) : (
+                <AramaSonuclari terim={terim} sonuclar={sonuclar} />
+              )}
+            </Bolum>
+          </div>
+        )}
+
         {kurulumEksik && (
           <div className="mb-4">
             <Uyari tur="hata" baslik="Veriler yüklenemedi">

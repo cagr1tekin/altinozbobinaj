@@ -165,6 +165,53 @@ export type AylikTrend = {
   kar_zarar: number;
 };
 
+/** panel_arama() satır şekli — arama sonuçları tek biçimde döner.
+ *
+ * Müşteri satırında segment ve iş alanları null kalıyor; arayüz her iki
+ * türü aynı bileşenle çiziyor ve kırılımı (müşteri > segment > motor)
+ * dolu alanlardan kuruyor. */
+export type AramaSonucu = {
+  tur: "musteri" | "is";
+  kayit_id: string;
+  musteri_id: string;
+  musteri_adi: string;
+  segment_id: string | null;
+  segment_tarihi: string | null;
+  is_id: string | null;
+  is_basligi: string | null;
+  is_durumu: JobStatus | null;
+  siralama: string;
+};
+
+/** Denetim günlüğü eylem türü */
+export type AuditAction = "insert" | "update" | "delete" | "pdf";
+
+/** Denetim günlüğünde izlenen varlıklar */
+export type AuditEntity =
+  | "customer"
+  | "segment"
+  | "job"
+  | "job_product"
+  | "product"
+  | "stock_movement"
+  | "invoice"
+  | "report";
+
+/** audit_log satırı — salt okunur, salt eklenir */
+export type AuditKaydi = {
+  id: number;
+  occurred_at: string;
+  actor_id: string | null;
+  /* Kullanıcı silinse bile günlük okunabilir kalsın diye kaydın içine
+     kopyalanıyor; auth.users'a foreign key yok. */
+  actor_email: string | null;
+  action: AuditAction;
+  entity: AuditEntity;
+  entity_id: string | null;
+  label: string | null;
+  details: Record<string, { eski: unknown; yeni: unknown }> | Record<string, unknown> | null;
+};
+
 /** stock_reconciliation() satır şekli */
 export type StokFarki = {
   product_id: string;
@@ -378,6 +425,15 @@ export type Database = {
         Update: Partial<PdfExport>;
         Relationships: [];
       };
+      audit_log: {
+        Row: AuditKaydi;
+        /* Uygulama günlüğe DOĞRUDAN yazmıyor: veri değişiklikleri
+           trigger'dan, PDF gibi eylemler audit_kaydet() üzerinden geliyor.
+           Insert/Update tipleri bilerek never. */
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
     };
     Views: {
       job_costs: {
@@ -400,6 +456,21 @@ export type Database = {
       };
     };
     Functions: {
+      panel_arama: {
+        Args: { p_terim: string; p_limit?: number };
+        Returns: AramaSonucu[];
+      };
+      /* Yalnizca veri degisikligi OLMAYAN eylemler icin (PDF alma gibi);
+         veri degisiklikleri trigger'dan geliyor. */
+      audit_kaydet: {
+        Args: {
+          p_entity: AuditEntity;
+          p_entity_id: string | null;
+          p_label: string | null;
+          p_details?: Record<string, unknown> | null;
+        };
+        Returns: undefined;
+      };
       complete_job: {
         Args: { p_job_id: string; p_allow_negative?: boolean };
         Returns: CompleteJobResult;

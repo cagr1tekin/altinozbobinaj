@@ -1,5 +1,6 @@
 import { SegmentBelgesi } from "@/lib/pdf/belgeler";
 import { segmentVerisi } from "@/lib/pdf/veri";
+import { denetimPdfKaydet } from "@/lib/denetim";
 import {
   bulunamadi,
   dosyaAdi,
@@ -19,6 +20,11 @@ export async function GET(request: Request) {
 
   const veri = await segmentVerisi(id);
   if (!veri) return bulunamadi();
+
+  await denetimPdfKaydet("segment", id, veri.segment.tarih, {
+    musteri: veri.musteri.ad,
+    maliyet_gosterildi: maliyetGoster,
+  });
 
   return pdfYanit(
     (

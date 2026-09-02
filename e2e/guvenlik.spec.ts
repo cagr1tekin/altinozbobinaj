@@ -8,6 +8,23 @@ import { SUPABASE_KEY, SUPABASE_URL, formHatasi } from "./yardimcilar";
  */
 
 test.describe("Güvenlik ve erişim", () => {
+  /* Anon anahtarı geçersizse Supabase her isteğe 401 döner ve "anon veri
+     göremiyor" testleri boşa geçer: sızıntı kontrolü hiç çalışmadan yeşil
+     kalır. Bu, güvenlik testinde en kötü başarısızlık biçimi — sessiz olanı.
+     Bu yüzden anahtarın gerçekten çalıştığı önce doğrulanıyor. */
+  test.beforeAll(async ({ request }) => {
+    if (!SUPABASE_URL) return;
+    const y = await request.get(`${SUPABASE_URL}/rest/v1/customers?select=id&limit=1`, {
+      headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${SUPABASE_KEY}` },
+    });
+    expect(
+      y.status(),
+      `Supabase anon anahtarı çalışmıyor (HTTP ${y.status()}). .env içindeki ` +
+        "NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SUPABASE_URL ile aynı " +
+        "projeye ait olmalı; yoksa anon testleri hiçbir şey ölçmez."
+    ).not.toBe(401);
+  });
+
   const panelYollari = [
     "/yonetim",
     "/yonetim/musteriler",
@@ -85,7 +102,15 @@ test.describe("Güvenlik ve erişim", () => {
     expect(yazma.status(), "anon kayıt ekleyebiliyor").toBeGreaterThanOrEqual(400);
 
     // Okuma boş dönmeli (RLS engellediğinde PostgREST 403 değil boş liste verir)
-    for (const tablo of ["customers", "jobs", "invoices", "products"]) {
+    for (const tablo of [
+      "customers",
+      "jobs",
+      "invoices",
+      "products",
+      /* Denetim günlüğü kimin ne yaptığını tutuyor: sızması hem kişisel
+         veri hem iş bilgisi sızması olur. */
+      "audit_log",
+    ]) {
       const okuma = await request.get(
         `${SUPABASE_URL}/rest/v1/${tablo}?select=*&limit=5`,
         { headers: basliklar }
@@ -139,6 +164,13 @@ test.describe("Güvenlik ve erişim", () => {
       ["set_updated_at", {}],
       ["job_product_cost", {
         p_unit_type: "piece", p_unit_cost: 1, p_qty_pieces: 1, p_qty_grams: 0,
+      }],
+      // Arama müşteri ve motor adlarını döndürüyor: oturumsuz çağrılamamalı
+      ["panel_arama", { p_terim: "a" }],
+      ["tr_normalize", { p_metin: "a" }],
+      // Denetim günlüğüne oturumsuz yazmak günlüğü kirletmenin yolu olur
+      ["audit_kaydet", {
+        p_entity: "report", p_entity_id: null, p_label: "e2e",
       }],
     ] as const;
 
