@@ -66,7 +66,7 @@ begin
 end $$;
 
 \echo '--- TEST 2: complete_job stogu dusuyor mu ---'
-select complete_job('33333333-3333-3333-3333-333333333333', 'winding') as sonuc;
+select complete_job('33333333-3333-3333-3333-333333333333', array['winding']::service_type[]) as sonuc;
 
 do $$
 declare
@@ -96,7 +96,7 @@ end $$;
 \echo '--- TEST 3: ayni is iki kez tamamlanamaz ---'
 do $$
 begin
-  perform complete_job('33333333-3333-3333-3333-333333333333', 'winding');
+  perform complete_job('33333333-3333-3333-3333-333333333333', array['winding']::service_type[]);
   raise exception 'BASARISIZ: ikinci tamamlama hata vermeliydi';
 exception
   when invalid_parameter_value then
@@ -219,7 +219,7 @@ select add_job_product(
 
 do $$
 begin
-  perform complete_job('66666666-6666-6666-6666-666666666666', 'winding');
+  perform complete_job('66666666-6666-6666-6666-666666666666', array['winding']::service_type[]);
   raise exception 'BASARISIZ: yetersiz stokla tamamlanabildi';
 exception
   when check_violation then
@@ -227,7 +227,7 @@ exception
 end $$;
 
 \echo '--- TEST 9: allow_negative ile zorlanabiliyor mu ---'
-select complete_job('66666666-6666-6666-6666-666666666666', 'winding', true) as sonuc;
+select complete_job('66666666-6666-6666-6666-666666666666', array['winding']::service_type[], true) as sonuc;
 
 do $$
 declare v_pieces integer;

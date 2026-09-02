@@ -56,8 +56,9 @@ export type Job = {
   description: string | null;
   status: JobStatus;
   completed_at: string | null;
-  /* Tamamlanmamış işte null; tamamlanmışta zorunlu (şema kısıtı). */
-  service_type: ServiceType | null;
+  /* Tamamlanmamış işte null; tamamlanmışta en az bir eleman (şema kısıtı).
+     Dizi: bir ziyarette hem sarım hem revizyon yapılabiliyor. */
+  service_types: ServiceType[] | null;
   created_at: string;
   updated_at: string;
 };
@@ -136,7 +137,7 @@ export type CompleteJobResult = {
   job_id: string;
   qr_token: string;
   material_lines: number;
-  service_type: ServiceType;
+  service_types: ServiceType[];
 };
 
 /** dashboard_summary() dönüş şekli */
@@ -233,7 +234,8 @@ export type StokFarki = {
 export type PublicJobView = {
   job_title: string;
   completed_at: string | null;
-  service_type: ServiceType | null;
+  /* Tamamlanmış iş dönüyor, yani en az bir eleman var. */
+  service_types: ServiceType[];
   /* YALNIZCA malzeme adı. Miktar bilinçli olarak dönmüyor: kullanılan
      bakır telin gramı işin maliyetini yaklaşık ele veriyor ve fonksiyon
      anon rolüne açık. Gösterilmeyecek veri hiç gönderilmemeli — arayüzde
@@ -278,12 +280,12 @@ export type Database = {
       };
       jobs: {
         Row: Job;
-        /* service_type insert'te opsiyonel: iş açılırken henüz ne
+        /* service_types insert'te opsiyonel: iş açılırken henüz ne
            yapılacağı belli değil, tamamlanırken seçiliyor. Şema kısıtı
            yalnızca tamamlanmış işte dolu olmasını şart koşuyor. */
         Insert: InsertOf<
           Job,
-          Zamanlar | "description" | "status" | "completed_at" | "service_type"
+          Zamanlar | "description" | "status" | "completed_at" | "service_types"
         >;
         Update: Partial<Job>;
         Relationships: [
@@ -483,7 +485,7 @@ export type Database = {
            belgenin metni buna bağlı. */
         Args: {
           p_job_id: string;
-          p_service_type: ServiceType;
+          p_service_types: ServiceType[];
           p_allow_negative?: boolean;
         };
         Returns: CompleteJobResult;

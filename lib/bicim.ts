@@ -62,3 +62,36 @@ export const ISLEM_TURU_CUMLE: Record<ServiceType, string> = {
   winding: "motor sarımı",
   revision: "revizyon",
 };
+
+/**
+ * Enum tanım sırası. Veritabanı da bu sırayı uyguluyor
+ * (complete_job içinde `array_agg(distinct t order by t)`), ama arayüz
+ * sıralamayı veritabanından gelen diziye bırakmamalı: eski bir kayıt ya
+ * da elle yapılmış bir düzeltme başka sırada gelebilir ve müşteri belgesi
+ * bir seferinde "revizyon ve motor sarımı", başka seferinde tersini
+ * yazardı.
+ */
+const SIRA: ServiceType[] = ["winding", "revision"];
+
+/** Diziyi tanım sırasına sokar, tekrarları atar. */
+export function islemleriSirala(turler: ServiceType[]): ServiceType[] {
+  return SIRA.filter((t) => turler.includes(t));
+}
+
+/**
+ * Müşteriye gösterilen ifade:
+ *   tek işlem  → "motor sarımı işlemi"
+ *   iki işlem  → "motor sarımı ve revizyon işlemleri"
+ *
+ * Türkçe'de çokluk ekini de değiştirmek gerekiyor; "işlemi/işlemleri"
+ * ayrımı çağrı yerlerine bırakılsa biri unutur.
+ */
+export function islemIfadesi(turler: ServiceType[]): string | null {
+  const sirali = islemleriSirala(turler);
+  if (sirali.length === 0) return null;
+
+  const adlar = sirali.map((t) => ISLEM_TURU_CUMLE[t]);
+  return adlar.length === 1
+    ? `${adlar[0]} işlemi`
+    : `${adlar.join(" ve ")} işlemleri`;
+}

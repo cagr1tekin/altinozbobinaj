@@ -218,10 +218,16 @@ Fiyat bunun istisnası: gram izlenen üründe fiyat **kilogram başına** girili
 (`₺ / kilogram`), çünkü malzeme kiloyla satın alınıyor ve gram başına fiyat
 iki ondalıkla yeterince hassas olmuyor. Etiket bunu açıkça yazar.
 
-### Zorunlu seçim (radyo grubu)
+### Zorunlu seçim (kart listesi)
 
-İki-üç seçenekli zorunlu bir karar için açılır liste değil **radyo grubu**
-kullanılır: seçenekler aynı anda görünür, tıklayıp aramak gerekmez.
+İki-üç seçenekli zorunlu bir karar için açılır liste kullanılmaz;
+seçenekler aynı anda görünür, tıklayıp aramak gerekmez.
+
+**Radyo mu, onay kutusu mu?** Seçenekler gerçekten birbirini dışlıyorsa
+radyo, birlikte geçerli olabiliyorsa onay kutusu. İşlem türü onay kutusu:
+bir motora aynı ziyarette hem sarım hem revizyon yapılabiliyor. Onay
+kutusunda `required` KULLANILMAZ — her kutuyu tek tek zorunlu yapar;
+"en az biri" kuralı butonun devre dışı olmasıyla sağlanır.
 
 - **Ön seçim yapılmaz.** Varsayılan işaretli olsa acele eden kullanıcı
   yanlış olanı onaylar. Boş başlamak kararı görünür kılar.

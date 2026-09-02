@@ -17,6 +17,7 @@ import {
   formatPara,
   formatTarihSaat,
 } from "@/components/panel/ui";
+import { islemleriSirala } from "@/lib/bicim";
 import { PdfBaglantilari } from "@/components/panel/PdfButonlari";
 import EkleAcilir from "@/components/panel/EkleAcilir";
 import MalzemeFormu from "@/components/panel/MalzemeFormu";
@@ -37,7 +38,7 @@ export default async function IsDetaySayfasi({
       .from("jobs")
       .select(
         `id, title, description, status, completed_at, created_at, segment_id,
-         service_type,
+         service_types,
          segments(id, segment_date, customers(id, name)),
          job_products(id, qty_pieces_used, qty_grams_used, unit_cost_snapshot,
                       products(id, name, unit_type_default, qty_pieces, qty_grams)),
@@ -119,7 +120,11 @@ export default async function IsDetaySayfasi({
           /* Tamamlanmış işte hangi işlemin yapıldığı en üstte görünüyor:
              sonradan bakan biri için durum kadar önemli bir bilgi. */
           <span className="flex flex-wrap items-center gap-2">
-            {is.service_type && <IslemTuru tur={is.service_type} />}
+            {/* Birden fazla işlem yapılmış olabilir; her biri ayrı rozet.
+                Tek bir rozette birleştirmek uzun ve okunmaz oluyordu. */}
+            {islemleriSirala(is.service_types ?? []).map((t) => (
+              <IslemTuru key={t} tur={t} />
+            ))}
             <IsDurumu durum={is.status} />
           </span>
         }

@@ -107,15 +107,21 @@ export const stokHareketSchema = z.object({
   { message: "Stok girişinde miktar eksi olamaz", path: ["miktar"] }
 );
 
-/* İş tamamlama: işlem türü ZORUNLU.
-   Form tarafında da zorunlu ama eylem doğrudan çağrılabilir; asıl kural
-   burada ve veritabanı kısıtında. Boş bırakılmış bir işlem türü müşteriye
-   gösterilecek belgeyi eksik bırakır. */
+/* İş tamamlama: en az bir işlem ZORUNLU.
+   Bir motora aynı ziyarette hem sarım hem revizyon yapılabildiği için
+   çoklu seçim. Form tarafında da zorunlu ama eylem doğrudan
+   çağrılabilir; asıl kural burada ve veritabanı kısıtında. */
 export const isTamamlaSchema = z.object({
   job_id: z.string().uuid("İş bulunamadı"),
-  service_type: z.enum(["winding", "revision"], {
-    message: "Yapılan işlemi seçin: motor sarımı veya revizyon",
-  }),
+  /* Aynı isimli birden çok checkbox geliyor; FormData.getAll ile okunuyor
+     (Object.fromEntries yalnızca SON değeri verir, ilk seçim sessizce
+     kaybolurdu). */
+  service_types: z
+    .array(z.enum(["winding", "revision"]))
+    .min(1, "En az bir işlem seçin: motor sarımı ve/veya revizyon")
+    /* Tekrar gelmesi beklenmiyor ama gelirse müşteri belgesinde
+       "motor sarımı ve motor sarımı" yazardı. */
+    .transform((v) => Array.from(new Set(v))),
   allow_negative: z
     .string()
     .optional()

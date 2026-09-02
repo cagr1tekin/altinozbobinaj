@@ -12,6 +12,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { ButonLink, formatTarih, formatTarihSaat } from "../components/panel/ui";
 import { dosyaQrSvg, etiketQrSvg } from "../lib/qr";
+import { islemIfadesi, islemleriSirala } from "../lib/bicim";
 
 let gecen = 0;
 let kalan = 0;
@@ -125,8 +126,58 @@ async function qrTestleri() {
   );
 }
 
+function islemTestleri() {
+  console.log("--- Islem ifadesi: tekil/cogul ve sira ---");
+
+  bekle(
+    "tek islem: 'motor sarimi islemi'",
+    islemIfadesi(["winding"]) === "motor sarımı işlemi",
+    islemIfadesi(["winding"])
+  );
+  bekle(
+    "tek islem: 'revizyon islemi'",
+    islemIfadesi(["revision"]) === "revizyon işlemi",
+    islemIfadesi(["revision"])
+  );
+
+  /* Turkce'de cokluk eki de degisiyor: "islemi" -> "islemleri".
+     Cagri yerlerine birakilsa biri unutur. */
+  bekle(
+    "iki islem: 'motor sarimi ve revizyon islemLERI'",
+    islemIfadesi(["winding", "revision"]) ===
+      "motor sarımı ve revizyon işlemleri",
+    islemIfadesi(["winding", "revision"])
+  );
+
+  /* Sira SABIT olmali: ters verilse bile ayni metin cikmali, yoksa ayni
+     is icin belge bir seferinde "revizyon ve motor sarimi" yazar. */
+  bekle(
+    "ters sirada verilse de ayni metin",
+    islemIfadesi(["revision", "winding"]) ===
+      islemIfadesi(["winding", "revision"]),
+    { ters: islemIfadesi(["revision", "winding"]) }
+  );
+
+  bekle("bos dizi null donuyor", islemIfadesi([]) === null, islemIfadesi([]));
+
+  /* Tekrar gelirse "motor sarimi ve motor sarimi" yazardi. */
+  bekle(
+    "tekrar eleniyor",
+    islemIfadesi(["winding", "winding"]) === "motor sarımı işlemi",
+    islemIfadesi(["winding", "winding"])
+  );
+
+  bekle(
+    "siralama tanim sirasini veriyor",
+    JSON.stringify(islemleriSirala(["revision", "winding"])) ===
+      JSON.stringify(["winding", "revision"]),
+    islemleriSirala(["revision", "winding"])
+  );
+}
+
 async function main() {
   butonLinkTestleri();
+  islemTestleri();
   tarihTestleri();
   await qrTestleri();
 

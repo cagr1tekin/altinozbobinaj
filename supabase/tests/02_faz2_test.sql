@@ -58,7 +58,7 @@ begin
   else raise exception 'KALDI: acik is %', v->>'acik_is'; end if;
 end $$;
 
-select complete_job('a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d', 'winding');
+select complete_job('a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d', array['winding']::service_type[]);
 
 insert into invoices (customer_id, invoice_no, gross_amount, net_amount, tax_amount)
   values ('5f7cf10e-6c49-48e9-a144-4ecbb1106ddc','FTR-100',1180,1000,180);

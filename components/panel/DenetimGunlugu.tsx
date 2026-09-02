@@ -40,7 +40,7 @@ const ALAN: Record<string, string> = {
   note: "not",
   status: "durum",
   completed_at: "tamamlanma",
-  service_type: "yapılan işlem",
+  service_types: "yapılan işlemler",
   segment_date: "tarih",
   description: "açıklama",
   sku: "stok kodu",

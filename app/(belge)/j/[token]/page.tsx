@@ -5,7 +5,7 @@ import { MessageCircle, Phone } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import type { PublicJobView } from "@/lib/supabase/database.types";
-import { ISLEM_TURU_CUMLE, formatTarih } from "@/lib/bicim";
+import { formatTarih, islemIfadesi } from "@/lib/bicim";
 
 const PHONE = "+905425918372";
 const PHONE_GORUNEN = "0542 591 83 72";
@@ -35,9 +35,10 @@ export default async function QrMalzemeSayfasi({
   if (error || !data) notFound();
   const is = data as unknown as PublicJobView;
 
-  /* Eski kayıtlarda işlem türü olmayabilir; metin o durumda da tutarlı
-     kalıyor. */
-  const islem = is.service_type ? ISLEM_TURU_CUMLE[is.service_type] : null;
+  /* Bir işte hem sarım hem revizyon yapılmış olabilir; ifade tekil/çoğul
+     ayrımını da yapıyor ("… işlemi" / "… işlemleri"). Eski kayıtlarda
+     dizi boş gelebilir, metin o durumda da tutarlı kalıyor. */
+  const islem = islemIfadesi(is.service_types ?? []);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -92,9 +93,7 @@ export default async function QrMalzemeSayfasi({
           <p className="text-[15px] leading-relaxed">
             Motorunuz atölyemize alınmış, kontrol edilmiş ve aşağıda
             listelenen malzemeler kullanılarak{" "}
-            <strong className="font-semibold">
-              {islem ? `${islem} işlemi` : "bakım işlemi"}
-            </strong>{" "}
+            <strong className="font-semibold">{islem ?? "bakım işlemi"}</strong>{" "}
             uygulanmıştır. Uygulanan işlemin ardından motorunuz test edilerek
             çalışır durumda teslime hazır hâle getirilmiştir.
           </p>

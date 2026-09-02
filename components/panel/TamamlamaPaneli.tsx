@@ -42,7 +42,16 @@ export default function TamamlamaPaneli({
   /* Ön seçim YOK: hangisinin yapıldığı bilinçli bir karar olmalı.
      Varsayılan işaretli olsa acele eden kullanıcı yanlış türü onaylar ve
      müşteriye giden belge yanlış işlemi yazar. */
-  const [islemTuru, setIslemTuru] = useState<ServiceType | "">("");
+  /* Çoklu seçim: bir motora aynı ziyarette hem sarım hem revizyon
+     yapılabiliyor. En az biri hâlâ zorunlu. */
+  const [islemler, setIslemler] = useState<ServiceType[]>([]);
+
+  const degistir = (tur: ServiceType) =>
+    setIslemler((onceki) =>
+      onceki.includes(tur)
+        ? onceki.filter((t) => t !== tur)
+        : [...onceki, tur]
+    );
 
   if (tamamlandiMi) {
     return (
@@ -87,7 +96,7 @@ export default function TamamlamaPaneli({
               açılır listede olduğu gibi tıklayıp aramak gerekmiyor. */}
           <fieldset>
             <legend className="mb-2 text-sm font-semibold">
-              Yapılan işlem
+              Yapılan işlem(ler)
               <span className="ml-0.5 text-pnl-danger" aria-hidden="true">
                 *
               </span>
@@ -96,7 +105,7 @@ export default function TamamlamaPaneli({
 
             <div className="grid gap-2 sm:grid-cols-2">
               {ISLEM_SECENEKLERI.map((secenek) => {
-                const secili = islemTuru === secenek.deger;
+                const secili = islemler.includes(secenek.deger);
                 return (
                   <label
                     key={secenek.deger}
@@ -106,14 +115,17 @@ export default function TamamlamaPaneli({
                         : "border-pnl-edge bg-pnl-surface hover:bg-pnl-bg"
                     }`}
                   >
+                    {/* checkbox, radio değil: ikisi birden seçilebiliyor.
+                        `required` KULLANILMIYOR — checkbox'ta her birini
+                        tek tek zorunlu yapar; "en az biri" kuralı
+                        butonun devre dışı olmasıyla sağlanıyor. */}
                     <input
-                      type="radio"
-                      name="service_type"
+                      type="checkbox"
+                      name="service_types"
                       value={secenek.deger}
                       checked={secili}
-                      onChange={() => setIslemTuru(secenek.deger)}
-                      required
-                      className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer accent-pnl-primary"
+                      onChange={() => degistir(secenek.deger)}
+                      className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded accent-pnl-primary"
                     />
                     <span className="min-w-0">
                       <span className="block font-semibold">
@@ -128,13 +140,14 @@ export default function TamamlamaPaneli({
               })}
             </div>
 
-            {state.status === "error" && state.fieldErrors?.service_type && (
+            {state.status === "error" && state.fieldErrors?.service_types && (
               <p className="mt-1.5 text-sm font-medium text-pnl-danger">
-                {state.fieldErrors.service_type[0]}
+                {state.fieldErrors.service_types[0]}
               </p>
             )}
             <p className="mt-1.5 text-sm text-pnl-faint">
-              Müşteri QR kodunu okuttuğunda bu bilgiyi görecek.
+              İkisi birden yapıldıysa ikisini de işaretleyin. Müşteri QR
+              kodunu okuttuğunda bu bilgiyi görecek.
             </p>
           </fieldset>
 
@@ -184,8 +197,8 @@ export default function TamamlamaPaneli({
           {/* required tek başına yeterli değil: tarayıcı uyarısı gösteriyor
               ama buton tıklanabilir kalıyor ve kullanıcı neden gönderilmediğini
               anlamıyor. Devre dışı bırakmak sebebi görünür kılıyor. */}
-          <GonderButonu devreDisi={islemTuru === ""}>
-            {islemTuru === ""
+          <GonderButonu devreDisi={islemler.length === 0}>
+            {islemler.length === 0
               ? "Önce yapılan işlemi seçin"
               : stokYetersiz && !zorlamaOnayi
                 ? "İşi Tamamla (stok yetersiz)"

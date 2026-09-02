@@ -125,7 +125,13 @@ export async function isTamamla(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const parsed = isTamamlaSchema.safeParse(Object.fromEntries(formData));
+  /* getAll: aynı isimli checkbox'lar çoklu değer gönderiyor ve
+     Object.fromEntries yalnızca SON değeri alıyor — iki işlem seçilse
+     ilki sessizce kaybolurdu. */
+  const parsed = isTamamlaSchema.safeParse({
+    ...Object.fromEntries(formData),
+    service_types: formData.getAll("service_types"),
+  });
   if (!parsed.success) return zodHatasi(parsed.error);
 
   const jobId = parsed.data.job_id;
@@ -137,7 +143,7 @@ export async function isTamamla(
      katmanında sırayla yapmak eşzamanlı isteklerde stoğu bozuyor. */
   const { data, error } = await supabase.rpc("complete_job", {
     p_job_id: jobId,
-    p_service_type: parsed.data.service_type,
+    p_service_types: parsed.data.service_types,
     // Kullanıcı "stok yetersiz" uyarısını görüp yine de devam etmeyi seçtiyse
     p_allow_negative: parsed.data.allow_negative,
   });
