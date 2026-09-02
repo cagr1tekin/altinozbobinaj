@@ -224,6 +224,33 @@ kaydı oluşturuyor.
 Migration'lar ve fonksiyonlar Supabase'e dokunmadan yerel Postgres'te
 doğrulanabilir:
 
+### Kurulum dosyası tekrar çalıştırılabilir mi?
+
+`kurulum-tumu.sql` migration'ları sırayla oynatıyor. 0008 (gram dönüşümü)
+enum'dan `kg` değerini ve `qty_kg` kolonlarını kaldırdığı için, dosya ikinci
+kez çalıştırıldığında 0004/0005/0006'daki eski tanımlar geçersiz nesnelere
+başvuruyordu. Bu tanımlar artık kolon/imza varlığına bağlı çalışıyor.
+
+**Bu özelliği bozmamak için yeni bir migration eklerken şu kontrolü yapın** —
+üç koşunun üçü de hatasız olmalı:
+
+```bash
+docker exec altinoz-pg psql -U postgres -c "drop database if exists idem;"   -c "create database idem;"
+docker cp supabase/tests/00_supabase_shim.sql altinoz-pg:/tmp/s.sql
+docker exec altinoz-pg psql -U postgres -d idem -f /tmp/s.sql
+docker cp supabase/kurulum-tumu.sql altinoz-pg:/tmp/k.sql
+
+for n in 1 2 3; do
+  echo "--- kosu $n ---"
+  docker exec altinoz-pg psql -U postgres -d idem -f /tmp/k.sql 2>&1     | grep -i "ERROR:" | sort -u
+done
+```
+
+Kural: `create or replace view` ve `language sql` fonksiyonların gövdeleri
+oluşturulurken doğrulanıyor, `language plpgsql` gövdeleri doğrulanmıyor.
+Yani bir migration silinen bir kolona view veya SQL fonksiyonu üzerinden
+başvuruyorsa, tekrar koşuda hata verir ve korumaya alınması gerekir.
+
 ```bash
 docker run -d --name altinoz-pg \
   -e POSTGRES_PASSWORD=test -e POSTGRES_DB=altinoz \

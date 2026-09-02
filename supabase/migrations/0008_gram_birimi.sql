@@ -127,6 +127,13 @@ comment on column products.purchase_price is
 --
 -- Gram izlenen üründe fiyat kilogram başına olduğu için 1000'e bölünüyor.
 -- -----------------------------------------------------------------------------
+/* Tekrar kosularda 0004 eski (numeric'li) imzayi yeniden olusturuyor;
+   yukaridaki korumali blok atlandigi icin oradaki drop calismiyor. Burada
+   kosulsuz kaldiriliyor ki semada olu bir asiri yukleme kalmasin.
+   Gorunum once dusuruluyor: eski imzaya bagimli. */
+drop view if exists job_costs;
+drop function if exists job_product_cost(unit_type, numeric, integer, numeric);
+
 create or replace function job_product_cost(
   p_unit_type unit_type,
   p_unit_cost numeric,

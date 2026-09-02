@@ -123,33 +123,55 @@ $$;
 -- listeliyor — otomatik düzeltmiyor, çünkü hangisinin doğru olduğu
 -- duruma göre değişir ve sessiz düzeltme sorunun kaynağını gizler.
 -- -----------------------------------------------------------------------------
-create or replace function stock_reconciliation()
-returns table (
-  product_id uuid,
-  product_name text,
-  kayitli_adet integer,
-  hareketlerden_adet bigint,
-  kayitli_kg numeric,
-  hareketlerden_kg numeric
-)
-language sql
-stable
-security invoker
-set search_path = public, pg_temp
-as $$
-  select
-    p.id,
-    p.name,
-    p.qty_pieces,
-    coalesce(sum(sm.qty_pieces_delta), 0),
-    p.qty_kg,
-    coalesce(sum(sm.qty_kg_delta), 0)::numeric(12,3)
-  from products p
-  left join stock_movements sm on sm.product_id = p.id
-  group by p.id, p.name, p.qty_pieces, p.qty_kg
-  having p.qty_pieces <> coalesce(sum(sm.qty_pieces_delta), 0)
-      or p.qty_kg <> coalesce(sum(sm.qty_kg_delta), 0)::numeric(12,3);
-$$;
+/* Bu surum products.qty_kg kolonuna bagli ve donus tipi 0008'de degisiyor
+   (birim kolonu eklendi). Iki ayri sorun cikariyordu:
+     - `create or replace` donus tipini degistiremiyor
+     - govde `language sql` oldugu icin olusturulurken dogrulaniyor, kolon
+       yeniden adlandirilmissa hata veriyor
+   Bu yuzden tumu kolon varligina bagli. 0008 uygulanmissa atlaniyor ve
+   asagida 0008 kendi surumunu olusturuyor. Drop da blogun icinde: disarida
+   olsa, calisan surumu dusurup yerine yenisini koyamiyordu. */
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'products'
+      and column_name = 'qty_kg'
+  ) then
+    drop function if exists stock_reconciliation();
+    execute $fn$
+      create function stock_reconciliation()
+      returns table (
+        product_id uuid,
+        product_name text,
+        kayitli_adet integer,
+        hareketlerden_adet bigint,
+        kayitli_kg numeric,
+        hareketlerden_kg numeric
+      )
+      language sql
+      stable
+      security invoker
+      set search_path = public, pg_temp
+      as $body$
+        select
+          p.id,
+          p.name,
+          p.qty_pieces,
+          coalesce(sum(sm.qty_pieces_delta), 0),
+          p.qty_kg,
+          coalesce(sum(sm.qty_kg_delta), 0)::numeric(12,3)
+        from products p
+        left join stock_movements sm on sm.product_id = p.id
+        group by p.id, p.name, p.qty_pieces, p.qty_kg
+        having p.qty_pieces <> coalesce(sum(sm.qty_pieces_delta), 0)
+            or p.qty_kg <> coalesce(sum(sm.qty_kg_delta), 0)::numeric(12,3);
+      $body$;
+    $fn$;
+  else
+    raise notice 'stock_reconciliation 0008 surumuyle olusturulacak, eski surum atlandi.';
+  end if;
+end $$;
 
 -- -----------------------------------------------------------------------------
 -- 4b) Açılış stoğu için otomatik hareket kaydı
