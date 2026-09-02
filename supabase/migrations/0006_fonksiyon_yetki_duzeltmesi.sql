@@ -50,14 +50,21 @@ grant execute on function add_job_product(uuid, uuid, integer, numeric) to authe
 revoke all on function dashboard_summary(date, date) from anon, public;
 revoke all on function dashboard_by_customer(date, date) from anon, public;
 revoke all on function stock_reconciliation() from anon, public;
-revoke all on function job_product_cost(unit_type, numeric, integer, numeric)
-  from anon, public;
 
 grant execute on function dashboard_summary(date, date) to authenticated;
 grant execute on function dashboard_by_customer(date, date) to authenticated;
 grant execute on function stock_reconciliation() to authenticated;
-grant execute on function job_product_cost(unit_type, numeric, integer, numeric)
-  to authenticated;
+/* Bkz. 0004: 0008 sonrasi bu imza yok. */
+do $$
+begin
+  revoke all on function job_product_cost(unit_type, numeric, integer, numeric)
+    from anon, public;
+  grant execute on function job_product_cost(unit_type, numeric, integer, numeric)
+    to authenticated;
+exception
+  when undefined_function then
+    raise notice 'job_product_cost eski imzasi yok (0008 uygulanmis), yetki adimi atlandi.';
+end $$;
 
 -- -----------------------------------------------------------------------------
 -- 3) SECURITY DEFINER bakım fonksiyonları — hiçbir istemci rolü çağıramaz

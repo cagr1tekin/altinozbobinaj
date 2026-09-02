@@ -5,7 +5,15 @@
 -- hâlidir. Supabase panelinde SQL Editor'e tek seferde yapıştırıp
 -- çalıştırabilirsiniz.
 --
--- Tekrar çalıştırmak güvenlidir (if not exists / or replace kullanılıyor).
+-- Tekrar çalıştırmak güvenlidir: yerel Postgres'te üç kez üst üste
+-- çalıştırılıp doğrulandı (0 hata) ve sonrasında 64 SQL testi geçiyor.
+--
+-- Buna dikkat: 0008 gram dönüşümü enum'dan 'kg' değerini ve qty_kg
+-- kolonlarını kaldırıyor. Bu yüzden 0004/0005/0006'daki eski tanımlar
+-- kolon/imza varlığına bağlı çalışıyor — yoksa ikinci koşuda
+-- "invalid input value for enum" ve "column does not exist" hataları
+-- veriyorlardı. Yeni migration eklerken supabase/README.md içindeki
+-- "Kurulum dosyası tekrar çalıştırılabilir mi?" kontrolünü yapın.
 --
 -- NOT: supabase/tests/00_supabase_shim.sql dosyasını BURAYA DAHİL ETMEYİN ve
 -- Supabase'de çalıştırmayın — o yalnızca yerel Postgres testleri içindir;
@@ -757,26 +765,48 @@ returns numeric
 language sql
 immutable
 as $$
-  select case p_unit_type
-    when 'piece' then p_unit_cost * p_qty_pieces
-    when 'kg'    then p_unit_cost * p_qty_kg
-    else              p_unit_cost * (p_qty_pieces + p_qty_kg)
+  /* Enum degeri text'e cevrilip karsilastiriliyor. Sebebi: 0008 unit_type'tan
+     'kg' ve 'both' degerlerini kaldiriyor; kurulum SQL'i bastan tekrar
+     calistirildiginda bu govde "invalid input value for enum unit_type: kg"
+     hatasi veriyordu. Text karsilastirmasi enum'un her iki surumunde de
+     gecerli. Bu fonksiyon zaten 0008 tarafindan yeniden tanimlaniyor. */
+  select case
+    when p_unit_type::text = 'piece' then p_unit_cost * p_qty_pieces
+    when p_unit_type::text = 'kg'    then p_unit_cost * p_qty_kg
+    else p_unit_cost * (p_qty_pieces + p_qty_kg)
   end;
 $$;
 
--- İş başına toplam malzeme maliyeti
-create or replace view job_costs as
-select
-  j.id as job_id,
-  j.segment_id,
-  coalesce(sum(
-    job_product_cost(p.unit_type_default, jp.unit_cost_snapshot,
-                     jp.qty_pieces_used, jp.qty_kg_used)
-  ), 0)::numeric(14,2) as material_cost
-from jobs j
-left join job_products jp on jp.job_id = j.id
-left join products p on p.id = jp.product_id
-group by j.id, j.segment_id;
+/* Gorunum qty_kg_used kolonuna bagli; 0008 o kolonu qty_grams_used yapiyor.
+   Gorunum govdesi olusturulurken dogrulandigi icin kurulum SQL'i bastan
+   tekrar calistirildiginda "column jp.qty_kg_used does not exist" hatasi
+   veriyordu. Kolon hala varsa olusturuluyor; yoksa 0008 kendi surumunu
+   asagida zaten olusturuyor. */
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'job_products'
+      and column_name = 'qty_kg_used'
+  ) then
+    execute $gorunum$
+      create or replace view job_costs as
+      select
+        j.id as job_id,
+        j.segment_id,
+        coalesce(sum(
+          job_product_cost(p.unit_type_default, jp.unit_cost_snapshot,
+                           jp.qty_pieces_used, jp.qty_kg_used)
+        ), 0)::numeric(14,2) as material_cost
+      from jobs j
+      left join job_products jp on jp.job_id = j.id
+      left join products p on p.id = jp.product_id
+      group by j.id, j.segment_id;
+    $gorunum$;
+  else
+    raise notice 'job_costs 0008 surumuyle olusturulacak, eski surum atlandi.';
+  end if;
+end $$;
 
 -- -----------------------------------------------------------------------------
 -- 3) Dönemsel özet (dashboard)
@@ -893,11 +923,20 @@ alter view job_costs set (security_invoker = on);
 
 revoke all on function dashboard_summary(date, date) from public;
 revoke all on function dashboard_by_customer(date, date) from public;
-revoke all on function job_product_cost(unit_type, numeric, integer, numeric) from public;
 
 grant execute on function dashboard_summary(date, date) to authenticated;
 grant execute on function dashboard_by_customer(date, date) to authenticated;
-grant execute on function job_product_cost(unit_type, numeric, integer, numeric) to authenticated;
+/* 0008 bu imzayi dusurup integer'li yenisini olusturuyor. Kurulum SQL'i
+   tekrar calistirildiginda imza mevcut olmadigi icin yetki satirlari
+   "function does not exist" hatasi veriyordu. */
+do $$
+begin
+  revoke all on function job_product_cost(unit_type, numeric, integer, numeric) from public;
+  grant execute on function job_product_cost(unit_type, numeric, integer, numeric) to authenticated;
+exception
+  when undefined_function then
+    raise notice 'job_product_cost eski imzasi yok (0008 uygulanmis), yetki adimi atlandi.';
+end $$;
 grant select on job_costs to authenticated;
 
 -- #############################################################################
@@ -1030,33 +1069,55 @@ $$;
 -- listeliyor — otomatik düzeltmiyor, çünkü hangisinin doğru olduğu
 -- duruma göre değişir ve sessiz düzeltme sorunun kaynağını gizler.
 -- -----------------------------------------------------------------------------
-create or replace function stock_reconciliation()
-returns table (
-  product_id uuid,
-  product_name text,
-  kayitli_adet integer,
-  hareketlerden_adet bigint,
-  kayitli_kg numeric,
-  hareketlerden_kg numeric
-)
-language sql
-stable
-security invoker
-set search_path = public, pg_temp
-as $$
-  select
-    p.id,
-    p.name,
-    p.qty_pieces,
-    coalesce(sum(sm.qty_pieces_delta), 0),
-    p.qty_kg,
-    coalesce(sum(sm.qty_kg_delta), 0)::numeric(12,3)
-  from products p
-  left join stock_movements sm on sm.product_id = p.id
-  group by p.id, p.name, p.qty_pieces, p.qty_kg
-  having p.qty_pieces <> coalesce(sum(sm.qty_pieces_delta), 0)
-      or p.qty_kg <> coalesce(sum(sm.qty_kg_delta), 0)::numeric(12,3);
-$$;
+/* Bu surum products.qty_kg kolonuna bagli ve donus tipi 0008'de degisiyor
+   (birim kolonu eklendi). Iki ayri sorun cikariyordu:
+     - `create or replace` donus tipini degistiremiyor
+     - govde `language sql` oldugu icin olusturulurken dogrulaniyor, kolon
+       yeniden adlandirilmissa hata veriyor
+   Bu yuzden tumu kolon varligina bagli. 0008 uygulanmissa atlaniyor ve
+   asagida 0008 kendi surumunu olusturuyor. Drop da blogun icinde: disarida
+   olsa, calisan surumu dusurup yerine yenisini koyamiyordu. */
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'products'
+      and column_name = 'qty_kg'
+  ) then
+    drop function if exists stock_reconciliation();
+    execute $fn$
+      create function stock_reconciliation()
+      returns table (
+        product_id uuid,
+        product_name text,
+        kayitli_adet integer,
+        hareketlerden_adet bigint,
+        kayitli_kg numeric,
+        hareketlerden_kg numeric
+      )
+      language sql
+      stable
+      security invoker
+      set search_path = public, pg_temp
+      as $body$
+        select
+          p.id,
+          p.name,
+          p.qty_pieces,
+          coalesce(sum(sm.qty_pieces_delta), 0),
+          p.qty_kg,
+          coalesce(sum(sm.qty_kg_delta), 0)::numeric(12,3)
+        from products p
+        left join stock_movements sm on sm.product_id = p.id
+        group by p.id, p.name, p.qty_pieces, p.qty_kg
+        having p.qty_pieces <> coalesce(sum(sm.qty_pieces_delta), 0)
+            or p.qty_kg <> coalesce(sum(sm.qty_kg_delta), 0)::numeric(12,3);
+      $body$;
+    $fn$;
+  else
+    raise notice 'stock_reconciliation 0008 surumuyle olusturulacak, eski surum atlandi.';
+  end if;
+end $$;
 
 -- -----------------------------------------------------------------------------
 -- 4b) Açılış stoğu için otomatik hareket kaydı
@@ -1197,14 +1258,21 @@ grant execute on function add_job_product(uuid, uuid, integer, numeric) to authe
 revoke all on function dashboard_summary(date, date) from anon, public;
 revoke all on function dashboard_by_customer(date, date) from anon, public;
 revoke all on function stock_reconciliation() from anon, public;
-revoke all on function job_product_cost(unit_type, numeric, integer, numeric)
-  from anon, public;
 
 grant execute on function dashboard_summary(date, date) to authenticated;
 grant execute on function dashboard_by_customer(date, date) to authenticated;
 grant execute on function stock_reconciliation() to authenticated;
-grant execute on function job_product_cost(unit_type, numeric, integer, numeric)
-  to authenticated;
+/* Bkz. 0004: 0008 sonrasi bu imza yok. */
+do $$
+begin
+  revoke all on function job_product_cost(unit_type, numeric, integer, numeric)
+    from anon, public;
+  grant execute on function job_product_cost(unit_type, numeric, integer, numeric)
+    to authenticated;
+exception
+  when undefined_function then
+    raise notice 'job_product_cost eski imzasi yok (0008 uygulanmis), yetki adimi atlandi.';
+end $$;
 
 -- -----------------------------------------------------------------------------
 -- 3) SECURITY DEFINER bakım fonksiyonları — hiçbir istemci rolü çağıramaz
@@ -1609,6 +1677,13 @@ comment on column products.purchase_price is
 --
 -- Gram izlenen üründe fiyat kilogram başına olduğu için 1000'e bölünüyor.
 -- -----------------------------------------------------------------------------
+/* Tekrar kosularda 0004 eski (numeric'li) imzayi yeniden olusturuyor;
+   yukaridaki korumali blok atlandigi icin oradaki drop calismiyor. Burada
+   kosulsuz kaldiriliyor ki semada olu bir asiri yukleme kalmasin.
+   Gorunum once dusuruluyor: eski imzaya bagimli. */
+drop view if exists job_costs;
+drop function if exists job_product_cost(unit_type, numeric, integer, numeric);
+
 create or replace function job_product_cost(
   p_unit_type unit_type,
   p_unit_cost numeric,
