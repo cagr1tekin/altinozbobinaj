@@ -6,7 +6,7 @@
 -- çalıştırabilirsiniz.
 --
 -- Tekrar çalıştırmak güvenlidir: yerel Postgres'te üç kez üst üste
--- çalıştırılıp doğrulandı (0 hata) ve sonrasında 64 SQL testi geçiyor.
+-- çalıştırılıp doğrulandı (0 hata) ve sonrasında 158 SQL testi geçiyor.
 --
 -- Buna dikkat: 0008 gram dönüşümü enum'dan 'kg' değerini ve qty_kg
 -- kolonlarını kaldırıyor. Bu yüzden 0004/0005/0006'daki eski tanımlar
