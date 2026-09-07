@@ -17,6 +17,7 @@ import IsFormu from "@/components/panel/IsFormu";
 import SegmentDurumButonu from "@/components/panel/SegmentDurumButonu";
 import FaturaYukleFormu from "@/components/panel/FaturaYukleFormu";
 import FaturaSatiri from "@/components/panel/FaturaSatiri";
+import SegmentTutarFormu from "@/components/panel/SegmentTutarFormu";
 
 export default async function SegmentDetaySayfasi({
   params,
@@ -30,7 +31,7 @@ export default async function SegmentDetaySayfasi({
     supabase
       .from("segments")
       .select(
-        "id, segment_date, note, status, customer_id, customers(id, name), jobs(id, title, status, completed_at, created_at)"
+        "id, segment_date, note, status, customer_id, charged_amount, customers(id, name), jobs(id, title, status, completed_at, created_at)"
       )
       .eq("id", id)
       .is("deleted_at", null)
@@ -77,6 +78,9 @@ export default async function SegmentDetaySayfasi({
     (a, f) => a + Number(f.gross_amount),
     0
   );
+  const faturaVar = faturaListesi.length > 0;
+  const eldenTutar =
+    segment.charged_amount === null ? null : Number(segment.charged_amount);
 
   return (
     <>
@@ -122,24 +126,37 @@ export default async function SegmentDetaySayfasi({
           </Liste>
         </Bolum>
 
-        {/* Fatura segmentin karşılığı: müşteri bir gelişte birden fazla iş
-            bırakıyor, hepsine tek fatura kesiliyor. */}
+        {/* Ciro segmentin karşılığı: müşteri bir gelişte birden fazla iş
+            bırakıyor, hepsinin bedeli tek seferde alınıyor.
+
+            YA fatura YA elden tutar — ikisi birden aynı parayı iki kez
+            saydırırdı. Kural veritabanında; buradaki düzen o kuralı
+            görünür kılıyor: hangisi doluysa öbürü kapanıyor. */}
         <Bolum
-          baslik="Fatura"
+          baslik="Ciro"
           aciklama={
-            faturaListesi.length > 0
+            faturaVar
               ? `${faturaListesi.length} fatura · toplam ${formatPara(faturaToplam)}`
-              : undefined
+              : eldenTutar !== null
+                ? `Elden alındı · ${formatPara(eldenTutar)}`
+                : "Fatura yükleyin ya da alınan tutarı girin"
           }
         >
           <Liste
             ekleme={
-              <EkleAcilir
-                etiket="Fatura yükle"
-                ilkAcik={faturaListesi.length === 0}
-              >
-                <FaturaYukleFormu segmentId={segment.id} />
-              </EkleAcilir>
+              eldenTutar === null ? (
+                <EkleAcilir
+                  etiket="Fatura yükle"
+                  ilkAcik={faturaListesi.length === 0}
+                >
+                  <FaturaYukleFormu segmentId={segment.id} />
+                </EkleAcilir>
+              ) : (
+                <div className="px-4 py-3 text-sm text-pnl-muted">
+                  Elden tutar girildiği için fatura yüklenemiyor. Fatura
+                  kesilecekse aşağıdan tutarı boşaltın.
+                </div>
+              )
             }
           >
             {faturaListesi.length > 0 &&
@@ -147,6 +164,28 @@ export default async function SegmentDetaySayfasi({
                 <FaturaSatiri key={f.id} fatura={f} segmentId={segment.id} />
               ))}
           </Liste>
+
+          <div className="mt-3">
+            <Liste
+              ekleme={
+                <EkleAcilir
+                  etiket={
+                    eldenTutar === null
+                      ? "Faturasız — alınan tutarı gir"
+                      : "Alınan tutarı düzenle"
+                  }
+                  ilkAcik={eldenTutar !== null}
+                >
+                  <SegmentTutarFormu
+                    segmentId={segment.id}
+                    mevcutTutar={eldenTutar}
+                    faturaVar={faturaVar}
+                    faturaToplam={faturaToplam}
+                  />
+                </EkleAcilir>
+              }
+            />
+          </div>
         </Bolum>
 
         <Bolum baslik="Belgeler">

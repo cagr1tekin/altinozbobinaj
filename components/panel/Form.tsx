@@ -78,7 +78,10 @@ export function GonderButonu({
   );
 }
 
-const girdiSinif =
+/* Dışa açık: nadiren bir alan kendi işaretleme mantığını taşımak
+   zorunda kalıyor (bkz. StokHareketFormu). Sınıfları kopyalamak yerine
+   paylaşılıyor ki odak halkası ve dokunma yüksekliği tek yerde kalsın. */
+export const girdiSinif =
   "w-full min-h-[48px] rounded-lg border border-pnl-edge bg-pnl-surface px-3 text-base text-pnl-text placeholder:text-pnl-faint focus:border-pnl-primary focus:outline-none focus:ring-2 focus:ring-pnl-primary/30";
 
 export function Alan({

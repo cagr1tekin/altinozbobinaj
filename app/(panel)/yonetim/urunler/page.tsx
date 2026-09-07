@@ -4,6 +4,7 @@ import {
   Bolum,
   Icerik,
   Liste,
+  ListeSatiri,
   Miktar,
   UstCubuk,
   Uyari,
@@ -19,11 +20,14 @@ const BIRIM_ETIKET: Record<string, string> = {
   gram: "Gram",
 };
 
+/* 'adjustment' artık üretilmiyor ama geçmiş kayıtlar taşıyor; etiketi
+   kaldırmak eski satırları okunamaz yapardı. */
 const HAREKET_ETIKET: Record<string, string> = {
   purchase_in: "Giriş",
+  manual_out: "Çıkış",
   job_out: "İşe çıkış",
-  adjustment: "Düzeltme",
   job_revert: "İade",
+  adjustment: "Düzeltme (eski)",
 };
 
 export default async function UrunlerSayfasi() {
@@ -39,9 +43,11 @@ export default async function UrunlerSayfasi() {
       supabase
         .from("stock_movements")
         .select(
-          "id, movement_type, qty_pieces_delta, qty_grams_delta, note, created_at, products(name, unit_type_default)"
+          "id, movement_type, qty_pieces_delta, qty_grams_delta, unit_price, note, created_at, products(name, unit_type_default)"
         )
-        .order("created_at", { ascending: false })
+        /* seq: aynı transaction içindeki hareketler aynı created_at'i
+           taşıyor; sıra bu kolondan geliyor. */
+        .order("seq", { ascending: false })
         .limit(10),
       supabase.rpc("stock_reconciliation"),
     ]);
@@ -71,7 +77,8 @@ export default async function UrunlerSayfasi() {
             >
               <p>
                 Stok alanı fonksiyon dışından değiştirilmiş olabilir. Doğru
-                kaynak hareket geçmişidir; farkı sayım düzeltmesiyle kapatın.
+                kaynak hareket geçmişidir; farkı stok girişi veya çıkışıyla
+                kapatın.
               </p>
               <ul className="mt-2 space-y-1">
                 {stokFarklari.map((f) => (
@@ -94,7 +101,7 @@ export default async function UrunlerSayfasi() {
 
         <Bolum
           baslik="Ürünler"
-          aciklama="Stok 0 başlar; girişi hareket olarak kaydedin"
+          aciklama="Geçmişi ve fiyatı görmek için ürüne dokunun"
         >
           <Liste
             ekleme={
@@ -110,21 +117,19 @@ export default async function UrunlerSayfasi() {
                     ? u.qty_pieces < 0
                     : Number(u.qty_grams) < 0;
                 return (
-                  <li key={u.id} className="px-4 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="truncate font-semibold">{u.name}</p>
-                        <p className="mt-0.5 text-sm text-pnl-muted">
-                          {BIRIM_ETIKET[u.unit_type_default] ??
-                            u.unit_type_default}
-                          {" · "}
-                          {formatPara(u.purchase_price)}
-                          {u.sku && ` · ${u.sku}`}
-                        </p>
-                      </div>
-                      <p
-                        className={`shrink-0 text-right font-semibold ${
-                          eksi ? "text-pnl-warn" : ""
+                  <ListeSatiri
+                    key={u.id}
+                    href={`/yonetim/urunler/${u.id}`}
+                    baslik={u.name}
+                    altBilgi={`${
+                      BIRIM_ETIKET[u.unit_type_default] ?? u.unit_type_default
+                    } · ${formatPara(u.purchase_price)}${
+                      u.sku ? ` · ${u.sku}` : ""
+                    }`}
+                    sag={
+                      <span
+                        className={`block text-right font-semibold ${
+                          eksi ? "text-pnl-danger" : ""
                         }`}
                       >
                         <Miktar
@@ -133,13 +138,13 @@ export default async function UrunlerSayfasi() {
                           gram={Number(u.qty_grams)}
                         />
                         {eksi && (
-                          <span className="block text-xs font-medium">
+                          <span className="block text-sm font-medium">
                             eksi stok
                           </span>
                         )}
-                      </p>
-                    </div>
-                  </li>
+                      </span>
+                    }
+                  />
                 );
               })}
           </Liste>
@@ -176,6 +181,8 @@ export default async function UrunlerSayfasi() {
                       </p>
                       <p className="mt-0.5 truncate text-sm text-pnl-muted">
                         {HAREKET_ETIKET[h.movement_type] ?? h.movement_type}
+                        {h.unit_price !== null &&
+                          ` · ${formatPara(h.unit_price)}`}
                         {h.note && ` · ${h.note}`}
                       </p>
                     </div>

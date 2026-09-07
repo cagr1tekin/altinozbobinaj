@@ -52,6 +52,9 @@ const ALAN: Record<string, string> = {
   qty_grams_used: "kullanılan gram",
   qty_pieces_delta: "adet değişimi",
   qty_grams_delta: "gram değişimi",
+  unit_price: "birim fiyat",
+  unit_cost_snapshot: "maliyet fiyatı",
+  charged_amount: "alınan tutar",
   invoice_no: "fatura no",
   gross_amount: "brüt tutar",
   net_amount: "net tutar",
@@ -62,6 +65,26 @@ const ALAN: Record<string, string> = {
   customer_id: "müşteri",
   product_id: "ürün",
 };
+
+/**
+ * Stok hareketinin etiketi ham enum değeri geliyor (`purchase_in` gibi).
+ * Günlük panelde okunuyor; İngilizce enum adı orada anlamsız.
+ * 'adjustment' artık üretilmiyor ama eski kayıtlar taşıyor.
+ */
+const HAREKET_ETIKET: Record<string, string> = {
+  purchase_in: "Stok girişi",
+  manual_out: "Stok çıkışı",
+  job_out: "İşe çıkış",
+  job_revert: "İşten iade",
+  adjustment: "Sayım düzeltmesi (eski)",
+};
+
+function etiketMetni(kayit: Pick<AuditKaydi, "entity" | "label">): string | null {
+  if (!kayit.label) return null;
+  return kayit.entity === "stock_movement"
+    ? (HAREKET_ETIKET[kayit.label] ?? kayit.label)
+    : kayit.label;
+}
 
 function degisenAlanlar(details: AuditKaydi["details"]): string | null {
   if (!details) return null;
@@ -124,10 +147,10 @@ export default function DenetimGunlugu({
                   <p className="text-sm">
                     <span className="font-semibold">{VARLIK[k.entity]}</span>{" "}
                     <span className="text-pnl-muted">{EYLEM[k.action]}</span>
-                    {k.label && (
+                    {etiketMetni(k) && (
                       <>
                         {" — "}
-                        <span className="font-medium">{k.label}</span>
+                        <span className="font-medium">{etiketMetni(k)}</span>
                       </>
                     )}
                   </p>

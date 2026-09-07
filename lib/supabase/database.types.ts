@@ -21,8 +21,12 @@ export type UnitType = "piece" | "gram";
 
 /** Yapılan işlem. İş tamamlanırken zorunlu olarak seçiliyor. */
 export type ServiceType = "winding" | "revision";
+/* 'adjustment' (sayım düzeltmesi) 0014 ile üretilmiyor ama enum'dan
+   SİLİNMEDİ: geçmiş hareketler onu taşıyor ve silmek onları okunamaz
+   hâle getirirdi. Yeni hareketler purchase_in / manual_out. */
 export type MovementType =
   | "purchase_in"
+  | "manual_out"
   | "job_out"
   | "adjustment"
   | "job_revert";
@@ -48,6 +52,10 @@ export type Segment = {
   segment_date: string;
   note: string | null;
   status: SegmentStatus;
+  /* Faturasız ciro: müşteriden elden alınan tutar. Bir segmentte YA
+     fatura YA bu tutar olur (veritabanı trigger'ı ikisini engelliyor);
+     ciro hesabı fatura yoksa buradan geliyor. */
+  charged_amount: number | null;
   created_at: string;
   updated_at: string;
   /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
@@ -65,6 +73,9 @@ export type Job = {
   /* Tamamlanmamış işte null; tamamlanmışta en az bir eleman (şema kısıtı).
      Dizi: bir ziyarette hem sarım hem revizyon yapılabiliyor. */
   service_types: ServiceType[] | null;
+  /* İş başına alınan tutar. YALNIZCA NOT: hiçbir ciro, kâr veya rapor
+     hesabına girmiyor — ciro segment düzeyinde tutuluyor. */
+  charged_amount: number | null;
   created_at: string;
   updated_at: string;
   /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
@@ -103,13 +114,33 @@ export type JobProduct = {
 
 export type StockMovement = {
   id: string;
+  /* Artan hareket sırası. created_at transaction başı zamanını aldığı
+     için aynı transaction içindeki hareketleri sıralayamıyor; listeler
+     ve yürüyen bakiye bu kolona göre sıralanıyor. */
+  seq: number;
   product_id: string;
   job_id: string | null;
   movement_type: MovementType;
   qty_pieces_delta: number;
   qty_grams_delta: number;
+  /* Bu alımda ödenen birim fiyat. Yalnızca girişlerde dolu. */
+  unit_price: number | null;
   note: string | null;
   created_at: string;
+};
+
+/** urun_stok_gecmisi() satırı */
+export type StokGecmisiSatiri = {
+  hareket_id: string;
+  zaman: string;
+  tip: MovementType;
+  miktar: number;
+  birim: UnitType;
+  birim_fiyat: number | null;
+  is_basligi: string | null;
+  not_: string | null;
+  /** O hareketten sonraki stok — yürüyen bakiye */
+  bakiye: number;
 };
 
 export type Invoice = {
@@ -166,6 +197,11 @@ export type DashboardOzet = {
   net_gelir: number;
   vergi: number;
   fatura_sayisi: number;
+  /* Ciro iki kaynaktan: faturalar + faturasız segment tutarları.
+     net_gelir ikisinin toplamı; ayrıştırma raporda gösteriliyor. */
+  faturali_gelir: number;
+  elden_gelir: number;
+  elden_sayisi: number;
   malzeme_maliyeti: number;
   kar_zarar: number;
   tamamlanan_is: number;
@@ -282,7 +318,7 @@ export type Database = {
         Row: Segment;
         Insert: InsertOf<
           Segment,
-          Zamanlar | "segment_date" | "note" | "status" | "deleted_at">;
+          Zamanlar | "segment_date" | "note" | "status" | "charged_amount" | "deleted_at">;
         Update: Partial<Segment>;
         Relationships: [
           {
@@ -301,7 +337,14 @@ export type Database = {
            yalnızca tamamlanmış işte dolu olmasını şart koşuyor. */
         Insert: InsertOf<
           Job,
-          Zamanlar | "description" | "status" | "completed_at" | "service_types" | "deleted_at">;
+          | Zamanlar
+          | "description"
+          | "status"
+          | "completed_at"
+          | "service_types"
+          | "charged_amount"
+          | "deleted_at"
+        >;
         Update: Partial<Job>;
         Relationships: [
           {
@@ -361,10 +404,12 @@ export type Database = {
         Insert: InsertOf<
           StockMovement,
           | "id"
+          | "seq"
           | "created_at"
           | "job_id"
           | "qty_pieces_delta"
           | "qty_grams_delta"
+          | "unit_price"
           | "note"
         >;
         /* RLS bu tabloda UPDATE/DELETE vermiyor (denetim izi); tip
@@ -525,6 +570,9 @@ export type Database = {
         Args: {
           p_job_id: string;
           p_service_types: ServiceType[];
+          /* Alınan tutar: not niteliğinde, hesaba girmiyor. null
+             gönderilirse mevcut değer korunuyor. */
+          p_charged_amount?: number | null;
           p_allow_negative?: boolean;
         };
         Returns: CompleteJobResult;
@@ -535,14 +583,48 @@ export type Database = {
       };
       apply_stock_movement: {
         /* Tek miktar: ürünün birimi hangi kolona yazılacağını belirliyor,
-           çağıran birim seçmiyor. */
+           çağıran birim seçmiyor. Hareket tipi de parametre değil —
+           miktarın işareti belirliyor (+ giriş, − çıkış). */
         Args: {
           p_product_id: string;
-          p_movement_type: MovementType;
           p_miktar: number;
+          /* Yalnızca girişte anlamlı; verilirse ürünün fiyatı güncellenir. */
+          p_fiyat?: number | null;
           p_note?: string | null;
         };
-        Returns: { product_id: string; birim: "adet" | "gram"; miktar: number };
+        Returns: {
+          product_id: string;
+          birim: "adet" | "gram";
+          miktar: number;
+          fiyat: number;
+        };
+      };
+      urun_ve_stok_ekle: {
+        /* Ürün tanımı + ilk alım tek adımda: bir ürünün fiyatı ancak
+           alındığı anda belli oluyor. */
+        Args: {
+          p_ad: string;
+          p_birim: UnitType;
+          p_miktar: number;
+          p_fiyat: number;
+          p_sku?: string | null;
+          p_note?: string | null;
+        };
+        Returns: {
+          product_id: string;
+          birim: "adet" | "gram";
+          miktar: number;
+          fiyat: number;
+        };
+      };
+      urun_stok_gecmisi: {
+        Args: { p_product_id: string; p_limit?: number };
+        Returns: StokGecmisiSatiri[];
+      };
+      segment_tutar_yaz: {
+        /* null = tutarı temizle (fatura yolunu aç). */
+        Args: { p_segment_id: string; p_tutar: number | null };
+        Returns: undefined;
       };
       add_job_product: {
         Args: {

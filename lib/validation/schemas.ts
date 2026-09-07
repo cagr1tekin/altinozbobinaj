@@ -36,6 +36,27 @@ const sayi = (alan: string, { tamsayi = false } = {}) =>
       message: `${alan} tam sayı olmalı`,
     });
 
+/**
+ * Boş bırakılabilen para alanı: boş = "girilmedi" (null), dolu = tutar.
+ *
+ * `sayi()` boşu 0 sayıyor, burada olmaz: "0 TL alındı" ile "tutar
+ * girilmedi" farklı şeyler ve ciro hesabı bu ayrıma bakıyor.
+ */
+const opsiyonelTutar = (alan: string) =>
+  z
+    .string()
+    .trim()
+    .optional()
+    .transform((v) =>
+      v === undefined || v.length === 0 ? null : Number(v.replace(",", "."))
+    )
+    .refine((v) => v === null || Number.isFinite(v), {
+      message: `${alan} sayı olmalı`,
+    })
+    .refine((v) => v === null || v >= 0, {
+      message: `${alan} negatif olamaz`,
+    });
+
 export const musteriSchema = z.object({
   name: zorunluMetin("Müşteri adı"),
   phone: opsiyonelMetin(40),
@@ -75,37 +96,57 @@ export const isDurumSchema = z.object({
   }),
 });
 
+/* Ürün tanımı artık fiyat sormuyor: fiyat alım anında belli oluyor,
+   ürün tanımlanırken değil. Yeni ürün stok girişiyle birlikte
+   tanımlanıyor (urunStokEkle), var olan ürünün fiyatı her stok
+   girişinde güncelleniyor. */
 export const urunSchema = z.object({
   name: zorunluMetin("Ürün adı"),
   sku: opsiyonelMetin(60),
-  purchase_price: sayi("Alış fiyatı"),
   unit_type_default: z.enum(["piece", "gram"]),
   notes: opsiyonelMetin(1000),
+});
+
+/* Yeni ürün + ilk stok girişi tek formda. Miktar zorunlu: ürünü stok
+   girmeden tanımlamak, fiyatı olmayan bir ürün bırakırdı. */
+export const urunStokEkleSchema = z.object({
+  name: zorunluMetin("Ürün adı"),
+  sku: opsiyonelMetin(60),
+  unit_type_default: z.enum(["piece", "gram"]),
+  miktar: sayi("Miktar", { tamsayi: true }).refine((v) => v > 0, {
+    message: "Miktar sıfırdan büyük olmalı",
+  }),
+  purchase_price: sayi("Alış fiyatı"),
+  note: opsiyonelMetin(500),
 });
 
 /* Miktar tek alan: ürünün birimi (adet / gram) hangi kolona yazılacağını
    belirliyor, kullanıcı birim seçmiyor. İkisi de tam sayı olduğu için
    ondalık kabul edilmiyor — virgüllü giriş başlı başına bir hata kaynağıydı. */
-export const stokHareketSchema = z.object({
-  product_id: z.string().uuid("Ürün seçilmedi"),
-  movement_type: z.enum(["purchase_in", "adjustment"], {
-    message: "Geçersiz hareket tipi",
-  }),
-  // Düzeltme hareketinde eksi girilebilmeli, bu yüzden sayi() kullanılmıyor.
-  miktar: z
-    .string()
-    .trim()
-    .transform((v) => Number(v.length === 0 ? "0" : v))
-    .refine((v) => Number.isFinite(v), { message: "Miktar sayı olmalı" })
-    .refine((v) => Number.isInteger(v), {
-      message: "Miktar tam sayı olmalı (ondalık girilemez)",
-    })
-    .refine((v) => v !== 0, { message: "Miktar girilmeli" }),
-  note: opsiyonelMetin(500),
-}).refine(
-  (d) => d.movement_type !== "purchase_in" || d.miktar > 0,
-  { message: "Stok girişinde miktar eksi olamaz", path: ["miktar"] }
-);
+export const stokHareketSchema = z
+  .object({
+    product_id: z.string().uuid("Ürün seçilmedi"),
+    /* Hareket tipi artık sorulmuyor: miktarın işareti belirliyor.
+       "Giriş mi düzeltme mi" kararı kullanıcıdan kalktı; sayım
+       düzeltmesi de böylece tamamen kapandı. Eksi girilebildiği için
+       sayi() kullanılmıyor. */
+    miktar: z
+      .string()
+      .trim()
+      .transform((v) => Number(v.length === 0 ? "0" : v))
+      .refine((v) => Number.isFinite(v), { message: "Miktar sayı olmalı" })
+      .refine((v) => Number.isInteger(v), {
+        message: "Miktar tam sayı olmalı (ondalık girilemez)",
+      })
+      .refine((v) => v !== 0, { message: "Miktar girilmeli" }),
+    /* Fiyat yalnızca girişte anlamlı; çıkış bir satın alma değil. */
+    purchase_price: opsiyonelTutar("Alış fiyatı"),
+    note: opsiyonelMetin(500),
+  })
+  .refine((d) => !(d.miktar < 0 && d.purchase_price !== null), {
+    message: "Stok çıkışında fiyat girilmez",
+    path: ["purchase_price"],
+  });
 
 /* İş tamamlama: en az bir işlem ZORUNLU.
    Bir motora aynı ziyarette hem sarım hem revizyon yapılabildiği için
@@ -122,10 +163,21 @@ export const isTamamlaSchema = z.object({
     /* Tekrar gelmesi beklenmiyor ama gelirse müşteri belgesinde
        "motor sarımı ve motor sarımı" yazardı. */
     .transform((v) => Array.from(new Set(v))),
+  /* Müşteriden alınan tutar. Bilinçli olarak NOT niteliğinde: hiçbir
+     ciro veya kâr hesabına girmiyor (ciro segment düzeyinde tutuluyor).
+     Boş bırakılabilir — her iş için para bilgisi girilmiyor. */
+  charged_amount: opsiyonelTutar("Alınan tutar"),
   allow_negative: z
     .string()
     .optional()
     .transform((v) => v === "1"),
+});
+
+/* Segment cirosu: ya fatura ya elle tutar. Boş göndermek tutarı
+   temizliyor, böylece fatura yolu açılabiliyor. */
+export const segmentTutarSchema = z.object({
+  segment_id: z.string().uuid("Segment bulunamadı"),
+  charged_amount: opsiyonelTutar("Tutar"),
 });
 
 export const isMalzemeSchema = z.object({
@@ -189,4 +241,5 @@ export type SegmentInput = z.infer<typeof segmentSchema>;
 export type IsInput = z.infer<typeof isSchema>;
 export type UrunInput = z.infer<typeof urunSchema>;
 export type StokHareketInput = z.infer<typeof stokHareketSchema>;
+export type UrunStokEkleInput = z.infer<typeof urunStokEkleSchema>;
 export type IsMalzemeInput = z.infer<typeof isMalzemeSchema>;

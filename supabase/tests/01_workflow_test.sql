@@ -227,7 +227,8 @@ exception
 end $$;
 
 \echo '--- TEST 9: allow_negative ile zorlanabiliyor mu ---'
-select complete_job('66666666-6666-6666-6666-666666666666', array['winding']::service_type[], true) as sonuc;
+select complete_job('66666666-6666-6666-6666-666666666666', array['winding']::service_type[],
+                    p_allow_negative => true) as sonuc;
 
 do $$
 declare v_pieces integer;
@@ -263,21 +264,24 @@ exception
     raise notice 'GECTI: miktarsiz malzeme satiri engellendi';
 end $$;
 
-\echo '--- TEST 12: apply_stock_movement is hareketi tipini reddediyor mu ---'
+\echo '--- TEST 12: cikista fiyat girilemiyor mu ---'
+/* Hareket tipi artik parametre degil, miktarin isareti belirliyor. Bu
+   yuzden "job_out elle uygulanamaz" testinin yerini "cikis bir alim
+   degildir, fiyati olmaz" kurali aldi. */
 do $$
 begin
   perform apply_stock_movement(
-    '44444444-4444-4444-4444-444444444444', 'job_out', -1, null
+    '44444444-4444-4444-4444-444444444444', -1, 12.50, null
   );
-  raise exception 'BASARISIZ: job_out elle uygulanabildi';
+  raise exception 'BASARISIZ: cikista fiyat kabul edildi';
 exception
   when invalid_parameter_value then
-    raise notice 'GECTI: job_out elle uygulanamiyor';
+    raise notice 'GECTI: stok cikisinda fiyat girilemiyor';
 end $$;
 
 \echo '--- TEST 13: stok girisi hareket kaydi olusturuyor mu ---'
 select apply_stock_movement(
-  '55555555-5555-5555-5555-555555555555', 'purchase_in', 10000, 'Fatura #123'
+  '55555555-5555-5555-5555-555555555555', 10000, null, 'Fatura #123'
 ) as sonuc;
 
 do $$

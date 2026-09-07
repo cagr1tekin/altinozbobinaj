@@ -12,7 +12,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { ButonLink, formatTarih, formatTarihSaat } from "../components/panel/ui";
 import { dosyaQrSvg, etiketQrSvg } from "../lib/qr";
-import { islemIfadesi, islemleriSirala } from "../lib/bicim";
+import { islemIfadesi, islemleriSirala, stokIsareti } from "../lib/bicim";
 
 let gecen = 0;
 let kalan = 0;
@@ -175,10 +175,33 @@ function islemTestleri() {
   );
 }
 
+function stokIsaretiTestleri() {
+  console.log("--- Stok isareti: yon secimden geliyor ---");
+
+  /* Kullanici miktari her zaman POZITIF yaziyor; giris mi cikis mi
+     oldugu ayri bir secim. Yanlis isaret stogu ters yonde degistirir ve
+     bu hata ancak sayimda fark edilir. */
+  bekle("giriste pozitif kaliyor", stokIsareti("25", true) === 25);
+  bekle("cikista eksiye ceviriliyor", stokIsareti("25", false) === -25);
+
+  /* Kullanici yine de eksi yazarsa yon secimi kazanmali: iki eksi
+     birbirini goturup cikisi girise cevirmemeli. */
+  bekle("giriste yazilan eksi yok sayiliyor", stokIsareti("-25", true) === 25);
+  bekle("cikista yazilan eksi ikilenmiyor", stokIsareti("-25", false) === -25);
+
+  /* Bos deger "girilmedi" demek; 0 gonderilse sema "miktar girilmeli"
+     hatasi yerine sessiz bir sifir hareketi denenirdi. */
+  bekle("bos deger bos donuyor", stokIsareti("", true) === "");
+  bekle("bosluk da bos sayiliyor", stokIsareti("   ", true) === "");
+  bekle("sifir bos donuyor", stokIsareti("0", true) === "");
+  bekle("sayi olmayan bos donuyor", stokIsareti("abc", false) === "");
+}
+
 async function main() {
   butonLinkTestleri();
   islemTestleri();
   tarihTestleri();
+  stokIsaretiTestleri();
   await qrTestleri();
 
   console.log("");

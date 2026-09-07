@@ -72,8 +72,9 @@ export async function isMalzemeEkle(
 
   const supabase = await createClient();
 
-  /* add_job_product() alış fiyatını o anki hâliyle unit_cost_snapshot'a
-     yazıyor (PRD Soru 3) ve tamamlanmış işe ekleme yapılmasını engelliyor. */
+  /* add_job_product() tamamlanmış işe ekleme yapılmasını engelliyor.
+     Fiyat burada dondurulmuyor: devam eden iş güncel fiyatı izliyor,
+     maliyet tamamlama anında donuyor (bkz. migration 0014). */
   const { error } = await supabase.rpc("add_job_product", {
     p_job_id: parsed.data.job_id,
     p_product_id: parsed.data.product_id,
@@ -148,6 +149,10 @@ export async function isTamamla(
   const { data, error } = await supabase.rpc("complete_job", {
     p_job_id: jobId,
     p_service_types: parsed.data.service_types,
+    /* Alınan tutar: not niteliğinde, hiçbir hesaba girmiyor. Boş
+       gönderilirse mevcut değer korunuyor (geri alıp tekrar
+       tamamlarken kaybolmasın). */
+    p_charged_amount: parsed.data.charged_amount,
     // Kullanıcı "stok yetersiz" uyarısını görüp yine de devam etmeyi seçtiyse
     p_allow_negative: parsed.data.allow_negative,
   });

@@ -218,6 +218,55 @@ Fiyat bunun istisnası: gram izlenen üründe fiyat **kilogram başına** girili
 (`₺ / kilogram`), çünkü malzeme kiloyla satın alınıyor ve gram başına fiyat
 iki ondalıkla yeterince hassas olmuyor. Etiket bunu açıkça yazar.
 
+Fiyat **alım anında** soruluyor, ürün tanımlanırken değil: bir malzemenin
+fiyatı ancak alındığında belli oluyor. Bu yüzden yeni ürün formu miktar ve
+fiyatı birlikte istiyor, ürün düzenleme formunda fiyat hiç yok.
+
+### Yön seçimi: işareti kullanıcıya yazdırma
+
+Bir sayı hem artı hem eksi olabiliyorsa, işareti kullanıcı yazmaz — **iki
+düğmeyle yön seçilir, miktar her zaman pozitif girilir.**
+
+Stok hareketinde bu şöyle görünüyor: "Stok girdi / Stok çıktı" iki büyük
+düğme, altında tek bir pozitif miktar alanı. Gönderilen değerin işaretini
+gizli alan taşıyor.
+
+Neden: "-3" yazdırmak sahada iki hataya yol açıyordu — eksiyi unutmak
+(çıkış giriş olarak kaydediliyordu) ve girişe eksi yazmak. İkisi de ancak
+sayımda fark ediliyor.
+
+Yön ayrıca **hangi alanların görüneceğini** belirleyebilir: girişte alış
+fiyatı sorulur, çıkışta sorulmaz (çıkış bir alım değil).
+
+İşaret kuralı `lib/bicim.ts` içindeki `stokIsareti()` fonksiyonunda,
+bileşenin içinde değil: sessizce ters yönde bir hareket yazacak kadar
+kritik, test edilebilir olmalı.
+
+### Birbirini dışlayan iki yol
+
+İki yoldan yalnızca biri geçerliyse (segment cirosu: **ya** fatura **ya**
+elle tutar), doğru davranış hata mesajı değil **kapalı kapı**:
+
+- Biri doldurulduğunda öbürünün formu hiç açılmaz; yerinde tek satırlık bir
+  açıklama durur ("Elden tutar girildiği için fatura yüklenemiyor").
+- Açıklama çıkış yolunu da söyler: "Fatura kesilecekse aşağıdan tutarı
+  boşaltın."
+- Bölüm başlığının altındaki açıklama hangi yolun seçildiğini yazar.
+
+Neden: kullanıcının formu doldurup gönderdikten sonra reddedilmesi, hem
+emeği boşa çıkarıyor hem "neden" sorusunu cevapsız bırakıyor. Kural yine de
+veritabanında duruyor — arayüz kuralı *görünür* kılıyor, *uygulamıyor*.
+
+### Hesaba girmeyen alan
+
+Bir alan yalnızca not niteliğindeyse bunu **alanın kendi ipucunda** yazmak
+gerekiyor ("Not amaçlıdır, raporlardaki ciroya girmez"). Yazılmazsa oraya
+girilen para raporlarda aranır ve bulunamaz; kullanıcı da veriyi değil
+uygulamayı bozuk sanır.
+
+Aynı cümle nerede *girildiğini* de söylemeli ("Ciro segment sayfasından
+girilir").
+
 ### Zorunlu seçim (kart listesi)
 
 İki-üç seçenekli zorunlu bir karar için açılır liste kullanılmaz;
@@ -361,6 +410,10 @@ Panel telefona kısayol olarak eklenecek.
 | Panelde serif / display font | Tarama hızını düşürür, gereksiz süs |
 | Gölge, gradient, cam efekti | Flat sistemde tutarsızlık; küçük ekranda gürültü |
 | Bir ekranda iki birincil buton | Kullanıcı hangisine basacağını düşünmek zorunda kalır |
+| Kullanıcıya eksi işareti yazdırmak | Unutulur ya da fazladan yazılır; yön iki düğmeyle seçilir |
+| Birbirini dışlayan iki formu birlikte açık bırakmak | Doldurup gönderdikten sonra reddedilmek emeği boşa çıkarır |
+| Hesaba girmeyen bir alanı sessizce koymak | Girilen değer raporlarda aranır, bulunamaz, uygulama bozuk sanılır |
+| Bir kararı iki ekrana bölmek (ürün tanımı / fiyat) | Yarım kalır: fiyatı hiç girilmemiş ürün kalır geriye |
 | Aynı anda iki miktar alanı (adet + gram) göstermek | Hangisinin doldurulacağı her seferinde bir karar; yanlış kutu stoğu sessizce bozar |
 | Miktarda ondalık kabul etmek | Virgül/nokta karışıklığı ve yuvarlama; gram tam sayı olarak yeterli |
 | Placeholder'ı etiket yerine kullanma | Yazmaya başlayınca etiket kaybolur |

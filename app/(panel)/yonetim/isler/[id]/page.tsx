@@ -38,10 +38,11 @@ export default async function IsDetaySayfasi({
       .from("jobs")
       .select(
         `id, title, description, status, completed_at, created_at, segment_id,
-         service_types,
+         service_types, charged_amount,
          segments(id, segment_date, customers(id, name)),
          job_products(id, qty_pieces_used, qty_grams_used, unit_cost_snapshot,
-                      products(id, name, unit_type_default, qty_pieces, qty_grams)),
+                      products(id, name, unit_type_default, qty_pieces, qty_grams,
+                               purchase_price)),
          qr_codes(token)`
       )
       .eq("id", id)
@@ -82,6 +83,9 @@ export default async function IsDetaySayfasi({
       qty_pieces: number;
       unit_type_default: "piece" | "gram";
       qty_grams: number;
+      /* Devam eden işin maliyeti güncel fiyatı izliyor; satırda da
+         gösterilebilmesi için okunuyor. */
+      purchase_price: number;
     } | null;
   }>;
 
@@ -150,6 +154,9 @@ export default async function IsDetaySayfasi({
               tamamlandiMi={tamamlandiMi}
               malzemeSayisi={malzemeler.length}
               stokUyarilari={stokUyarilari}
+              alinanTutar={
+                is.charged_amount === null ? null : Number(is.charged_amount)
+              }
             />
           </Kart>
         </Bolum>
@@ -191,7 +198,18 @@ export default async function IsDetaySayfasi({
                         gram={Number(m.qty_grams_used)}
                       />
                       {" · "}
-                      {formatPara(m.unit_cost_snapshot)} birim
+                      {/* Devam eden işte GÜNCEL fiyat gösteriliyor,
+                          donmuş fiyat değil: maliyet toplamı da güncel
+                          fiyattan hesaplanıyor (tamamlama anında
+                          donuyor). İkisi ayrışırsa satırların toplamı
+                          altta yazan toplamı tutmuyor. */}
+                      {formatPara(
+                        tamamlandiMi
+                          ? m.unit_cost_snapshot
+                          : (m.products?.purchase_price ??
+                            m.unit_cost_snapshot)
+                      )}{" "}
+                      birim
                     </p>
                   </div>
                   {!tamamlandiMi && (
@@ -207,6 +225,12 @@ export default async function IsDetaySayfasi({
               <span className="font-semibold text-pnl-text">
                 {formatPara(toplamMaliyet)}
               </span>
+              {!tamamlandiMi && (
+                <>
+                  {" — "}güncel alış fiyatlarına göre. İş tamamlandığında o
+                  günkü fiyatlarla sabitlenir.
+                </>
+              )}
             </p>
           )}
 
