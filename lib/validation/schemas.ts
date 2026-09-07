@@ -87,6 +87,11 @@ export const isSchema = z.object({
   segment_id: z.string().uuid("Segment seçilmedi"),
   title: zorunluMetin("İş başlığı"),
   description: opsiyonelMetin(2000),
+  /* İş açılırken de girilebilen tutar. TAMAMLAMADAKİ ALANLA AYNI ŞEY:
+     aynı kolona (jobs.charged_amount) yazıyor ve aynı anlamı taşıyor —
+     müşteriden alınan/alınacak para, not niteliğinde. İki ayrı alan
+     olsaydı hangisinin geçerli olduğu belirsiz kalırdı. */
+  charged_amount: opsiyonelTutar("Alınan tutar"),
 });
 
 export const isDurumSchema = z.object({

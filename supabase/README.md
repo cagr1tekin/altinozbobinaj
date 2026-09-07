@@ -142,6 +142,16 @@ maliyet gerçeğin gerisinde kalıyordu.
 Tamamlama geri alınıp yeniden yapılırsa fiyat o anki değerden yeniden
 donuyor — istenen davranış bu: iş yeniden kapatılıyor demek.
 
+### Müşteriye giden belgeler ne göstermiyor?
+
+Üç şey birlikte gizleniyor (`maliyet=0`): alış fiyatı/maliyet, malzeme
+**miktarı** ve tahsilat/ciro tutarları. Miktar da ticari bilgi ve QR
+sayfasından 0010 ile kaldırılmıştı; PDF'lerde 0014 sonrası düzeltildi —
+iki yüzeyin farklı davranması tutarsızlıktı.
+
+Müşteriye kalan: iş başlığı, tarih, durum ve kullanılan malzemelerin
+**adları**. QR sayfasıyla birebir aynı bilgi.
+
 ### QR sayfası ne gösteriyor, ne göstermiyor?
 
 `public_job_by_token()` yalnızca **iş başlığı, tamamlanma tarihi ve malzeme

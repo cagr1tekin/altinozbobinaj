@@ -3,6 +3,7 @@ import { isVerisi } from "@/lib/pdf/veri";
 import {
   bulunamadi,
   dosyaAdi,
+  icKopyaMi,
   oturumVarMi,
   pdfYanit,
   yetkisiz,
@@ -17,9 +18,9 @@ export async function GET(request: Request) {
   const id = searchParams.get("id");
   if (!id) return bulunamadi();
 
-  /* Alış fiyatı yalnızca iç kullanım içindir; müşteriye verilecek
-     çıktıda maliyet=0 ile gizleniyor (PRD 5.6 ile aynı gerekçe). */
-  const maliyetGoster = searchParams.get("maliyet") !== "0";
+  /* Müşteri kopyasında maliyet, malzeme MİKTARI ve alınan tutar birlikte
+     gizleniyor — hepsi ticari bilgi (bkz. belgeler.tsx). */
+  const icKopya = icKopyaMi(request.url);
 
   const veri = await isVerisi(id);
   if (!veri) return bulunamadi();
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
   /* PDF alma bir satırı değiştirmiyor, trigger göremiyor; açıkça bildiriliyor. */
   await denetimPdfKaydet("job", id, veri.is.baslik, {
     musteri: veri.musteri.ad,
-    maliyet_gosterildi: maliyetGoster,
+    ic_kopya: icKopya,
   });
 
   return pdfYanit(
@@ -38,7 +39,7 @@ export async function GET(request: Request) {
         musteri={veri.musteri}
         segment={veri.segment}
         is={veri.is}
-        maliyetGoster={maliyetGoster}
+        icKopya={icKopya}
         qrUrl={qrUrl}
       />
     ),

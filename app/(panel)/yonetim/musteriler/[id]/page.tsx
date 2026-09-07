@@ -10,6 +10,7 @@ import {
   formatTarih,
 } from "@/components/panel/ui";
 import { PdfBaglantilari } from "@/components/panel/PdfButonlari";
+import { aralikCoz } from "@/lib/donem";
 import EkleAcilir from "@/components/panel/EkleAcilir";
 import MusteriFormu from "@/components/panel/MusteriFormu";
 import SegmentFormu from "@/components/panel/SegmentFormu";
@@ -21,6 +22,11 @@ export default async function MusteriDetaySayfasi({
 }) {
   const { id } = await params;
   const supabase = await createClient();
+
+  /* PDF tarih alanlarının başlangıç değeri. Son 1 yıl: müşteri
+     belgesinde en sık istenen "bu yıl ne yaptık" ve son 1 ay çoğu
+     müşteride boş çıkardı — aynı müşteri her ay gelmiyor. */
+  const pdfAralik = aralikCoz({ donem: "yil" });
 
   const [{ data: musteri }, { data: segmentler }] = await Promise.all([
     supabase
@@ -86,10 +92,17 @@ export default async function MusteriDetaySayfasi({
           </Liste>
         </Bolum>
 
-        <Bolum baslik="Belgeler">
+        <Bolum
+          baslik="Belgeler"
+          aciklama="Tüm geçmiş ya da seçtiğiniz tarih aralığı"
+        >
           <PdfBaglantilari
             temelUrl={`/api/pdf/musteri?id=${musteri.id}`}
             etiket="Müşteri belgesi"
+            /* Varsayılan aralık son 1 yıl: müşteri belgesinde en sık
+               istenen "bu yıl ne yaptık" ve son 1 ay çoğu müşteride boş
+               çıkıyor (aynı müşteri her ay gelmiyor). */
+            tarihAraligi={pdfAralik}
           />
         </Bolum>
 

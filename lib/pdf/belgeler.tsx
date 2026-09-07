@@ -29,8 +29,22 @@ export type PdfIs = {
   tamamlanmaTarihi: string | null;
   olusturmaTarihi: string;
   maliyet: number;
+  /** İş başına alınan tutar. NOT niteliğinde: hiçbir toplama girmiyor. */
+  alinanTutar: number | null;
   malzemeler: PdfMalzeme[];
   qrToken?: string | null;
+};
+
+/**
+ * Segment cirosu: YA fatura YA elle alınan tutar.
+ *
+ * İkisi bir arada olamıyor (veritabanı trigger'ı engelliyor), o yüzden
+ * belgede tek bir tahsilat satırı yazılıyor — hangisi doluysa o.
+ */
+export type PdfCiro = {
+  faturaSayisi: number;
+  faturaToplam: number;
+  eldenTutar: number | null;
 };
 
 export type PdfSegment = {
@@ -38,6 +52,7 @@ export type PdfSegment = {
   tarih: string;
   not: string | null;
   durum: string;
+  ciro: PdfCiro;
   isler: PdfIs[];
 };
 
@@ -49,6 +64,23 @@ export type PdfMusteri = {
   adres: string | null;
   vergiNo: string | null;
 };
+
+/* ---------------------------------------------------------------------------
+ * İç kopya / müşteri kopyası ayrımı
+ *
+ * TEK bir bayrak üç şeyi birden kapatıyor ve bu bilinçli: müşteriye giden
+ * bir belgede bunların hiçbiri olmamalı, dolayısıyla üçünü ayrı ayrı
+ * açıp kapatmak yalnızca yanlış kombinasyona imkân verirdi.
+ *
+ *   1) Alış fiyatı ve maliyet   — ticari bilgi
+ *   2) Malzeme MİKTARI          — QR sayfasından 0010 ile kaldırıldı,
+ *                                 belgelerde unutulmuştu
+ *   3) Tahsilat/ciro tutarları  — işletmenin kendi kaydı
+ *
+ * Müşteriye kalan: hangi işin yapıldığı, ne zaman, hangi malzemelerin
+ * kullanıldığı. Şeffaflık anlatısı işin niteliğine dayanıyor, miktara
+ * değil.
+ * ------------------------------------------------------------------------- */
 
 /* ---------------------------------------------------------------------------
  * Paylaşılan görünümler
@@ -73,16 +105,17 @@ function MusteriKutusu({ musteri }: { musteri: PdfMusteri }) {
 /**
  * Malzeme tablosu.
  *
- * `maliyetGoster` false ise fiyat sütunları hiç çizilmiyor. Müşteriye
- * verilen çıktılarda alış fiyatı görünmemeli (PRD 5.6 ile aynı gerekçe:
- * alış fiyatı ticari bilgi).
+ * `icKopya` false ise miktar ve fiyat sütunları hiç çizilmiyor; geriye
+ * numaralı malzeme adları kalıyor — müşteri QR sayfasıyla birebir aynı
+ * bilgi. Miktar da ticari bilgi: hangi işe ne kadar tel girdiği
+ * rakiplerin işine yarar ve müşteriye bir şey anlatmıyor.
  */
 function MalzemeTablosu({
   malzemeler,
-  maliyetGoster,
+  icKopya,
 }: {
   malzemeler: PdfMalzeme[];
-  maliyetGoster: boolean;
+  icKopya: boolean;
 }) {
   if (malzemeler.length === 0) {
     return (
@@ -97,9 +130,11 @@ function MalzemeTablosu({
       <View style={stiller.tabloBaslik}>
         <Text style={{ width: 24 }}>#</Text>
         <Text style={{ flex: 1 }}>Malzeme</Text>
-        <Text style={{ width: 100, ...stiller.sag }}>Miktar</Text>
-        {maliyetGoster && (
-          <Text style={{ width: 80, ...stiller.sag }}>Birim maliyet</Text>
+        {icKopya && (
+          <>
+            <Text style={{ width: 100, ...stiller.sag }}>Miktar</Text>
+            <Text style={{ width: 80, ...stiller.sag }}>Birim maliyet</Text>
+          </>
         )}
       </View>
 
@@ -107,13 +142,17 @@ function MalzemeTablosu({
         <View key={`${m.ad}-${i}`} style={stiller.tabloSatir}>
           <Text style={{ width: 24 }}>{i + 1}</Text>
           <Text style={{ flex: 1 }}>{m.ad}</Text>
-          <Text style={{ width: 100, ...stiller.sag }}>
-            {`${formatSayi(m.miktar)} ${m.birim === "piece" ? "adet" : "gram"}`}
-          </Text>
-          {maliyetGoster && (
-            <Text style={{ width: 80, ...stiller.sag }}>
-              {formatPara(m.birimMaliyet)}
-            </Text>
+          {icKopya && (
+            <>
+              <Text style={{ width: 100, ...stiller.sag }}>
+                {`${formatSayi(m.miktar)} ${
+                  m.birim === "piece" ? "adet" : "gram"
+                }`}
+              </Text>
+              <Text style={{ width: 80, ...stiller.sag }}>
+                {formatPara(m.birimMaliyet)}
+              </Text>
+            </>
           )}
         </View>
       ))}
@@ -135,6 +174,60 @@ function IsBasligi({ is }: { is: PdfIs }) {
   );
 }
 
+/** Segmentin cirosunu tek satırda anlatır: fatura mı, elden mi, yok mu. */
+function ciroMetni(ciro: PdfCiro): string {
+  if (ciro.faturaSayisi > 0) {
+    return `${formatPara(ciro.faturaToplam)} (${ciro.faturaSayisi} fatura)`;
+  }
+  if (ciro.eldenTutar !== null) {
+    return `${formatPara(ciro.eldenTutar)} (faturasız, elden)`;
+  }
+  return "Girilmemiş";
+}
+
+/**
+ * Segmentin tahsilat bölümü — yalnızca iç kopyada.
+ *
+ * İki farklı para bir arada duruyor ve karışmaması gerekiyor:
+ *   • Segment cirosu — gerçek gelir, raporlara giren tutar
+ *   • İş tutarları  — usta not olarak girmiş, HİÇBİR hesaba girmiyor
+ *
+ * İkisinin toplanmaması bilinçli; alt not bunu yazıyor, yoksa okuyan
+ * kişi ikisini toplar ve ciroyu iki kez sayar.
+ */
+function TahsilatBolumu({ segment }: { segment: PdfSegment }) {
+  const tutarliIsler = segment.isler.filter((i) => i.alinanTutar !== null);
+
+  return (
+    <View style={{ marginTop: 14 }} wrap={false}>
+      <Text style={stiller.bolumBaslik}>Tahsilat</Text>
+      <View style={stiller.kutu}>
+        <BilgiSatiri etiket="Segment cirosu" deger={ciroMetni(segment.ciro)} />
+      </View>
+
+      {tutarliIsler.length > 0 && (
+        <View style={{ marginTop: 8 }}>
+          <Text style={{ fontSize: 9, fontWeight: "bold", marginBottom: 3 }}>
+            İş bazlı girilen tutarlar (not)
+          </Text>
+          {tutarliIsler.map((is) => (
+            <View key={is.id} style={stiller.tabloSatir}>
+              <Text style={{ flex: 1 }}>{is.baslik}</Text>
+              <Text style={{ width: 90, ...stiller.sag }}>
+                {formatPara(is.alinanTutar ?? 0)}
+              </Text>
+            </View>
+          ))}
+          <Text style={{ fontSize: 7, color: "#71717a", marginTop: 4 }}>
+            İş bazlı tutarlar not amaçlıdır; segment cirosuna eklenmez ve
+            hiçbir rapora girmez. Gerçek gelir yukarıdaki segment cirosudur.
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 /* ---------------------------------------------------------------------------
  * 1) İş belgesi
  * ------------------------------------------------------------------------- */
@@ -143,13 +236,13 @@ export function IsBelgesi({
   musteri,
   segment,
   is,
-  maliyetGoster,
+  icKopya,
   qrUrl,
 }: {
   musteri: PdfMusteri;
   segment: { tarih: string };
   is: PdfIs;
-  maliyetGoster: boolean;
+  icKopya: boolean;
   qrUrl?: string | null;
 }) {
   return (
@@ -176,14 +269,33 @@ export function IsBelgesi({
       </View>
 
       <Text style={stiller.bolumBaslik}>Kullanılan malzemeler</Text>
-      <MalzemeTablosu malzemeler={is.malzemeler} maliyetGoster={maliyetGoster} />
+      <MalzemeTablosu malzemeler={is.malzemeler} icKopya={icKopya} />
 
-      {maliyetGoster && is.malzemeler.length > 0 && (
+      {icKopya && is.malzemeler.length > 0 && (
         <View style={stiller.toplamKutu}>
           <View style={stiller.toplamSatir}>
             <Text>Toplam malzeme maliyeti</Text>
             <Text style={stiller.toplamVurgu}>{formatPara(is.maliyet)}</Text>
           </View>
+        </View>
+      )}
+
+      {/* İş tutarı — iç kopyada ve yalnızca girilmişse.
+          "Not" olduğu açıkça yazılıyor: bu belgeye bakıp ciro toplamı
+          çıkaran biri yanlış sayıya varırdı. Ciro segment belgesinde. */}
+      {icKopya && is.alinanTutar !== null && (
+        <View style={{ marginTop: 14 }} wrap={false}>
+          <Text style={stiller.bolumBaslik}>Alınan tutar (not)</Text>
+          <View style={stiller.kutu}>
+            <BilgiSatiri
+              etiket="Bu iş için alınan"
+              deger={formatPara(is.alinanTutar)}
+            />
+          </View>
+          <Text style={{ fontSize: 7, color: "#71717a", marginTop: 4 }}>
+            Elle girilen bir nottur; hiçbir ciro, kâr veya rapor hesabına
+            girmez. Segmentin gerçek cirosu segment belgesinde yazar.
+          </Text>
         </View>
       )}
 
@@ -208,11 +320,11 @@ export function IsBelgesi({
 export function SegmentBelgesi({
   musteri,
   segment,
-  maliyetGoster,
+  icKopya,
 }: {
   musteri: PdfMusteri;
   segment: PdfSegment;
-  maliyetGoster: boolean;
+  icKopya: boolean;
 }) {
   const toplamMaliyet = segment.isler.reduce((a, i) => a + Number(i.maliyet), 0);
   const tamamlanan = segment.isler.filter((i) => i.durum === "completed").length;
@@ -248,12 +360,9 @@ export function SegmentBelgesi({
           >
             <IsBasligi is={is} />
             <View style={{ marginTop: 4 }}>
-              <MalzemeTablosu
-                malzemeler={is.malzemeler}
-                maliyetGoster={maliyetGoster}
-              />
+              <MalzemeTablosu malzemeler={is.malzemeler} icKopya={icKopya} />
             </View>
-            {maliyetGoster && is.malzemeler.length > 0 && (
+            {icKopya && is.malzemeler.length > 0 && (
               <Text style={{ fontSize: 8, textAlign: "right", marginTop: 3 }}>
                 İş maliyeti: {formatPara(is.maliyet)}
               </Text>
@@ -262,7 +371,7 @@ export function SegmentBelgesi({
         ))
       )}
 
-      {maliyetGoster && segment.isler.length > 0 && (
+      {icKopya && segment.isler.length > 0 && (
         <View style={stiller.toplamKutu}>
           <View style={stiller.toplamSatir}>
             <Text>Segment toplam maliyeti</Text>
@@ -270,22 +379,115 @@ export function SegmentBelgesi({
           </View>
         </View>
       )}
+
+      {icKopya && <TahsilatBolumu segment={segment} />}
     </Belge>
   );
 }
 
 /* ---------------------------------------------------------------------------
- * 3) Müşteri belgesi — segment/iş özeti
+ * 3) Müşteri belgesi — segment/iş geçmişi
+ *
+ * Eskiden tek düz tabloydu ve segment tarihi yalnızca ilk iş satırında
+ * yazıyordu; birden çok segment olduğunda hangi işin hangi gelişe ait
+ * olduğu okunamıyordu. Artık her segment kendi bloğu: başlığında tarih,
+ * durum, iş sayısı ve (iç kopyada) cirosu var.
  * ------------------------------------------------------------------------- */
+
+function SegmentBlogu({
+  segment,
+  icKopya,
+}: {
+  segment: PdfSegment;
+  icKopya: boolean;
+}) {
+  const tamamlanan = segment.isler.filter((i) => i.durum === "completed").length;
+  const maliyet = segment.isler.reduce((a, i) => a + Number(i.maliyet), 0);
+  const tutarliIsler = segment.isler.filter((i) => i.alinanTutar !== null);
+
+  return (
+    <View style={{ marginTop: 12 }} wrap={false}>
+      {/* Segment başlığı: blok sınırı gözle görünür olmalı, yoksa
+          işler yine tek bir liste gibi okunuyor. */}
+      <View style={stiller.gruBaslik}>
+        <Text style={{ fontWeight: "bold", fontSize: 10, flex: 1 }}>
+          {formatTarih(segment.tarih)}
+        </Text>
+        <Text style={{ fontSize: 8, color: "#52525b" }}>
+          {segment.durum === "open" ? "Açık" : "Kapalı"}
+          {` · ${segment.isler.length} iş`}
+          {segment.isler.length > 0 ? ` · ${tamamlanan} tamamlandı` : ""}
+        </Text>
+      </View>
+
+      {segment.not && (
+        <Text style={{ fontSize: 8, color: "#52525b", marginTop: 3 }}>
+          {segment.not}
+        </Text>
+      )}
+
+      {segment.isler.length === 0 ? (
+        <Text style={{ fontSize: 8, color: "#71717a", marginTop: 4 }}>
+          Bu segmentte iş kaydı yok.
+        </Text>
+      ) : (
+        <View style={{ marginTop: 4 }}>
+          {segment.isler.map((is) => (
+            <View key={is.id} style={stiller.tabloSatir}>
+              <Text style={{ flex: 1 }}>{is.baslik}</Text>
+              <Text style={{ width: 70 }}>
+                {IS_DURUM_ETIKET[is.durum] ?? is.durum}
+              </Text>
+              {icKopya && (
+                <Text style={{ width: 75, ...stiller.sag }}>
+                  {formatPara(is.maliyet)}
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+      )}
+
+      {icKopya && (
+        <View style={{ marginTop: 4 }}>
+          <View style={stiller.gruToplam}>
+            <Text style={{ flex: 1, fontSize: 8 }}>
+              Ciro: {ciroMetni(segment.ciro)}
+            </Text>
+            {segment.isler.length > 0 && (
+              <Text style={{ fontSize: 8 }}>
+                Malzeme gideri: {formatPara(maliyet)}
+              </Text>
+            )}
+          </View>
+          {tutarliIsler.length > 0 && (
+            <Text style={{ fontSize: 7, color: "#71717a", marginTop: 2 }}>
+              {`İş bazlı not edilen tutarlar: ${tutarliIsler
+                .map((i) => `${i.baslik} ${formatPara(i.alinanTutar ?? 0)}`)
+                .join(" · ")} (ciroya eklenmez)`}
+            </Text>
+          )}
+        </View>
+      )}
+    </View>
+  );
+}
 
 export function MusteriBelgesi({
   musteri,
   segmentler,
-  maliyetGoster,
+  icKopya,
+  aralikEtiketi,
 }: {
   musteri: PdfMusteri;
   segmentler: PdfSegment[];
-  maliyetGoster: boolean;
+  icKopya: boolean;
+  /**
+   * Tarih aralığıyla alındıysa başlıkta yazıyor. Yazmasa belge "tüm
+   * geçmiş" sanılır ve eksik bir kayıt listesi tam sayılır — muhasebe
+   * tarafında bu sessiz bir hata.
+   */
+  aralikEtiketi?: string;
 }) {
   const toplamIs = segmentler.reduce((a, s) => a + s.isler.length, 0);
   const toplamTamamlanan = segmentler.reduce(
@@ -297,76 +499,95 @@ export function MusteriBelgesi({
     0
   );
 
+  /* Ciro toplamı: fatura varsa faturadan, yoksa elden tutardan. İkisi bir
+     arada olamıyor, o yüzden basit toplama yeterli — çifte sayım yok. */
+  const toplamCiro = segmentler.reduce(
+    (a, s) =>
+      a +
+      (s.ciro.faturaSayisi > 0
+        ? s.ciro.faturaToplam
+        : (s.ciro.eldenTutar ?? 0)),
+    0
+  );
+
   return (
-    <Belge belgeTuru="Müşteri Belgesi">
+    <Belge
+      belgeTuru="Müşteri Belgesi"
+      altBilgi={aralikEtiketi ? `Dönem: ${aralikEtiketi}` : undefined}
+    >
       <MusteriKutusu musteri={musteri} />
 
+      {/* Dönem iki yerde yazıyor: sayfa başında (standart yer) ve liste
+          başlığında (asıl okunan yer). Üçüncü kez bilgi kutusuna da
+          koymak gürültüydü; ama ikisi birden kalıyor — aralıkla alınmış
+          bir belgenin tüm geçmiş sanılması sessiz bir muhasebe hatası. */}
       <View style={stiller.kutu}>
-        <BilgiSatiri etiket="Segment" deger={`${segmentler.length} adet`} />
+        <BilgiSatiri
+          etiket="Geliş"
+          deger={`${segmentler.length} segment`}
+        />
         <BilgiSatiri
           etiket="İş"
           deger={`${toplamIs} iş · ${toplamTamamlanan} tamamlandı`}
         />
       </View>
 
-      <Text style={stiller.bolumBaslik}>Segment ve iş geçmişi</Text>
+      <Text style={stiller.bolumBaslik}>
+        {aralikEtiketi
+          ? `Segment ve iş geçmişi (${aralikEtiketi})`
+          : "Segment ve iş geçmişi"}
+      </Text>
 
       {segmentler.length === 0 ? (
         <Text style={stiller.bosMesaj}>
-          Bu müşteri için henüz segment açılmamış.
+          {aralikEtiketi
+            ? "Bu tarih aralığında kayıt yok."
+            : "Bu müşteri için henüz segment açılmamış."}
         </Text>
       ) : (
         <View>
+          {/* Sütun başlıkları bir kez, blokların üstünde: her segment
+              bloğunda tekrarlamak sayfayı gürültüye boğuyordu. */}
           <View style={stiller.tabloBaslik}>
-            <Text style={{ width: 65 }}>Tarih</Text>
             <Text style={{ flex: 1 }}>İş</Text>
             <Text style={{ width: 70 }}>Durum</Text>
-            {maliyetGoster && (
-              <Text style={{ width: 75, ...stiller.sag }}>Maliyet</Text>
+            {icKopya && (
+              <Text style={{ width: 75, ...stiller.sag }}>Malzeme gideri</Text>
             )}
           </View>
 
-          {segmentler.flatMap((s) =>
-            s.isler.length === 0
-              ? [
-                  <View key={`${s.id}-bos`} style={stiller.tabloSatir}>
-                    <Text style={{ width: 65 }}>{formatTarih(s.tarih)}</Text>
-                    <Text style={{ flex: 1, color: "#71717a" }}>
-                      (iş kaydı yok)
-                    </Text>
-                    <Text style={{ width: 70 }}>—</Text>
-                    {maliyetGoster && (
-                      <Text style={{ width: 75, ...stiller.sag }}>—</Text>
-                    )}
-                  </View>,
-                ]
-              : s.isler.map((is, idx) => (
-                  <View key={is.id} style={stiller.tabloSatir}>
-                    <Text style={{ width: 65 }}>
-                      {idx === 0 ? formatTarih(s.tarih) : ""}
-                    </Text>
-                    <Text style={{ flex: 1 }}>{is.baslik}</Text>
-                    <Text style={{ width: 70 }}>
-                      {IS_DURUM_ETIKET[is.durum] ?? is.durum}
-                    </Text>
-                    {maliyetGoster && (
-                      <Text style={{ width: 75, ...stiller.sag }}>
-                        {formatPara(is.maliyet)}
-                      </Text>
-                    )}
-                  </View>
-                ))
-          )}
+          {segmentler.map((s) => (
+            <SegmentBlogu key={s.id} segment={s} icKopya={icKopya} />
+          ))}
         </View>
       )}
 
-      {maliyetGoster && toplamIs > 0 && (
+      {icKopya && segmentler.length > 0 && (
         <View style={stiller.toplamKutu}>
           <View style={stiller.toplamSatir}>
-            <Text>Toplam malzeme maliyeti</Text>
-            <Text style={stiller.toplamVurgu}>{formatPara(toplamMaliyet)}</Text>
+            <Text>Toplam ciro</Text>
+            <Text style={stiller.toplamVurgu}>{formatPara(toplamCiro)}</Text>
+          </View>
+          <View style={stiller.toplamSatir}>
+            <Text>Toplam malzeme gideri</Text>
+            <Text style={stiller.toplamVurgu}>
+              {formatPara(toplamMaliyet)}
+            </Text>
+          </View>
+          <View style={stiller.toplamSatir}>
+            <Text>{toplamCiro - toplamMaliyet < 0 ? "Zarar" : "Kâr"}</Text>
+            <Text style={stiller.toplamVurgu}>
+              {formatPara(toplamCiro - toplamMaliyet)}
+            </Text>
           </View>
         </View>
+      )}
+
+      {icKopya && segmentler.length > 0 && (
+        <Text style={{ fontSize: 7, color: "#71717a", marginTop: 8 }}>
+          Malzeme gideri yalnızca tamamlanmış işlerden hesaplanır. İş bazlı
+          not edilen tutarlar ciroya dahil değildir.
+        </Text>
       )}
     </Belge>
   );
@@ -397,6 +618,9 @@ export function DonemRaporu({
     netGelir: number;
     vergi: number;
     faturaSayisi: number;
+    faturaliGelir: number;
+    eldenGelir: number;
+    eldenSayisi: number;
     maliyet: number;
     karZarar: number;
     tamamlananIs: number;
@@ -412,7 +636,17 @@ export function DonemRaporu({
       <View style={stiller.kutu}>
         <BilgiSatiri
           etiket="Brüt gelir"
-          deger={`${formatPara(ozet.brutGelir)}  (${ozet.faturaSayisi} fatura)`}
+          deger={formatPara(ozet.brutGelir)}
+        />
+        {/* Gelirin kaynağı ayrı yazılıyor: "3 fatura" tek başına
+            yazsaydı faturasız ciro görünmez olurdu. */}
+        <BilgiSatiri
+          etiket="— faturalı"
+          deger={`${formatPara(ozet.faturaliGelir)}  (${ozet.faturaSayisi} fatura)`}
+        />
+        <BilgiSatiri
+          etiket="— faturasız (elden)"
+          deger={`${formatPara(ozet.eldenGelir)}  (${ozet.eldenSayisi} segment)`}
         />
         <BilgiSatiri etiket="Vergi" deger={formatPara(ozet.vergi)} />
         <BilgiSatiri etiket="Net gelir" deger={formatPara(ozet.netGelir)} />
@@ -433,7 +667,7 @@ export function DonemRaporu({
 
       {musteriler.length === 0 ? (
         <Text style={stiller.bosMesaj}>
-          Bu dönemde faturası veya tamamlanmış işi olan müşteri yok.
+          Bu dönemde cirosu veya tamamlanmış işi olan müşteri yok.
         </Text>
       ) : (
         <View>
@@ -466,9 +700,12 @@ export function DonemRaporu({
       )}
 
       <Text style={{ fontSize: 7, color: "#71717a", marginTop: 12 }}>
-        Malzeme gideri yalnızca tamamlanmış işlerden hesaplanır; tamamlanmamış
-        işlerin malzemesi henüz stoktan düşülmediği için gerçekleşmiş gider
-        sayılmaz. Tahsilat durumu bu raporun kapsamı dışındadır.
+        Gelir faturalardan ve faturasız segment tutarlarından oluşur; bir
+        segmentte ikisi birden olamaz, çifte sayım yoktur. İş bazlı not
+        edilen tutarlar bu hesaba girmez. Malzeme gideri yalnızca
+        tamamlanmış işlerden hesaplanır; tamamlanmamış işlerin malzemesi
+        henüz stoktan düşülmediği için gerçekleşmiş gider sayılmaz.
+        Tahsilat durumu bu raporun kapsamı dışındadır.
       </Text>
     </Belge>
   );

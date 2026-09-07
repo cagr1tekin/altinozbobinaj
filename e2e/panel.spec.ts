@@ -1191,4 +1191,302 @@ test.describe("Panel iş akışı", () => {
       page.getByText(/Ürün ve ilk stok girişi kaydedildi/)
     ).toHaveCount(0);
   });
+  /* -----------------------------------------------------------------------
+   * Belgeler: müşteri kopyasında miktar/fiyat/tahsilat yok
+   *
+   * Miktar QR sayfasından 0010 ile kaldırılmıştı ama PDF'lerde
+   * unutulmuştu. Bu testler PDF'in İÇİNE bakıyor: bayrak dört route'a
+   * dağılmış üç ayrı şeyi kapatıyor, birini unutmak sessiz bir sızıntı
+   * ve ancak müşteri belgeyi eline aldığında fark edilir.
+   * --------------------------------------------------------------------- */
+
+  /** PDF'i indirip metnini çıkarır (pdfjs, oturum çerezleriyle). */
+  async function pdfMetni(page: Page, url: string): Promise<string> {
+    const yanit = await page.request.get(url);
+    expect(yanit.status(), `PDF alınamadı: ${url}`).toBe(200);
+    const govde = await yanit.body();
+
+    /* pdfjs tarayıcı bağlamında değil Node tarafında çalışıyor: aynı
+       çıkarıcı fatura okuma akışında da kullanılıyor. */
+    const { pdfMetniCikar } = await import("../lib/fatura/ayristir");
+    const metin = await pdfMetniCikar(new Uint8Array(govde));
+    return metin.replace(/\s+/g, " ");
+  }
+
+  test("75 — iş belgesinin müşteri kopyasında miktar ve fiyat yok", async ({
+    page,
+  }) => {
+    const urun = testAdi("BelgeUrun");
+    await urunEkle(page, urun, { fiyat: "137", miktar: "40", birim: "Gram" });
+
+    await musteriOlustur(page, testAdi("BelgeMusteri"));
+    await segmentAc(page);
+    await isEkle(page, "Belge testi isi");
+    const isUrl = page.url();
+    const isId = isUrl.split("/").pop()!;
+
+    await acilirAc(page, /Malzeme ekle/);
+    await page
+      .getByLabel("Ürün", { exact: true })
+      .selectOption({ label: `${urun} (stok: 40 gram)` });
+    await page.getByLabel("Miktar (gram)", { exact: true }).fill("29");
+    await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    await page.getByLabel(/Müşteriden alınan tutar/).fill("6543");
+    await page.getByRole("checkbox", { name: /Motor sarımı/ }).check();
+    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
+
+    const ic = await pdfMetni(page, `/api/pdf/is?id=${isId}`);
+    expect(ic, "iç kopyada malzeme adı olmalı").toContain(urun);
+    expect(ic, "iç kopyada miktar olmalı").toContain("29 gram");
+    expect(ic, "iç kopyada tutar olmalı").toContain("6.543,00");
+
+    const dis = await pdfMetni(page, `/api/pdf/is?id=${isId}&maliyet=0`);
+    expect(dis, "müşteri kopyasında malzeme adı olmalı").toContain(urun);
+    expect(dis, "müşteri kopyasında MİKTAR olmamalı").not.toContain("29 gram");
+    expect(dis, "müşteri kopyasında miktar sütunu olmamalı").not.toContain(
+      "Miktar"
+    );
+    expect(dis, "müşteri kopyasında birim maliyet olmamalı").not.toContain(
+      "Birim maliyet"
+    );
+    expect(dis, "müşteri kopyasında alış fiyatı olmamalı").not.toContain(
+      "137,00"
+    );
+    expect(dis, "müşteri kopyasında alınan tutar olmamalı").not.toContain(
+      "6.543,00"
+    );
+  });
+
+  test("76 — segment belgesi tahsilatı yazıyor, müşteri kopyası yazmıyor", async ({
+    page,
+  }) => {
+    await musteriOlustur(page, testAdi("TahsilatMusteri"));
+    await segmentAc(page);
+    const segmentUrl = page.url();
+    const segmentId = segmentUrl.split("/").pop()!;
+
+    await isEkle(page, "Tahsilat belge isi");
+    await page.getByLabel(/Müşteriden alınan tutar/).fill("1234");
+    await page.getByRole("checkbox", { name: /Revizyon/ }).check();
+    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
+
+    await page.goto(segmentUrl);
+    await acilirAc(page, /Faturasız — alınan tutarı gir/);
+    await page.getByLabel(/Müşteriden alınan tutar/).fill("9876");
+    await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    const ic = await pdfMetni(page, `/api/pdf/segment?id=${segmentId}`);
+    expect(ic, "tahsilat bölümü olmalı").toContain("Tahsilat");
+    expect(ic, "segment cirosu olmalı").toContain("9.876,00");
+    expect(ic, "iş bazlı tutar olmalı").toContain("1.234,00");
+    /* İki para bir arada duruyor; toplanmadığı YAZMALI, yoksa okuyan
+       kişi ikisini toplar ve ciroyu iki kez sayar. */
+    expect(ic, "eklenmediği yazmalı").toContain("eklenmez");
+
+    const dis = await pdfMetni(
+      page,
+      `/api/pdf/segment?id=${segmentId}&maliyet=0`
+    );
+    expect(dis, "müşteri kopyasında tahsilat olmamalı").not.toContain(
+      "Tahsilat"
+    );
+    expect(dis, "müşteri kopyasında segment cirosu olmamalı").not.toContain(
+      "9.876,00"
+    );
+    expect(dis, "müşteri kopyasında iş tutarı olmamalı").not.toContain(
+      "1.234,00"
+    );
+  });
+
+  test("77 — müşteri belgesi segmentleri ayrı bloklar hâlinde yazıyor", async ({
+    page,
+  }) => {
+    await musteriOlustur(page, testAdi("BlokMusteri"));
+    const musteriUrl = page.url();
+    const musteriId = musteriUrl.split("/").pop()!;
+
+    /* İki segment, her birinde bir iş: eskiden hepsi tek düz tabloydu ve
+       tarih yalnızca ilk iş satırında görünüyordu — hangi işin hangi
+       gelişe ait olduğu okunamıyordu. */
+    for (const baslik of ["Birinci gelis isi", "Ikinci gelis isi"]) {
+      await page.goto(musteriUrl);
+      await segmentAc(page);
+      await isEkle(page, baslik);
+    }
+
+    const ic = await pdfMetni(page, `/api/pdf/musteri?id=${musteriId}`);
+    expect(ic).toContain("Birinci gelis isi");
+    expect(ic).toContain("Ikinci gelis isi");
+    /* Her blok kendi iş sayısını yazıyor → bloklar gerçekten ayrı.
+       Tek düz tabloda böyle bir satır hiç yoktu. */
+    expect(ic, "blok başlıkları iş sayısı yazmalı").toMatch(
+      /1 i[şs] · 0 tamamland/
+    );
+    expect(ic, "iç kopyada ciro satırı olmalı").toContain("Ciro:");
+
+    const dis = await pdfMetni(page, `/api/pdf/musteri?id=${musteriId}`
+      + "&maliyet=0");
+    expect(dis, "müşteri kopyasında işler olmalı").toContain(
+      "Birinci gelis isi"
+    );
+    expect(dis, "müşteri kopyasında blok ayrımı korunmalı").toMatch(
+      /1 i[şs] · 0 tamamland/
+    );
+    expect(dis, "müşteri kopyasında ciro olmamalı").not.toContain("Ciro:");
+    expect(dis, "müşteri kopyasında toplam olmamalı").not.toContain(
+      "Toplam ciro"
+    );
+  });
+
+  test("78 — müşteri belgesi tarih aralığıyla sınırlanabiliyor", async ({
+    page,
+  }) => {
+    await musteriOlustur(page, testAdi("AralikMusteri"));
+    const musteriId = page.url().split("/").pop()!;
+    await segmentAc(page);
+    await isEkle(page, "Araliktaki is");
+
+    const bugun = new Date();
+    const iso = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+        d.getDate()
+      ).padStart(2, "0")}`;
+
+    // Bugünü kapsayan aralık: iş görünmeli
+    const icinde = await pdfMetni(
+      page,
+      `/api/pdf/musteri?id=${musteriId}&bas=${iso(bugun)}&bit=${iso(bugun)}`
+    );
+    expect(icinde).toContain("Araliktaki is");
+    /* Aralıkla alınmış belge "tüm geçmiş" sanılmamalı: dönem yazmalı. */
+    expect(icinde, "dönem yazmalı").toContain("Dönem");
+
+    // Geçmişte bir aralık: kayıt olmamalı
+    const disinda = await pdfMetni(
+      page,
+      `/api/pdf/musteri?id=${musteriId}&bas=2020-01-01&bit=2020-01-31`
+    );
+    expect(disinda).not.toContain("Araliktaki is");
+    expect(disinda).toContain("Bu tarih aralığında kayıt yok");
+
+    /* Yarım aralık sessizce tüm geçmişi getirmemeli: kullanıcı aralık
+       verdiyse sınırlamak istiyor ve fazlasını içeren bir belgeyi
+       müşteriye vermek gerçek bir sızıntı olurdu. */
+    const yarim = await page.request.get(
+      `/api/pdf/musteri?id=${musteriId}&bas=${iso(bugun)}`
+    );
+    expect(yarim.status(), "yarım aralık reddedilmeli").toBe(400);
+
+    const ters = await page.request.get(
+      `/api/pdf/musteri?id=${musteriId}&bas=2026-12-31&bit=2026-01-01`
+    );
+    expect(ters.status(), "ters aralık reddedilmeli").toBe(400);
+  });
+
+  /* -----------------------------------------------------------------------
+   * Özet: tamamlanan işler + tarih filtresi
+   * --------------------------------------------------------------------- */
+
+  test("79 — Özet tamamlanan işleri de gösteriyor", async ({ page }) => {
+    const baslik = testAdi("OzetBiten");
+    await musteriOlustur(page, testAdi("OzetMusteri"));
+    await segmentAc(page);
+    await isEkle(page, baslik);
+
+    await page.getByRole("checkbox", { name: /Motor sarımı/ }).check();
+    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
+
+    await page.goto("/yonetim");
+    await expect(
+      page.getByRole("heading", { name: /Tamamlanan işler/ })
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: new RegExp(baslik) })).toBeVisible();
+
+    /* Yapılan işlem rozeti tamamlanan işte durumdan daha bilgilendirici:
+       durum zaten hepsinde "Tamamlandı". */
+    const satir = page.locator("li", { hasText: baslik }).first();
+    await expect(satir).toContainText("Motor sarımı");
+  });
+
+  test("80 — Özet tarih filtresi varsayılan 1 ay ve açık işleri etkilemiyor", async ({
+    page,
+  }) => {
+    const acik = testAdi("OzetAcik");
+    await musteriOlustur(page, testAdi("FiltreMusteri"));
+    await segmentAc(page);
+    await isEkle(page, acik);
+
+    await page.goto("/yonetim");
+
+    // Varsayılan dönem 1 ay seçili olmalı
+    const birAy = page.getByRole("link", { name: "1 ay", exact: true });
+    await expect(birAy).toHaveAttribute("aria-current", "true");
+
+    /* Açık iş filtreden ETKİLENMEMELİ: iki ay önce açılmış ve hâlâ
+       bitmemiş bir iş unutulmuş demektir ve Özet'ten kaybolması gereken
+       en son şeydir. */
+    await expect(page.getByText(/tarih filtresinden etkilenmez/)).toBeVisible();
+    await expect(page.getByRole("link", { name: new RegExp(acik) })).toBeVisible();
+
+    // Geçmişte bir aralık seçilse bile açık iş yerinde kalmalı
+    await page.goto("/yonetim?bas=2020-01-01&bit=2020-01-31");
+    await expect(page.getByRole("link", { name: new RegExp(acik) })).toBeVisible();
+    await expect(
+      page.getByText(/Bu aralıkta tamamlanan iş yok/)
+    ).toBeVisible();
+  });
+
+  test("81 — Özet'te dönem değiştirmek aramayı sıfırlamıyor", async ({
+    page,
+  }) => {
+    const ad = testAdi("AramaKorunan");
+    await musteriOlustur(page, ad);
+
+    await page.goto(`/yonetim?ara=${encodeURIComponent(ad)}`);
+    await expect(page.getByRole("heading", { name: /Arama sonuçları/ })).toBeVisible();
+
+    /* Dönem bağlantısı arama terimini taşımazsa kullanıcı terimi
+       yeniden yazmak zorunda kalıyordu. */
+    await page.getByRole("link", { name: "3 ay", exact: true }).click();
+    await expect(page).toHaveURL(/ara=/);
+    await expect(page.getByRole("heading", { name: /Arama sonuçları/ })).toBeVisible();
+  });
+
+  /* -----------------------------------------------------------------------
+   * İş açılırken girilen tutar
+   * --------------------------------------------------------------------- */
+
+  test("82 — iş açılırken girilen tutar tamamlama formunda hazır geliyor", async ({
+    page,
+  }) => {
+    await musteriOlustur(page, testAdi("OnTutarMusteri"));
+    await segmentAc(page);
+
+    await acilirAc(page, /Yeni iş ekle/);
+    await page.getByLabel("İş başlığı").fill("On tutarli is");
+    /* Fiyat çoğu zaman iş ALINIRKEN konuşuluyor, kapatılırken değil. */
+    await page.getByLabel(/Müşteriden alınan tutar/).fill("2750");
+    await page.getByRole("button", { name: /İş Ekle/ }).click();
+    await page.waitForURL(/\/yonetim\/isler\/[0-9a-f-]{36}/, {
+      timeout: 20000,
+    });
+
+    // Tamamlama formundaki alan AYNI değeri taşımalı — aynı kolon
+    const tutar = page.getByLabel(/Müşteriden alınan tutar/);
+    await expect(tutar).toHaveValue("2750");
+    await expect(page.getByText(/hazır geldi/)).toBeVisible();
+
+    // Değiştirilebilmeli: iş sırasında pazarlık değişebilir
+    await tutar.fill("3100");
+    await page.getByRole("checkbox", { name: /Motor sarımı/ }).check();
+    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText(/3\.100,00/)).toBeVisible();
+  });
 });

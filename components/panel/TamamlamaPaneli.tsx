@@ -163,7 +163,12 @@ export default function TamamlamaPaneli({
           {/* Müşteriden alınan tutar — opsiyonel ve NOT niteliğinde.
               Ciro segment düzeyinde tutuluyor; bu alan hiçbir kâr veya
               rapor hesabına girmiyor. Bunu açıkça yazmak gerekiyor: aksi
-              hâlde buraya girilen para raporlarda aranır. */}
+              hâlde buraya girilen para raporlarda aranır.
+
+              İş açılırken girilmiş bir tutar varsa hazır geliyor — AYNI
+              alan, aynı kolon. Fiyat çoğu zaman iş alınırken konuşuluyor;
+              işi kapatan kişinin onu yeniden yazması gerekmiyor, ama
+              değiştirmesi de serbest (iş sırasında pazarlık değişebilir). */}
           <Alan
             ad="charged_amount"
             etiket="Müşteriden alınan tutar (TL)"
@@ -171,7 +176,11 @@ export default function TamamlamaPaneli({
             adim="0.01"
             varsayilan={alinanTutar === null ? undefined : String(alinanTutar)}
             placeholder="Boş bırakabilirsiniz"
-            ipucu="Not amaçlıdır, raporlardaki ciroya girmez. Ciro segment sayfasından girilir (fatura ya da tutar)."
+            ipucu={
+              alinanTutar === null
+                ? "Not amaçlıdır, raporlardaki ciroya girmez. Ciro segment sayfasından girilir (fatura ya da tutar)."
+                : "İş açılırken girilen tutar hazır geldi; değiştirebilirsiniz. Not amaçlıdır, raporlardaki ciroya girmez."
+            }
             hatalar={
               state.status === "error" ? state.fieldErrors : undefined
             }

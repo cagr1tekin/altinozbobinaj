@@ -102,6 +102,28 @@ export const stiller = StyleSheet.create({
   },
   sag: { textAlign: "right" },
 
+  /* Grup (segment) başlığı — müşteri belgesinde blokları ayırıyor.
+     Sol kenardaki kalın çizgi, işlerin hangi gelişe ait olduğunu
+     tabloya bakmadan gösteriyor; tek düz listede bu okunamıyordu. */
+  gruBaslik: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f4f4f5",
+    borderLeftWidth: 3,
+    borderLeftColor: "#18181b",
+    paddingVertical: 4,
+    paddingHorizontal: 6,
+  },
+  /* Grup alt toplamı — bloğun kapanışı. */
+  gruToplam: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderTopColor: "#d4d4d8",
+    paddingTop: 3,
+    paddingHorizontal: 4,
+  },
+
   toplamKutu: {
     marginTop: 10,
     alignSelf: "flex-end",
