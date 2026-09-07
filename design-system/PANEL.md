@@ -267,6 +267,68 @@ uygulamayı bozuk sanır.
 Aynı cümle nerede *girildiğini* de söylemeli ("Ciro segment sayfasından
 girilir").
 
+### İç kopya / müşteri kopyası
+
+Müşteriye giden bir belgede işletmenin ticari bilgisi **hiç** olmamalı.
+Bu üç şey birlikte gizleniyor, tek bayrakla:
+
+1. Alış fiyatı ve maliyet
+2. Malzeme **miktarı** — "hangi işe ne kadar tel girdi" rakibin işine
+   yarar, müşteriye bir şey anlatmaz
+3. Tahsilat ve ciro tutarları
+
+Üçünü ayrı ayrı açıp kapatmak yalnızca yanlış kombinasyona imkân
+verirdi; tek karar noktası bırakmak doğru olan.
+
+Müşteriye kalan: hangi iş yapıldı, ne zaman, hangi malzemeler kullanıldı.
+Şeffaflık anlatısı işin niteliğine dayanıyor, miktara değil — QR sayfası
+da tam bunu gösteriyor, iki yüzey tutarlı.
+
+**İki ayrı buton, tek buton + onay kutusu değil.** Onay kutusuyla yanlış
+kopya yazdırmak "bir kere tıklamamakla" olurdu; ayrı butonda hangisinin
+verildiği bilinçli bir seçim.
+
+**Bayrak adı geçmişten geliyor** (`maliyet=0`) ve bilinçli olarak
+değiştirilmiyor: açık bir sekmedeki eski bağlantı yeni adı bilmezse
+müşteri kopyası sessizce iç kopyaya dönerdi.
+
+### Liste belgelerinde tarih aralığı
+
+Liste içeren belgelerde (müşteri belgesi, dönem raporu) baş/bitiş tarihi
+seçilebiliyor; tek bir işin ya da tek bir segmentin belgesinde aralık
+sormanın karşılığı yok ve alan hiç görünmüyor.
+
+İki kural:
+
+- **Aralıkla alınan belge bunu yazar.** Yazmasa "tüm geçmiş" sanılır ve
+  eksik bir liste tam sayılır — muhasebe tarafında sessiz bir hata.
+- **Yarım ya da ters aralık reddedilir**, sessizce tüm geçmişe
+  düşmez. Kullanıcı aralık verdiyse sınırlamak istiyor; beklediğinden
+  fazlasını içeren bir belgeyi müşteriye vermek gerçek bir sızıntı.
+
+### Filtre neyi filtrelemez
+
+Özet'teki tarih filtresi **tamamlanan** işlere uygulanıyor, açık işlere
+değil. İki ay önce açılmış ve hâlâ bitmemiş bir iş unutulmuş demektir ve
+ekrandan kaybolması gereken en son şeydir. Filtre listeyi sınırlamak için
+var; açık işleri sınırlamak amaca ters düşerdi. Bölüm açıklaması bunu
+yazıyor ("tarih filtresinden etkilenmez") — kullanıcı neyin filtrelendiğini
+tahmin etmek zorunda kalmamalı.
+
+Filtre bağlantıları **diğer parametreleri korur**: dönem değiştirmek arama
+terimini sıfırlarsa kullanıcı terimi yeniden yazmak zorunda kalıyor. GET
+formu URL'deki parametreleri düşürdüğü için gizli alan olarak taşınıyor.
+
+### Aynı bilgi iki ekranda: tek alan, tek kolon
+
+İş tutarı hem iş açılırken hem tamamlanırken girilebiliyor. İkisi **aynı
+alan**: aynı kolona yazıyor ve açılışta girilen değer tamamlama formunda
+hazır geliyor (değiştirilebilir — iş sırasında pazarlık değişebilir).
+
+İki ayrı alan olsaydı hangisinin geçerli olduğu belirsiz kalırdı. Fiyat
+çoğu zaman iş alınırken konuşuluyor, kapatılırken değil; ama iş bittiğinde
+değişmiş olabilir. Alanın ipucu değerin nereden geldiğini söylüyor.
+
 ### Zorunlu seçim (kart listesi)
 
 İki-üç seçenekli zorunlu bir karar için açılır liste kullanılmaz;
@@ -414,6 +476,12 @@ Panel telefona kısayol olarak eklenecek.
 | Birbirini dışlayan iki formu birlikte açık bırakmak | Doldurup gönderdikten sonra reddedilmek emeği boşa çıkarır |
 | Hesaba girmeyen bir alanı sessizce koymak | Girilen değer raporlarda aranır, bulunamaz, uygulama bozuk sanılır |
 | Bir kararı iki ekrana bölmek (ürün tanımı / fiyat) | Yarım kalır: fiyatı hiç girilmemiş ürün kalır geriye |
+| Müşteri belgesinde malzeme miktarı göstermek | Ticari bilgi; QR sayfasında gizli, belgede göstermek tutarsız |
+| Aralıkla alınan belgede dönemi yazmamak | Eksik liste "tüm geçmiş" sanılır |
+| Yarım/ters tarih aralığında sessizce tüm veriyi getirmek | Kullanıcı sınırlamak istedi; fazlası müşteriye giderse sızıntı |
+| Açık işleri tarih filtresine sokmak | Unutulmuş eski iş ekrandan kaybolur — filtrenin amacına ters |
+| Filtre bağlantısında arama terimini düşürmek | Kullanıcı her dönem değişiminde terimi yeniden yazar |
+| Aynı bilgi için iki ayrı alan (iş açılışı / tamamlama tutarı) | Hangisinin geçerli olduğu belirsiz kalır |
 | Aynı anda iki miktar alanı (adet + gram) göstermek | Hangisinin doldurulacağı her seferinde bir karar; yanlış kutu stoğu sessizce bozar |
 | Miktarda ondalık kabul etmek | Virgül/nokta karışıklığı ve yuvarlama; gram tam sayı olarak yeterli |
 | Placeholder'ı etiket yerine kullanma | Yazmaya başlayınca etiket kaybolur |

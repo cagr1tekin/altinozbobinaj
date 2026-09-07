@@ -17,6 +17,7 @@ import {
   formatPara,
 } from "@/components/panel/ui";
 import DonemSecici from "@/components/panel/DonemSecici";
+import { aralikCoz } from "@/lib/donem";
 import KarZararGrafigi from "@/components/panel/KarZararGrafigi";
 import DenetimGunlugu from "@/components/panel/DenetimGunlugu";
 
@@ -24,37 +25,18 @@ import DenetimGunlugu from "@/components/panel/DenetimGunlugu";
    zamanla yavaşlatır; günlük kullanımda son hareketler yeterli. */
 const DENETIM_LIMIT = 50;
 
-/** ISO tarih, yerel saate göre — toISOString UTC'ye kaydırıyor. */
-function isoTarih(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
-}
-
-function donemAralik(donem: string): { baslangic: string; bitis: string } {
-  const bugun = new Date();
-  const bas = new Date(bugun);
-  if (donem === "yil") bas.setFullYear(bas.getFullYear() - 1);
-  else if (donem === "ceyrek") bas.setMonth(bas.getMonth() - 3);
-  else bas.setMonth(bas.getMonth() - 1);
-  return { baslangic: isoTarih(bas), bitis: isoTarih(bugun) };
-}
-
-const TARIH_BICIMI = /^\d{4}-\d{2}-\d{2}$/;
-
 export default async function RaporlarSayfasi({
   searchParams,
 }: {
   searchParams: Promise<{ donem?: string; bas?: string; bit?: string }>;
 }) {
-  const { donem = "ay", bas, bit } = await searchParams;
+  const { donem, bas, bit } = await searchParams;
   const supabase = await createClient();
 
-  const gecerli = (v?: string) => Boolean(v && TARIH_BICIMI.test(v));
-  const aralik =
-    gecerli(bas) && gecerli(bit) && bas! <= bit!
-      ? { baslangic: bas!, bitis: bit! }
-      : donemAralik(donem);
+  /* Aralık çözümlemesi lib/donem.ts'te: Özet, Raporlar ve PDF route'ları
+     aynı kuralı uygulamalı, yoksa aynı bağlantı üç ekranda farklı
+     aralık gösteriyor. */
+  const aralik = aralikCoz({ donem, bas, bit });
 
   const [ozetSonuc, musteriSonuc, trendSonuc, denetimSonuc] = await Promise.all([
     supabase.rpc("dashboard_summary", {
@@ -97,7 +79,7 @@ export default async function RaporlarSayfasi({
             <div className="mb-4">
               <DonemSecici
                 temelYol="/yonetim/raporlar"
-                aktifDonem={donem}
+                aktifDonem={aralik.donem}
                 baslangic={aralik.baslangic}
                 bitis={aralik.bitis}
               />

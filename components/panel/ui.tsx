@@ -16,6 +16,8 @@ export {
   ISLEM_TURU_CUMLE,
   formatTarih,
   formatTarihSaat,
+  islemIfadesi,
+  islemleriSirala,
   stokIsareti,
 } from "@/lib/bicim";
 /* Yeniden ihraç değerleri bu modülün kapsamına sokmuyor; rozet bileşeni

@@ -13,6 +13,21 @@ import { createClient } from "@/lib/supabase/server";
  * pdf_exports tablosu ve şema zaten hazır.
  */
 
+/**
+ * İç kopya mı, müşteri kopyası mı?
+ *
+ * Tek yerde okunuyor: dört route'a kopyalanınca birinde gözden kaçarsa
+ * o belge sessizce maliyet, miktar ve tahsilat sızdırır.
+ *
+ * `maliyet=0` müşteri kopyası demek. Parametrenin adı geçmişten geliyor
+ * (başta yalnızca maliyeti gizliyordu) ve BİLİNÇLİ olarak
+ * değiştirilmiyor: açık bir sekmedeki eski bağlantı yeni adı bilmezse
+ * müşteri kopyası sessizce iç kopyaya dönerdi.
+ */
+export function icKopyaMi(url: string): boolean {
+  return new URL(url).searchParams.get("maliyet") !== "0";
+}
+
 /** Oturum kontrolü. PDF'ler ticari bilgi içerdiği için girişsiz açılmamalı. */
 export async function oturumVarMi(): Promise<boolean> {
   const supabase = await createClient();

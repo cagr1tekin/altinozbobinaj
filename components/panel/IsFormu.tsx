@@ -19,7 +19,19 @@ export default function IsFormu({ segmentId }: { segmentId: string }) {
               hatalar={hatalar}
             />
             <Alan ad="description" etiket="Açıklama" cokSatir hatalar={hatalar} />
-            <p className="text-xs text-pnl-muted">
+            {/* Tutar burada da girilebiliyor: fiyat çoğu zaman iş alınırken
+                konuşuluyor, işi kapatırken değil. Aynı kolona yazıyor, yani
+                buraya girilen değer tamamlama formunda hazır çıkıyor. */}
+            <Alan
+              ad="charged_amount"
+              etiket="Müşteriden alınan tutar (TL)"
+              tip="number"
+              adim="0.01"
+              placeholder="Boş bırakabilirsiniz"
+              ipucu="Not amaçlıdır, raporlardaki ciroya girmez. İşi tamamlarken bu alan hazır gelir ve değiştirilebilir."
+              hatalar={hatalar}
+            />
+            <p className="text-sm text-pnl-faint">
               Eklenen iş doğrudan &quot;devam ediyor&quot; durumunda başlar.
             </p>
             <GonderButonu>İş Ekle</GonderButonu>

@@ -4,6 +4,7 @@ import { denetimPdfKaydet } from "@/lib/denetim";
 import {
   bulunamadi,
   dosyaAdi,
+  icKopyaMi,
   oturumVarMi,
   pdfYanit,
   yetkisiz,
@@ -16,14 +17,14 @@ export async function GET(request: Request) {
   const id = searchParams.get("id");
   if (!id) return bulunamadi();
 
-  const maliyetGoster = searchParams.get("maliyet") !== "0";
+  const icKopya = icKopyaMi(request.url);
 
   const veri = await segmentVerisi(id);
   if (!veri) return bulunamadi();
 
   await denetimPdfKaydet("segment", id, veri.segment.tarih, {
     musteri: veri.musteri.ad,
-    maliyet_gosterildi: maliyetGoster,
+    ic_kopya: icKopya,
   });
 
   return pdfYanit(
@@ -31,7 +32,7 @@ export async function GET(request: Request) {
       <SegmentBelgesi
         musteri={veri.musteri}
         segment={veri.segment}
-        maliyetGoster={maliyetGoster}
+        icKopya={icKopya}
       />
     ),
     dosyaAdi(["segment", veri.musteri.ad, veri.segment.tarih])

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { DONEMLER } from "@/lib/donem";
 
 /**
  * Dönem seçimi.
@@ -9,12 +10,6 @@ import Link from "next/link";
  * Serbest aralık `details` içinde gizli: günlük kullanımda hazır dönemler
  * yetiyor, tarih girmek nadir bir ihtiyaç ve ekranı meşgul etmemeli.
  */
-const donemler = [
-  { deger: "ay", etiket: "1 ay" },
-  { deger: "ceyrek", etiket: "3 ay" },
-  { deger: "yil", etiket: "1 yıl" },
-];
-
 const tarihGirdisi =
   "min-h-[44px] w-full rounded-lg border border-pnl-edge bg-pnl-surface px-3 text-base focus:border-pnl-primary focus:outline-none focus:ring-2 focus:ring-pnl-primary/30";
 
@@ -23,22 +18,38 @@ export default function DonemSecici({
   aktifDonem,
   baslangic,
   bitis,
+  korunan,
 }: {
   temelYol?: string;
   aktifDonem: string;
   baslangic: string;
   bitis: string;
+  /**
+   * Dönem değişirken korunması gereken diğer parametreler (örn. Özet'teki
+   * arama terimi). Korunmazsa dönem değiştirmek aramayı sıfırlıyordu ve
+   * kullanıcı terimi yeniden yazmak zorunda kalıyordu.
+   */
+  korunan?: Record<string, string | undefined>;
 }) {
+  const ekstra = Object.entries(korunan ?? {}).filter(
+    (e): e is [string, string] => Boolean(e[1])
+  );
+
+  const baglanti = (donem: string) => {
+    const p = new URLSearchParams([["donem", donem], ...ekstra]);
+    return `${temelYol}?${p.toString()}`;
+  };
+
   return (
     <div className="space-y-3">
       <nav aria-label="Dönem">
         <ul className="flex gap-2">
-          {donemler.map((d) => {
+          {DONEMLER.map((d) => {
             const aktif = d.deger === aktifDonem;
             return (
               <li key={d.deger} className="flex-1">
                 <Link
-                  href={`${temelYol}?donem=${d.deger}`}
+                  href={baglanti(d.deger)}
                   aria-current={aktif ? "true" : undefined}
                   className={`flex min-h-[44px] items-center justify-center rounded-lg border text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-pnl-primary ${
                     aktif
@@ -54,11 +65,29 @@ export default function DonemSecici({
         </ul>
       </nav>
 
-      <details className="rounded-lg border border-pnl-line bg-pnl-surface">
+      <details
+        className="rounded-lg border border-pnl-line bg-pnl-surface"
+        /* Serbest aralık seçiliyse açık başlıyor: kapalı kalsa kullanıcı
+           hangi tarihlerin geçerli olduğunu göremiyordu. */
+        open={aktifDonem === "serbest"}
+      >
         <summary className="flex min-h-[44px] cursor-pointer items-center px-4 text-sm text-pnl-muted">
           Tarih aralığı seç
+          {aktifDonem === "serbest" && (
+            <span className="ml-2 font-medium text-pnl-text">
+              {baslangic} → {bitis}
+            </span>
+          )}
         </summary>
-        <form className="flex flex-wrap items-end gap-2 border-t border-pnl-line p-3">
+        <form
+          action={temelYol}
+          className="flex flex-wrap items-end gap-2 border-t border-pnl-line p-3"
+        >
+          {/* Korunan parametreler gizli alan olarak taşınıyor: GET formu
+              yalnızca kendi alanlarını gönderiyor, URL'dekileri düşürüyor. */}
+          {ekstra.map(([ad, deger]) => (
+            <input key={ad} type="hidden" name={ad} value={deger} />
+          ))}
           <div className="min-w-[130px] flex-1">
             <label htmlFor="donem-bas" className="mb-1 block text-sm">
               Başlangıç
