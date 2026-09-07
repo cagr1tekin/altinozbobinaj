@@ -1,18 +1,24 @@
 "use client";
 
 import { useState } from "react";
-import { urunOlustur } from "@/lib/actions/urunler";
+import { urunStokEkle } from "@/lib/actions/urunler";
 import { Alan, Form, GonderButonu } from "@/components/panel/Form";
-import { type Birim, fiyatBirimi } from "@/components/panel/ui";
+import { type Birim, birimAdi, birimOrnek, fiyatBirimi } from "@/components/panel/ui";
 
+/**
+ * Yeni ürün — ilk alımıyla birlikte.
+ *
+ * Ürün tanımı ile ilk stok girişi tek formda: bir ürünün fiyatı ancak
+ * alındığı anda belli oluyor. Ayrı ekranlarda sorulduğunda fiyatı 0
+ * kalmış, stoğu hiç girilmemiş ürünler oluşuyordu.
+ */
 export default function UrunFormu() {
-  /* Birim, fiyatın neyin karşılığı olduğunu belirliyor; bu yüzden alan
-     sırası önce birim, sonra fiyat. Ters sırada kullanıcı fiyatı neye göre
-     gireceğini bilmeden yazıyordu. */
+  /* Birim, hem miktarın hem fiyatın neyin karşılığı olduğunu
+     belirliyor; bu yüzden alan sırası önce birim, sonra miktar/fiyat. */
   const [birim, setBirim] = useState<Birim>("piece");
 
   return (
-    <Form action={urunOlustur}>
+    <Form action={urunStokEkle}>
       {(state) => {
         const hatalar = state.status === "error" ? state.fieldErrors : undefined;
         return (
@@ -43,20 +49,34 @@ export default function UrunFormu() {
               hatalar={hatalar}
             />
             <Alan
+              ad="miktar"
+              etiket={`Aldığınız miktar (${birimAdi(birim)})`}
+              tip="number"
+              adim="1"
+              placeholder={birimOrnek(birim)}
+              zorunlu
+              hatalar={hatalar}
+            />
+            <Alan
               ad="purchase_price"
               etiket={`Alış fiyatı (${fiyatBirimi(birim)})`}
               tip="number"
               adim="0.01"
-              varsayilan="0"
+              zorunlu
               ipucu={
                 birim === "gram"
-                  ? "Fiyat kilogram başına giriliyor; maliyet kullanılan grama göre hesaplanıyor. İşe eklendiği anda sabitlenir."
-                  : "İşe eklendiği anda sabitlenir; sonraki fiyat değişiklikleri geçmiş işleri etkilemez."
+                  ? "Fiyat kilogram başına giriliyor; maliyet kullanılan grama göre hesaplanıyor."
+                  : "Her yeni stok girişinde fiyatı yeniden girebilirsiniz."
               }
               hatalar={hatalar}
             />
-            <Alan ad="notes" etiket="Not" cokSatir hatalar={hatalar} />
-            <GonderButonu>Ürünü Kaydet</GonderButonu>
+            <Alan
+              ad="note"
+              etiket="Not"
+              placeholder="Örn: Fatura #123"
+              hatalar={hatalar}
+            />
+            <GonderButonu>Ürünü ve Stoğu Kaydet</GonderButonu>
           </div>
         );
       }}

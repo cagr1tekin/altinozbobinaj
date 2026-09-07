@@ -29,8 +29,8 @@ insert into products (id, name, purchase_price, unit_type_default)
 do $$
 declare v_p products; v_r products;
 begin
-  perform apply_stock_movement('1d4b7f5e-c064-42b3-d9f8-5e1b3a7c4d26','purchase_in',25000,'gram girisi');
-  perform apply_stock_movement('2e5c8a6f-d175-43c4-eaf9-6f2c4b8d5e37','purchase_in',10,'adet girisi');
+  perform apply_stock_movement('1d4b7f5e-c064-42b3-d9f8-5e1b3a7c4d26',25000,null,'gram girisi');
+  perform apply_stock_movement('2e5c8a6f-d175-43c4-eaf9-6f2c4b8d5e37',10,null,'adet girisi');
 
   select * into v_p from products where id='1d4b7f5e-c064-42b3-d9f8-5e1b3a7c4d26';
   select * into v_r from products where id='2e5c8a6f-d175-43c4-eaf9-6f2c4b8d5e37';
@@ -123,7 +123,7 @@ end $$;
 \echo '--- TEST 8: sifir miktar reddediliyor ---'
 do $$
 begin
-  perform apply_stock_movement('1d4b7f5e-c064-42b3-d9f8-5e1b3a7c4d26','purchase_in',0,null);
+  perform apply_stock_movement('1d4b7f5e-c064-42b3-d9f8-5e1b3a7c4d26',0,null,null);
   raise exception 'KALDI: sifir miktar kabul edildi';
 exception
   when invalid_parameter_value then
@@ -133,7 +133,7 @@ end $$;
 \echo '--- TEST 9: stogu eksiye dusuren hareket reddediliyor ---'
 do $$
 begin
-  perform apply_stock_movement('1d4b7f5e-c064-42b3-d9f8-5e1b3a7c4d26','adjustment',-99999,null);
+  perform apply_stock_movement('1d4b7f5e-c064-42b3-d9f8-5e1b3a7c4d26',-99999,null,null);
   raise exception 'KALDI: eksi stok kabul edildi';
 exception
   when check_violation then
@@ -170,7 +170,7 @@ end $$;
 \echo '--- TEST 12: anon yeni imzalari cagiramiyor ---'
 do $$
 begin
-  if has_function_privilege('anon', 'apply_stock_movement(uuid, movement_type, integer, text)', 'EXECUTE') then
+  if has_function_privilege('anon', 'apply_stock_movement(uuid, integer, numeric, text)', 'EXECUTE') then
     raise exception 'KALDI: anon stok hareketi uygulayabiliyor';
   end if;
   if has_function_privilege('anon', 'add_job_product(uuid, uuid, integer)', 'EXECUTE') then

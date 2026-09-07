@@ -104,10 +104,20 @@ export default async function RaporlarSayfasi({
             </div>
 
             <div className="mb-6 grid grid-cols-2 gap-3">
+              {/* Ciro iki kaynaktan geliyor: faturalar ve faturasız
+                  segmentlere elle girilen tutarlar. Alt satır bunu
+                  ayrıştırıyor — "fatura sayısı" tek başına yazsaydı
+                  faturasız ciro görünmez olurdu. */}
               <OzetKarti
                 etiket="Net gelir"
                 deger={formatPara(ozet?.net_gelir ?? 0)}
-                alt={`${ozet?.fatura_sayisi ?? 0} fatura`}
+                alt={
+                  (ozet?.elden_sayisi ?? 0) > 0
+                    ? `${ozet?.fatura_sayisi ?? 0} fatura · ${
+                        ozet?.elden_sayisi ?? 0
+                      } faturasız`
+                    : `${ozet?.fatura_sayisi ?? 0} fatura`
+                }
               />
               <OzetKarti
                 etiket="Malzeme gideri"
@@ -127,6 +137,14 @@ export default async function RaporlarSayfasi({
                 alt={`${ozet?.acik_is ?? 0} iş açık`}
               />
             </div>
+
+            {(ozet?.elden_sayisi ?? 0) > 0 && (
+              <p className="mb-6 -mt-3 text-sm text-pnl-muted">
+                Gelirin {formatPara(ozet?.faturali_gelir ?? 0)} kadarı
+                faturalı, {formatPara(ozet?.elden_gelir ?? 0)} kadarı
+                faturasız (elden) alınmış.
+              </p>
+            )}
 
             <Bolum baslik="Aylık seyir">
               <KarZararGrafigi veri={trend} />

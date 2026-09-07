@@ -95,3 +95,22 @@ export function islemIfadesi(turler: ServiceType[]): string | null {
     ? `${adlar[0]} işlemi`
     : `${adlar.join(" ve ")} işlemleri`;
 }
+
+/**
+ * Stok miktarının işaretini yön seçiminden üretir.
+ *
+ * Kullanıcı miktarı her zaman pozitif yazıyor; giriş mi çıkış mı olduğu
+ * ayrı bir seçim. Sahada "-3" yazdırmak iki hataya yol açıyordu: eksiyi
+ * unutmak (çıkış giriş olarak kaydediliyordu) ve girişe eksi yazmak.
+ *
+ * Boş string dönmesi bilinçli: forma gizli alan olarak yazılıyor ve boş
+ * değer "miktar girilmedi" anlamına geliyor — 0 göndermek şemayı
+ * "miktar girilmeli" hatasıyla değil, sessiz bir sıfırla geçerdi.
+ */
+export function stokIsareti(ham: string, giris: boolean): number | "" {
+  const sayi = Number(ham);
+  if (ham.trim().length === 0 || !Number.isFinite(sayi) || sayi === 0) {
+    return "";
+  }
+  return giris ? Math.abs(sayi) : -Math.abs(sayi);
+}

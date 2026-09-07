@@ -157,9 +157,20 @@ test.describe("Güvenlik ve erişim", () => {
         "apply_stock_movement",
         {
           p_product_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
-          p_movement_type: "purchase_in",
           p_miktar: 100,
         },
+      ],
+      [
+        "urun_ve_stok_ekle",
+        { p_ad: "Anon Deneme", p_birim: "piece", p_miktar: 1, p_fiyat: 1 },
+      ],
+      [
+        "urun_stok_gecmisi",
+        { p_product_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc" },
+      ],
+      [
+        "segment_tutar_yaz",
+        { p_segment_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc", p_tutar: 1 },
       ],
       ["add_job_product", {
         p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",

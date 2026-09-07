@@ -3,7 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { musteriSchema, segmentSchema } from "@/lib/validation/schemas";
+import {
+  musteriSchema,
+  segmentSchema,
+  segmentTutarSchema,
+} from "@/lib/validation/schemas";
 import {
   type ActionState,
   veritabaniHatasi,
@@ -144,5 +148,43 @@ export async function segmentDurumDegistir(
   return {
     status: "success",
     message: status === "closed" ? "Segment kapatıldı" : "Segment yeniden açıldı",
+  };
+}
+
+/**
+ * Segment cirosu: elden alınan tutar.
+ *
+ * Bir segmentte YA fatura YA bu tutar olur — ikisi birden ciroyu iki kez
+ * saydırırdı. Kural veritabanı trigger'ında (iki yönlü); buradaki
+ * kontrol yalnızca anlaşılır bir mesaj için.
+ *
+ * Boş göndermek tutarı temizliyor, böylece fatura yolu açılıyor.
+ */
+export async function segmentTutarKaydet(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const parsed = segmentTutarSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return zodHatasi(parsed.error);
+
+  const supabase = await createClient();
+
+  const { error } = await supabase.rpc("segment_tutar_yaz", {
+    p_segment_id: parsed.data.segment_id,
+    p_tutar: parsed.data.charged_amount,
+  });
+
+  if (error) return veritabaniHatasi(error, "Tutar kaydedilemedi");
+
+  revalidatePath(`/yonetim/segmentler/${parsed.data.segment_id}`);
+  revalidatePath("/yonetim");
+  revalidatePath("/yonetim/raporlar");
+
+  return {
+    status: "success",
+    message:
+      parsed.data.charged_amount === null
+        ? "Tutar kaldırıldı. Bu segmente artık fatura girilebilir."
+        : "Alınan tutar kaydedildi",
   };
 }

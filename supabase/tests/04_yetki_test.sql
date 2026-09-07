@@ -101,9 +101,12 @@ declare
   v_fn text;
 begin
   foreach v_fn in array array[
-    'complete_job(uuid, service_type[], boolean)',
+    'complete_job(uuid, service_type[], numeric, boolean)',
     'revert_job_completion(uuid)',
-    'apply_stock_movement(uuid, movement_type, integer, text)',
+    'apply_stock_movement(uuid, integer, numeric, text)',
+    'urun_ve_stok_ekle(text, unit_type, integer, numeric, text, text)',
+    'urun_stok_gecmisi(uuid, integer)',
+    'segment_tutar_yaz(uuid, numeric)',
     'add_job_product(uuid, uuid, integer)',
     'dashboard_summary(date, date)',
     'dashboard_by_customer(date, date)',

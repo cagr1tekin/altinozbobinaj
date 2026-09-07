@@ -49,6 +49,74 @@ test.describe("Panel iş akışı", () => {
     await page.waitForURL(/\/yonetim\/segmentler\/[0-9a-f-]{36}/, { timeout: 20000 });
   }
 
+  /**
+   * Ürün + ilk stok girişi tek formda (0014).
+   *
+   * Fiyat artık ürün tanımında değil alım anında giriliyor; bu yüzden
+   * miktar da zorunlu. Testler ürünü hep bu yardımcıyla kuruyor.
+   */
+  async function urunEkle(
+    page: Page,
+    ad: string,
+    {
+      fiyat = "100",
+      miktar = "10",
+      birim = "Adet",
+    }: { fiyat?: string; miktar?: string; birim?: "Adet" | "Gram" } = {}
+  ) {
+    await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Yeni ürün ekle/);
+    await page.getByLabel("Ürün adı").fill(ad);
+    if (birim !== "Adet") {
+      await page.getByLabel("Takip birimi").selectOption({ label: birim });
+    }
+    await page.getByLabel(/Aldığınız miktar/).fill(miktar);
+    await page.getByLabel(/Alış fiyatı/).fill(fiyat);
+    await page.getByRole("button", { name: /Ürünü ve Stoğu Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+  }
+
+  /** Var olan ürüne stok girişi; fiyat verilirse ürünün fiyatı güncellenir. */
+  async function stokGirisi(
+    page: Page,
+    urun: string,
+    miktar: string,
+    { fiyat, birim = "adet", not }: { fiyat?: string; birim?: "adet" | "gram"; not?: string } = {}
+  ) {
+    await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Stok hareketi ekle/);
+    await page
+      .getByLabel("Ürün", { exact: true })
+      .selectOption({ label: `${urun} (${birim})` });
+    await page.getByLabel(`Miktar (${birim})`, { exact: true }).fill(miktar);
+    if (fiyat !== undefined) {
+      await page.getByLabel(/Alış fiyatı/).fill(fiyat);
+    }
+    if (not !== undefined) {
+      await page.getByLabel("Not").fill(not);
+    }
+    await page.getByRole("button", { name: /Stok Girişini Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+  }
+
+  /** Stok çıkışı: miktar pozitif yazılıyor, yön düğmeden seçiliyor. */
+  async function stokCikisi(
+    page: Page,
+    urun: string,
+    miktar: string,
+    birim: "adet" | "gram" = "adet"
+  ) {
+    await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Stok hareketi ekle/);
+    await page
+      .getByLabel("Ürün", { exact: true })
+      .selectOption({ label: `${urun} (${birim})` });
+    await page.getByRole("button", { name: /Stok çıktı/ }).click();
+    await page.getByLabel(`Miktar (${birim})`, { exact: true }).fill(miktar);
+    await page.getByRole("button", { name: /Stok Çıkışını Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+  }
+
   async function isEkle(page: Page, baslik: string) {
     await acilirAc(page, /Yeni iş ekle/);
     await page.getByLabel("İş başlığı").fill(baslik);
@@ -132,33 +200,29 @@ test.describe("Panel iş akışı", () => {
     const urun = testAdi("Rulman");
 
     await page.goto("/yonetim/urunler");
-    await acilirAc(page, /Yeni ürün ekle/);
-    await page.getByLabel("Ürün adı").fill(urun);
-    await page.getByLabel(/Alış fiyatı/).fill("120,50"); // Türkçe ondalık
-    await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+    // Ürün ve ilk alım tek adımda; fiyat Türkçe ondalıkla
+    await urunEkle(page, urun, { fiyat: "120,50", miktar: "10" });
 
     // Fiyat virgülle girildiği hâlde doğru saklanmalı
     await expect(page.getByText(urun)).toBeVisible();
     await expect(page.getByText("120,50").first()).toBeVisible();
 
-    // Stok girişi
-    await acilirAc(page, /Stok hareketi ekle/);
-    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (adet)` });
-    await page.getByLabel("Miktar (adet)", { exact: true }).fill("10");
-    await page.getByLabel("Not").fill("E2E stok girişi");
-    await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
-
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+    // Ürün tanımı tek başına hareket yazmalı (açılış stoğu mükerrer olmamalı)
+    await stokGirisi(page, urun, "10", { not: "E2E stok girişi" });
     await expect(page.getByText("E2E stok girişi")).toBeVisible();
+    await expect(
+      page.locator("li", { hasText: urun }).first()
+    ).toContainText("20 adet");
   });
 
-  test("38 — negatif fiyat ve kesirli adet reddediliyor", async ({ page }) => {
+  test("38 — negatif fiyat reddediliyor", async ({ page }) => {
     await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Yeni ürün ekle/);
 
     await page.getByLabel("Ürün adı").fill(testAdi("NegatifTest"));
+    await page.getByLabel(/Aldığınız miktar/).fill("5");
     await page.getByLabel(/Alış fiyatı/).fill("-50");
-    await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
+    await page.getByRole("button", { name: /Ürünü ve Stoğu Kaydet/ }).click();
 
     const uyari = formHatasi(page);
     await expect(uyari).toBeVisible({ timeout: 10000 });
@@ -170,19 +234,8 @@ test.describe("Panel iş akışı", () => {
   }) => {
     const urun = testAdi("StokUrun");
 
-    // Ürün ve stok hazırla
-    await page.goto("/yonetim/urunler");
-    await acilirAc(page, /Yeni ürün ekle/);
-    await page.getByLabel("Ürün adı").fill(urun);
-    await page.getByLabel(/Alış fiyatı/).fill("100");
-    await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
-
-    await acilirAc(page, /Stok hareketi ekle/);
-    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (adet)` });
-    await page.getByLabel("Miktar (adet)", { exact: true }).fill("10");
-    await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+    // Ürün ve stok hazırla (tanım zaten 10 adet giriyor)
+    await urunEkle(page, urun, { fiyat: "100", miktar: "10" });
 
     // İş kur ve malzeme ekle
     await musteriOlustur(page, testAdi("StokMusteri"));
@@ -219,12 +272,10 @@ test.describe("Panel iş akışı", () => {
   }) => {
     const urun = testAdi("AzStok");
 
-    await page.goto("/yonetim/urunler");
-    await acilirAc(page, /Yeni ürün ekle/);
-    await page.getByLabel("Ürün adı").fill(urun);
-    await page.getByLabel(/Alış fiyatı/).fill("50");
-    await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+    /* Ürün tanımı artık stok girmeyi zorunlu kılıyor; sonra hepsini
+       çıkışla sıfırlıyoruz ki "stok 0" durumu kurulabilsin. */
+    await urunEkle(page, urun, { fiyat: "50", miktar: "1" });
+    await stokCikisi(page, urun, "1");
 
     await musteriOlustur(page, testAdi("AzStokMusteri"));
     await segmentAc(page);
@@ -305,18 +356,7 @@ test.describe("Panel iş akışı", () => {
   test("43 — tamamlama geri alınınca stok iade ediliyor", async ({ page }) => {
     const urun = testAdi("IadeUrun");
 
-    await page.goto("/yonetim/urunler");
-    await acilirAc(page, /Yeni ürün ekle/);
-    await page.getByLabel("Ürün adı").fill(urun);
-    await page.getByLabel(/Alış fiyatı/).fill("80");
-    await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
-
-    await acilirAc(page, /Stok hareketi ekle/);
-    await page.getByLabel("Ürün", { exact: true }).selectOption({ label: `${urun} (adet)` });
-    await page.getByLabel("Miktar (adet)", { exact: true }).fill("6");
-    await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+    await urunEkle(page, urun, { fiyat: "80", miktar: "6" });
 
     await musteriOlustur(page, testAdi("IadeMusteri"));
     await segmentAc(page);
@@ -554,13 +594,18 @@ test.describe("Panel iş akışı", () => {
     await page.getByLabel("Ürün adı").fill(urun);
     await page.getByLabel("Takip birimi").selectOption("gram");
 
-    /* Birim gram seçilince fiyatın kilogram başına olduğu yazmalı:
-       kullanıcı fiyatı neye göre gireceğini bilmeden yazıyordu. */
-    await expect(page.getByLabel(/Alış fiyatı/)).toBeVisible();
+    /* Birim gram seçilince hem miktarın hem fiyatın hangi birimde
+       olduğu yazmalı: kullanıcı fiyatı neye göre gireceğini bilmeden
+       yazıyordu. */
+    await expect(page.getByText(/Aldığınız miktar \(gram\)/)).toBeVisible();
     await expect(page.getByText(/Alış fiyatı \(₺ \/ kilogram\)/)).toBeVisible();
+    await page.getByLabel(/Aldığınız miktar/).fill("25000");
     await page.getByLabel(/Alış fiyatı/).fill("480");
-    await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
+    await page.getByRole("button", { name: /Ürünü ve Stoğu Kaydet/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    // Liste gram olarak göstermeli
+    await expect(page.getByText("25.000 gram").first()).toBeVisible();
 
     // Stok girişi: tek alan, gram
     await acilirAc(page, /Stok hareketi ekle/);
@@ -576,12 +621,11 @@ test.describe("Panel iş akışı", () => {
     );
     await expect(miktar).toHaveAttribute("placeholder", "Örn: 250");
 
-    await miktar.fill("25000");
-    await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
+    await miktar.fill("5000");
+    await page.getByRole("button", { name: /Stok Girişini Kaydet/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
-    // Liste gram olarak göstermeli
-    await expect(page.getByText("25.000 gram").first()).toBeVisible();
+    await expect(page.getByText("30.000 gram").first()).toBeVisible();
   });
 
   test("54 — ondalık miktar reddediliyor ve tekerlek değeri bozmuyor", async ({
@@ -589,12 +633,7 @@ test.describe("Panel iş akışı", () => {
   }) => {
     const urun = testAdi("TamSayi");
 
-    await page.goto("/yonetim/urunler");
-    await acilirAc(page, /Yeni ürün ekle/);
-    await page.getByLabel("Ürün adı").fill(urun);
-    await page.getByLabel(/Alış fiyatı/).fill("50");
-    await page.getByRole("button", { name: /Ürünü Kaydet/ }).click();
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+    await urunEkle(page, urun, { fiyat: "50", miktar: "1" });
 
     await acilirAc(page, /Stok hareketi ekle/);
     await page
@@ -614,7 +653,7 @@ test.describe("Panel iş akışı", () => {
 
     // Ondalık giriş reddedilmeli
     await miktar.fill("3.5");
-    await page.getByRole("button", { name: /Hareketi Uygula/ }).click();
+    await page.getByRole("button", { name: /Stok Girişini Kaydet/ }).click();
     await expect(formHatasi(page)).toContainText(/tam sayı/i, {
       timeout: 15000,
     });
@@ -939,5 +978,217 @@ test.describe("Panel iş akışı", () => {
        yalnızca ilk seçimde değil her an geçerli. */
     await sarim.uncheck();
     await expect(kilitli).toBeDisabled();
+  });
+  /* -----------------------------------------------------------------------
+   * 0014 — faturasız ciro, stok girişinde fiyat, güncel fiyattan maliyet
+   * --------------------------------------------------------------------- */
+
+  test("67 — stok girişinde fiyat ürünün fiyatını güncelliyor", async ({
+    page,
+  }) => {
+    const urun = testAdi("FiyatUrun");
+
+    await urunEkle(page, urun, { fiyat: "100", miktar: "10" });
+    await expect(page.getByText("100,00").first()).toBeVisible();
+
+    /* Eskiden bir ürünün fiyatı tanımlandıktan sonra hiç
+       değiştirilemiyordu; artık her alım kendi fiyatını taşıyor. */
+    await stokGirisi(page, urun, "5", { fiyat: "120", not: "Zamlı alım" });
+
+    const satir = page.locator("li", { hasText: urun }).first();
+    await expect(satir).toContainText("120,00");
+    await expect(satir).toContainText("15 adet");
+  });
+
+  test("68 — ürün sayfası stok geçmişini yürüyen bakiyeyle gösteriyor", async ({
+    page,
+  }) => {
+    const urun = testAdi("GecmisUrun");
+
+    await urunEkle(page, urun, { fiyat: "40", miktar: "20" });
+    await stokGirisi(page, urun, "10", { fiyat: "45" });
+    await stokCikisi(page, urun, "5");
+
+    await page.goto("/yonetim/urunler");
+    await page.getByRole("link", { name: new RegExp(urun) }).click();
+    await page.waitForURL(/\/yonetim\/urunler\/[0-9a-f-]{36}/, {
+      timeout: 20000,
+    });
+
+    await expect(page.getByText("Stok çıkışı").first()).toBeVisible();
+    await expect(page.getByText("Stok girişi").first()).toBeVisible();
+
+    /* Yürüyen bakiye: 20 → 30 → 25. Bu satırlar aynı transaction'daki
+       hareketlerin sırasını da doğruluyor (seq kolonu); created_at ile
+       sıralansaydı bakiye rastgele çıkardı. */
+    await expect(page.getByText("kalan 25")).toBeVisible();
+    await expect(page.getByText("kalan 30")).toBeVisible();
+    await expect(page.getByText("kalan 20")).toBeVisible();
+
+    // Hangi hareketin kaça alındığı geçmişten okunabilmeli
+    await expect(page.getByText("45,00").first()).toBeVisible();
+  });
+
+  test("69 — stok çıkışında fiyat sorulmuyor, sayım düzeltmesi yok", async ({
+    page,
+  }) => {
+    const urun = testAdi("CikisUrun");
+    await urunEkle(page, urun, { fiyat: "60", miktar: "8" });
+
+    await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Stok hareketi ekle/);
+    await expect(page.getByLabel(/Alış fiyatı/)).toBeVisible();
+
+    /* Çıkış bir alım değil: "kaça çıktı" sorusu yok ve alan kapanıyor.
+       Açık kalsaydı girilen fiyat ürünün fiyatını yanlış güncellerdi. */
+    await page.getByRole("button", { name: /Stok çıktı/ }).click();
+    await expect(page.getByLabel(/Alış fiyatı/)).toHaveCount(0);
+
+    // Sayım düzeltmesi ve hareket tipi seçimi tamamen kalktı
+    await expect(page.getByText(/Sayım düzeltmesi/)).toHaveCount(0);
+    await expect(page.getByLabel("Hareket tipi")).toHaveCount(0);
+  });
+
+  test("70 — MALİYET tamamlama anındaki fiyattan hesaplanıyor", async ({
+    page,
+  }) => {
+    const urun = testAdi("MaliyetUrun");
+
+    /* Kullanıcının tarif ettiği senaryo: 100'e mal alındı, iş açıldı,
+       malzeme eklendi, sonra 120'ye mal alındı, sonra iş tamamlandı.
+       Maliyet 120'den olmalı — eskiden ekleme anındaki 100 donuyordu. */
+    await urunEkle(page, urun, { fiyat: "100", miktar: "20" });
+
+    await musteriOlustur(page, testAdi("MaliyetMusteri"));
+    await segmentAc(page);
+    await isEkle(page, "Maliyet senaryosu");
+    const isUrl = page.url();
+
+    await acilirAc(page, /Malzeme ekle/);
+    await page
+      .getByLabel("Ürün", { exact: true })
+      .selectOption({ label: `${urun} (stok: 20 adet)` });
+    await page.getByLabel("Miktar (adet)", { exact: true }).fill("2");
+    await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    // 2 × 100 = 200 (henüz tamamlanmadı: canlı tahmin)
+    await expect(page.getByText("200,00").first()).toBeVisible();
+
+    // Zam: 120'ye mal alındı
+    await stokGirisi(page, urun, "10", { fiyat: "120" });
+
+    // Devam eden işin maliyeti güncel fiyatı izlemeli: 2 × 120 = 240
+    await page.goto(isUrl);
+    await expect(page.getByText("240,00").first()).toBeVisible();
+
+    // Tamamla → 240 donuyor
+    await page.getByRole("checkbox", { name: /Motor sarımı/ }).check();
+    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
+    await expect(page.getByText("240,00").first()).toBeVisible();
+
+    /* Tamamlandıktan SONRA fiyat değişse maliyet donmuş kalmalı: geçen
+       ayın kârı bugün fiyat değiştirdiğiniz için değişmemeli. */
+    await stokGirisi(page, urun, "5", { fiyat: "300" });
+    await page.goto(isUrl);
+    await expect(page.getByText("240,00").first()).toBeVisible();
+    await expect(page.getByText("600,00")).toHaveCount(0);
+  });
+
+  test("71 — iş tutarı girilebiliyor ama ciroya girmiyor", async ({ page }) => {
+    await musteriOlustur(page, testAdi("TutarMusteri"));
+    await segmentAc(page);
+    await isEkle(page, "Tutar notu testi");
+
+    const tutar = page.getByLabel(/Müşteriden alınan tutar/);
+    await expect(tutar).toBeVisible();
+    await tutar.fill("3500");
+
+    /* Alanın not olduğu AÇIKÇA yazmalı: aksi hâlde buraya girilen para
+       raporlarda aranır ve bulunamaz. */
+    await expect(page.getByText(/ciroya girmez/i)).toBeVisible();
+
+    await page.getByRole("checkbox", { name: /Motor sarımı/ }).check();
+    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
+
+    // Tamamlandıktan sonra tutar not olarak görünmeli
+    await expect(page.getByText(/not olarak/i)).toBeVisible();
+    await expect(page.getByText(/3\.500,00/)).toBeVisible();
+  });
+
+  test("72 — segment cirosu: ya fatura ya tutar, ikisi birden değil", async ({
+    page,
+  }) => {
+    await musteriOlustur(page, testAdi("CiroMusteri"));
+    await segmentAc(page);
+
+    // Başlangıçta iki yol da açık
+    await expect(
+      page.getByText(/Fatura yükleyin ya da alınan tutarı girin/)
+    ).toBeVisible();
+
+    await acilirAc(page, /Faturasız — alınan tutarı gir/);
+    await page.getByLabel(/Müşteriden alınan tutar/).fill("4500");
+    await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    await expect(page.getByText(/Elden alındı/)).toBeVisible();
+
+    /* Tutar girildiğinde fatura yolu KAPANMALI — hata mesajı yerine
+       kapalı bir kapı: kullanıcı formu doldurup gönderdikten sonra
+       reddedilmemeli. */
+    await expect(
+      page.getByRole("button", { name: /Fatura yükle/ })
+    ).toHaveCount(0);
+    await expect(page.getByText(/fatura yüklenemiyor/i)).toBeVisible();
+
+    // Tutarı boşaltmak fatura yolunu geri açmalı
+    await acilirAc(page, /Alınan tutarı düzenle/);
+    await page.getByLabel(/Müşteriden alınan tutar/).fill("");
+    await page.getByRole("button", { name: /Tutarı Güncelle/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    await expect(
+      page.getByRole("button", { name: /Fatura yükle/ })
+    ).toBeVisible();
+  });
+
+  test("73 — faturasız ciro raporlarda ayrı gösteriliyor", async ({ page }) => {
+    await musteriOlustur(page, testAdi("RaporCiro"));
+    await segmentAc(page);
+
+    await acilirAc(page, /Faturasız — alınan tutarı gir/);
+    await page.getByLabel(/Müşteriden alınan tutar/).fill("7250");
+    await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    await page.goto("/yonetim/raporlar");
+
+    /* Fatura sayısı tek başına yazsaydı faturasız ciro görünmez olurdu;
+       kart altı ayrıştırmayı söylemeli. */
+    await expect(page.getByText(/faturasız/i).first()).toBeVisible({
+      timeout: 20000,
+    });
+  });
+
+  test("74 — ürün miktar girilmeden tanımlanamıyor", async ({ page }) => {
+    await page.goto("/yonetim/urunler");
+    await acilirAc(page, /Yeni ürün ekle/);
+
+    /* Fiyat ürün formundan kalkmadı, alım anına taşındı: aynı formda
+       ama miktarla birlikte. Miktarsız ürün, fiyatı hiç doğrulanmamış
+       bir ürün bırakırdı. */
+    await expect(page.getByLabel(/Aldığınız miktar/)).toBeVisible();
+    await expect(page.getByLabel(/Alış fiyatı/)).toBeVisible();
+
+    await page.getByLabel("Ürün adı").fill(testAdi("MiktarsizUrun"));
+    await page.getByLabel(/Alış fiyatı/).fill("10");
+    await page.getByRole("button", { name: /Ürünü ve Stoğu Kaydet/ }).click();
+
+    await expect(
+      page.getByText(/Ürün ve ilk stok girişi kaydedildi/)
+    ).toHaveCount(0);
   });
 });

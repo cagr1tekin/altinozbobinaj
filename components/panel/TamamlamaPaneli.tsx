@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { isTamamla, isTamamlamaGeriAl } from "@/lib/actions/isler";
-import { Form, GonderButonu } from "@/components/panel/Form";
+import { Alan, Form, GonderButonu } from "@/components/panel/Form";
 import type { ServiceType } from "@/lib/supabase/database.types";
-import { ISLEM_TURU } from "@/components/panel/ui";
+import { ISLEM_TURU, formatPara } from "@/components/panel/ui";
 
 const ISLEM_SECENEKLERI: Array<{ deger: ServiceType; aciklama: string }> = [
   { deger: "winding", aciklama: "Sargılar sökülüp yeniden sarıldı" },
@@ -32,11 +32,15 @@ export default function TamamlamaPaneli({
   tamamlandiMi,
   malzemeSayisi,
   stokUyarilari,
+  alinanTutar,
 }: {
   isId: string;
   tamamlandiMi: boolean;
   malzemeSayisi: number;
   stokUyarilari: StokUyarisi[];
+  /* Daha önce girilmiş tutar; geri alıp tekrar tamamlarken kaybolmasın
+     diye forma önceden yazılıyor. */
+  alinanTutar: number | null;
 }) {
   const [zorlamaOnayi, setZorlamaOnayi] = useState(false);
   /* Ön seçim YOK: hangisinin yapıldığı bilinçli bir karar olmalı.
@@ -70,6 +74,11 @@ export default function TamamlamaPaneli({
       <Form key={`geri-al-${isId}`} action={isTamamlamaGeriAl}>
         {() => (
           <div className="space-y-3">
+            {alinanTutar !== null && (
+              <p className="text-sm text-pnl-muted">
+                Bu işe not olarak {formatPara(alinanTutar)} tutar girilmiş.
+              </p>
+            )}
             <p className="text-sm text-pnl-muted">
               Tamamlamayı geri almak malzemeleri stoğa iade eder ve işi
               &quot;devam ediyor&quot; durumuna döndürür. Basılmış QR etiketi
@@ -150,6 +159,23 @@ export default function TamamlamaPaneli({
               kodunu okuttuğunda bu bilgiyi görecek.
             </p>
           </fieldset>
+
+          {/* Müşteriden alınan tutar — opsiyonel ve NOT niteliğinde.
+              Ciro segment düzeyinde tutuluyor; bu alan hiçbir kâr veya
+              rapor hesabına girmiyor. Bunu açıkça yazmak gerekiyor: aksi
+              hâlde buraya girilen para raporlarda aranır. */}
+          <Alan
+            ad="charged_amount"
+            etiket="Müşteriden alınan tutar (TL)"
+            tip="number"
+            adim="0.01"
+            varsayilan={alinanTutar === null ? undefined : String(alinanTutar)}
+            placeholder="Boş bırakabilirsiniz"
+            ipucu="Not amaçlıdır, raporlardaki ciroya girmez. Ciro segment sayfasından girilir (fatura ya da tutar)."
+            hatalar={
+              state.status === "error" ? state.fieldErrors : undefined
+            }
+          />
 
           {malzemeSayisi === 0 && (
             <p className="rounded-lg border border-pnl-edge bg-pnl-bg px-4 py-3 text-sm text-pnl-muted">

@@ -24,13 +24,16 @@ Personel hesapları **Authentication → Users → Add user** ile elle açılır
 ## 3. Migration'ları uygulayın
 
 **Kolay yol:** `kurulum-tumu.sql` dosyasının tamamını kopyalayıp Supabase
-panelinde **SQL Editor**'e yapıştırın ve çalıştırın. Bu dosya aşağıdaki üç
-migration'ın sırayla birleştirilmiş hâlidir ve sonunda bir doğrulama sorgusu
-çalıştırır — **10 tablo / 13 fonksiyon / 2 view** ve **anon'a açık
-fonksiyon: 0** görmelisiniz. Son sütun 0 değilse yetki düzeltmesi uygulanmamış
-demektir.
+panelinde **SQL Editor**'e yapıştırın ve çalıştırın. Bu dosya aşağıdaki
+migration'ların sırayla birleştirilmiş hâlidir. Ortasında bir doğrulama
+sorgusu çalıştırıyor — **10 tablo / 13 fonksiyon / 2 view** ve **anon'a açık
+fonksiyon: 0** görmelisiniz. Son sütun 0 değilse yetki düzeltmesi
+uygulanmamış demektir. (Fonksiyon sayısı dosyayı ikinci kez
+çalıştırdığınızda daha yüksek çıkar: sonraki migration'lar zaten kurulu
+oluyor. Önemli olan son sütunun 0 kalması.)
 
-Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
+Tekrar çalıştırmak güvenlidir; üç ardışık koşu hatasız doğrulanıyor
+(aşağıdaki "Kurulum dosyası tekrar çalıştırılabilir mi?" bölümü).
 
 **Ayrı ayrı uygulamak isterseniz** dosyaları **numara sırasıyla** çalıştırın:
 
@@ -43,6 +46,13 @@ Tekrar çalıştırmak güvenlidir (`if not exists` / `or replace`).
 | 5 | `migrations/0005_faz5_periyodik_ozet.sql` | Aylık özet, pg_cron işi, stok mutabakatı, açılış stoğu trigger'ı |
 | 6 | `migrations/0006_fonksiyon_yetki_duzeltmesi.sql` | **Güvenlik:** fonksiyonların anon rolüne açık kalması giderildi |
 | 7 | `migrations/0007_fatura_dosyasi.sql` | Fatura PDF yükleme, Storage bucket'ı, segment eşleşmesi, aylık trend |
+| 8 | `migrations/0008_gram_birimi.sql` | Kilogram → gram; ürün başına **tek** birim, tam sayı miktar |
+| 9 | `migrations/0009_arama_ve_denetim.sql` | Panel araması, denetim günlüğü (her hareket + PDF alma) |
+| 10 | `migrations/0010_qr_miktar_gizli.sql` | Müşteri QR sayfasından malzeme miktarı kaldırıldı |
+| 11 | `migrations/0011_islem_turu.sql` | İşlem türü (motor sarımı / revizyon), tamamlamada zorunlu |
+| 12 | `migrations/0012_islem_turu_coklu.sql` | İşlem türü çoklu seçim: ikisi birden yapılabiliyor |
+| 13 | `migrations/0013_guvenlik_sikilastirma.sql` | **Güvenlik:** yumuşak silme, DELETE kaldırıldı, signup engeli, giriş günlüğü |
+| 14 | `migrations/0014_tutar_ve_stok_fiyati.sql` | Faturasız ciro, stok girişinde fiyat, güncel fiyattan maliyet |
 
 `tests/00_supabase_shim.sql` dosyasını **çalıştırmayın** — o yalnızca yerel
 Postgres'te test için, Supabase'de bu roller zaten var.
@@ -109,11 +119,28 @@ problemi olarak biliniyor. Otomatik birim dönüşümü yapmak hatalı stok
 verisine yol açar, bu yüzden `qty_pieces` ve `qty_kg` bağımsız izleniyor ve
 aralarında hiçbir dönüşüm yapılmıyor.
 
-### Alış fiyatı neden kopyalanıyor?
+### Maliyet hangi fiyattan hesaplanıyor?
 
-`job_products.unit_cost_snapshot`, malzeme eklendiği andaki alış fiyatını
-saklıyor (PRD Bölüm 11 / Soru 3'ün önerdiği çözüm). Ürün fiyatı sonradan
-değişse bile geçmiş işlerin maliyeti sabit kalıyor.
+Kural iki cümle: **devam eden iş güncel fiyatı izler, tamamlanan iş
+tamamlandığı günün fiyatında donar.**
+
+`job_products.unit_cost_snapshot` fiyatı `complete_job()` içinde, tamamlama
+anında yazıyor. `job_costs` görünümü tamamlanmış işte bu donmuş fiyatı,
+devam eden işte `products.purchase_price`'ı kullanıyor.
+
+Neden böyle (0014):
+
+- Atölyede iş açıkken malzeme yeniden alınıyor ve fiyat değişiyor. İşi
+  bugün kapatan kişinin sorusu "bu malzemeyi bugün yerine koysam kaça mal
+  olur" — dolayısıyla bugünkü fiyat.
+- Ama tamamlandıktan sonra donmalı: geçen ayın kârı, bugün fiyat
+  değiştirdiğiniz için değişmemeli.
+
+Eskiden fiyat malzeme **eklendiği** anda donuyordu; iş uzun sürdüğünde
+maliyet gerçeğin gerisinde kalıyordu.
+
+Tamamlama geri alınıp yeniden yapılırsa fiyat o anki değerden yeniden
+donuyor — istenen davranış bu: iş yeniden kapatılıyor demek.
 
 ### QR sayfası ne gösteriyor, ne göstermiyor?
 
@@ -134,17 +161,24 @@ kapatmak gerçekten gerekiyorsa arayüz açık bir onay kutusuyla
 `allow_negative` gönderip devam edebiliyor — tercih kayda geçiyor, sessizce
 olmuyor.
 
-### Maliyet nasıl hesaplanıyor?
+### Fiyat hangi birime ait?
 
-`products.purchase_price` tek bir alan ama ürün hem adet hem kilogram ile
-izlenebiliyor. Fiyatın hangi birime ait olduğu `unit_type_default` ile
-belirleniyor (`job_product_cost()` fonksiyonu):
+`products.purchase_price` tek bir alan; hangi birime ait olduğu
+`unit_type_default` ile belirleniyor (`job_product_cost()` fonksiyonu):
 
-| Takip birimi | Maliyet |
-|---|---|
-| `piece` | fiyat × kullanılan adet |
-| `kg` | fiyat × kullanılan kilogram |
-| `both` | fiyat × (adet + kilogram) |
+| Takip birimi | Fiyat neyin karşılığı | Maliyet |
+|---|---|---|
+| `piece` | TL / adet | fiyat × kullanılan adet |
+| `gram` | TL / **kilogram** | fiyat × kullanılan gram ÷ 1000 |
+
+Fiyat gram üründe kilogram başına giriliyor: atölyede tel "kaç lira kilo"
+diye konuşuluyor, "kaç lira gram" diye değil.
+
+Fiyat artık ürün tanımında değil, **stok girişinde** giriliyor
+(`apply_stock_movement(p_fiyat)`). Bir ürünün fiyatı ancak alındığı anda
+belli oluyor; ayrı ekranda sorulduğunda fiyatı 0 kalmış ürünler
+oluşuyordu. Her giriş `stock_movements.unit_price` ile geçmişe de
+yazılıyor, yani "bu partiyi kaça almıştık" sorusu cevaplanabiliyor.
 
 **`both` varsayımı zayıf:** adet ve kilogram için farklı fiyat gerekiyorsa
 `products`'a ayrı bir fiyat alanı eklenmeli. Şu an ürünlerin büyük çoğunluğu
@@ -372,10 +406,17 @@ PDF'leriyle 35 test.
 - **Tahsilat/ödeme takibi** (PRD 2.1 gereği kapsam dışı).
 - **Çoklu şube/depo** (ilk sürümde tek lokasyon varsayılıyor).
 
-### Bilinen varsayım: `both` birimli ürünlerde maliyet
+### Bilinen sınır: stok değerlemesi yok
 
-`products.purchase_price` tek alan ama ürün hem adet hem kilogram ile
-izlenebiliyor. `unit_type_default = 'both'` olan üründe fiyat **her iki birime
-de** uygulanıp toplanıyor. Bu matematiksel olarak zayıf bir varsayım; adet ve
-kilogram için farklı fiyat gerekiyorsa `products`'a ayrı bir fiyat alanı
-eklenmeli.
+`products.purchase_price` **son alım fiyatını** tutuyor; parti bazlı
+maliyet (FIFO) ya da ağırlıklı ortalama hesaplanmıyor. 100 TL'den 10 kg ve
+120 TL'den 10 kg alınmışsa stoğun tamamı 120 TL'den değerlenmiş sayılıyor.
+
+Bilinçli tercih: atölyenin sorusu "bu işi bugün kapatsam malzemeyi kaça
+yerine koyarım" ve buna son alım fiyatı cevap veriyor. Parti takibi, her
+malzeme çıkışında hangi partiden düşüldüğünü kaydetmeyi gerektirir — bu
+büyüklükteki bir işletme için taşınamayacak bir yük.
+
+Envanterin defter değerini raporlamak gerekirse `stock_movements` bunun
+için gereken veriyi (miktar + `unit_price`) zaten taşıyor; hesaplama
+sonradan eklenebilir.

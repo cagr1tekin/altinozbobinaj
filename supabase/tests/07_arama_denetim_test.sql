@@ -218,7 +218,7 @@ begin
   values ('d1111111-1111-4111-8111-111111111111', 'Bakir Tel', 'gram', 480);
 
   perform apply_stock_movement(
-    'd1111111-1111-4111-8111-111111111111', 'purchase_in', 25000, 'test girisi');
+    'd1111111-1111-4111-8111-111111111111', 25000, null, 'test girisi');
 
   select count(*) into v from audit_log
   where entity = 'product' and entity_id = 'd1111111-1111-4111-8111-111111111111';
