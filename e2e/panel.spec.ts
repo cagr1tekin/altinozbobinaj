@@ -124,6 +124,20 @@ test.describe("Panel iş akışı", () => {
     await page.waitForURL(/\/yonetim\/isler\/[0-9a-f-]{36}/, { timeout: 20000 });
   }
 
+  /**
+   * Segment sayfasında yeni vade ekler (0015).
+   *
+   * Tarih alanı forma bugünle geliyor; testler tarihi ancak özel olarak
+   * denemek istediklerinde dolduruyor.
+   */
+  async function tahsilatEkle(page: Page, tutar: string, not?: string) {
+    await acilirAc(page, /Tahsilat ekle|Vade ekle/);
+    await page.getByLabel(/Alınan tutar/).fill(tutar);
+    if (not) await page.getByLabel("Not", { exact: true }).fill(not);
+    await page.getByRole("button", { name: /Vadeyi Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+  }
+
   test("32 — müşteri → segment → iş zinciri kuruluyor", async ({ page }) => {
     const ad = testAdi("Zincir");
     await musteriOlustur(page, ad);
@@ -1096,45 +1110,47 @@ test.describe("Panel iş akışı", () => {
     await expect(page.getByText("600,00")).toHaveCount(0);
   });
 
-  test("71 — iş tutarı girilebiliyor ama ciroya girmiyor", async ({ page }) => {
+  test("71 — iş tutarı not, tamamlandıktan SONRA da düzenlenebiliyor", async ({
+    page,
+  }) => {
     await musteriOlustur(page, testAdi("TutarMusteri"));
     await segmentAc(page);
     await isEkle(page, "Tutar notu testi");
 
-    const tutar = page.getByLabel(/Müşteriden alınan tutar/);
+    const tutar = page.getByLabel(/İş tutarı/);
     await expect(tutar).toBeVisible();
     await tutar.fill("3500");
-
-    /* Alanın not olduğu AÇIKÇA yazmalı: aksi hâlde buraya girilen para
-       raporlarda aranır ve bulunamaz. */
-    await expect(page.getByText(/ciroya girmez/i)).toBeVisible();
+    await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
     await page.getByRole("checkbox", { name: /Motor sarımı/ }).check();
     await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
 
-    // Tamamlandıktan sonra tutar not olarak görünmeli
-    await expect(page.getByText(/not olarak/i)).toBeVisible();
-    await expect(page.getByText(/3\.500,00/)).toBeVisible();
+    /* Kullanıcının açık isteği: "bu notu işi tamamladıktan sonra da
+       görebilmeli ve düzenleyebilmeliyiz". Eskiden alan yalnızca
+       tamamlama formundaydı ve iş kapanınca kayboluyordu. */
+    await expect(page.getByText(/3\.500,00/).first()).toBeVisible();
+    const tamamlanmisTutar = page.getByLabel(/İş tutarı/);
+    await expect(tamamlanmisTutar).toBeVisible();
+    await tamamlanmisTutar.fill("4100");
+    await page.getByRole("button", { name: /Tutarı Güncelle/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/4\.100,00/).first()).toBeVisible();
   });
 
-  test("72 — segment cirosu: ya fatura ya tutar, ikisi birden değil", async ({
+  test("72 — anlaşılan tutar: ya fatura ya elle giriş, ikisi birden değil", async ({
     page,
   }) => {
     await musteriOlustur(page, testAdi("CiroMusteri"));
     await segmentAc(page);
 
-    // Başlangıçta iki yol da açık
-    await expect(
-      page.getByText(/Fatura yükleyin ya da alınan tutarı girin/)
-    ).toBeVisible();
-
-    await acilirAc(page, /Faturasız — alınan tutarı gir/);
-    await page.getByLabel(/Müşteriden alınan tutar/).fill("4500");
+    await acilirAc(page, /Faturasız — anlaşılan tutarı gir/);
+    await page.getByLabel(/Anlaşılan toplam tutar/).fill("4500");
     await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
-    await expect(page.getByText(/Elden alındı/)).toBeVisible();
+    await expect(page.getByText(/4\.500,00 · faturasız/)).toBeVisible();
 
     /* Tutar girildiğinde fatura yolu KAPANMALI — hata mesajı yerine
        kapalı bir kapı: kullanıcı formu doldurup gönderdikten sonra
@@ -1145,8 +1161,8 @@ test.describe("Panel iş akışı", () => {
     await expect(page.getByText(/fatura yüklenemiyor/i)).toBeVisible();
 
     // Tutarı boşaltmak fatura yolunu geri açmalı
-    await acilirAc(page, /Alınan tutarı düzenle/);
-    await page.getByLabel(/Müşteriden alınan tutar/).fill("");
+    await acilirAc(page, /Anlaşılan tutarı düzenle/);
+    await page.getByLabel(/Anlaşılan toplam tutar/).fill("");
     await page.getByRole("button", { name: /Tutarı Güncelle/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
@@ -1155,20 +1171,23 @@ test.describe("Panel iş akışı", () => {
     ).toBeVisible();
   });
 
-  test("73 — faturasız ciro raporlarda ayrı gösteriliyor", async ({ page }) => {
+  test("73 — anlaşılan tutar tek başına GELİR DEĞİL, alacak", async ({
+    page,
+  }) => {
     await musteriOlustur(page, testAdi("RaporCiro"));
     await segmentAc(page);
 
-    await acilirAc(page, /Faturasız — alınan tutarı gir/);
-    await page.getByLabel(/Müşteriden alınan tutar/).fill("7250");
+    await acilirAc(page, /Faturasız — anlaşılan tutarı gir/);
+    await page.getByLabel(/Anlaşılan toplam tutar/).fill("7250");
     await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
-    await page.goto("/yonetim/raporlar");
+    /* Sistemin düzelttiği hatanın ta kendisi: tutarı girmek parayı
+       almış saymak değil. Segment sayfası kalanı yazmalı. */
+    await expect(page.getByText(/7\.250,00 kaldı/)).toBeVisible();
 
-    /* Fatura sayısı tek başına yazsaydı faturasız ciro görünmez olurdu;
-       kart altı ayrıştırmayı söylemeli. */
-    await expect(page.getByText(/faturasız/i).first()).toBeVisible({
+    await page.goto("/yonetim/raporlar");
+    await expect(page.getByText("Kalan alacak").first()).toBeVisible({
       timeout: 20000,
     });
   });
@@ -1233,7 +1252,10 @@ test.describe("Panel iş akışı", () => {
     await page.getByRole("button", { name: /Malzeme Ekle/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
-    await page.getByLabel(/Müşteriden alınan tutar/).fill("6543");
+    await page.getByLabel(/İş tutarı/).fill("6543");
+    await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
     await page.getByRole("checkbox", { name: /Motor sarımı/ }).check();
     await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
@@ -1255,12 +1277,12 @@ test.describe("Panel iş akışı", () => {
     expect(dis, "müşteri kopyasında alış fiyatı olmamalı").not.toContain(
       "137,00"
     );
-    expect(dis, "müşteri kopyasında alınan tutar olmamalı").not.toContain(
+    expect(dis, "müşteri kopyasında iş tutarı olmamalı").not.toContain(
       "6.543,00"
     );
   });
 
-  test("76 — segment belgesi tahsilatı yazıyor, müşteri kopyası yazmıyor", async ({
+  test("76 — segment belgesi anlaşılan/tahsilat/kalan yazıyor, müşteri kopyası yazmıyor", async ({
     page,
   }) => {
     await musteriOlustur(page, testAdi("TahsilatMusteri"));
@@ -1269,34 +1291,46 @@ test.describe("Panel iş akışı", () => {
     const segmentId = segmentUrl.split("/").pop()!;
 
     await isEkle(page, "Tahsilat belge isi");
-    await page.getByLabel(/Müşteriden alınan tutar/).fill("1234");
+    await page.getByLabel(/İş tutarı/).fill("1234");
+    await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
     await page.getByRole("checkbox", { name: /Revizyon/ }).check();
     await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
 
     await page.goto(segmentUrl);
-    await acilirAc(page, /Faturasız — alınan tutarı gir/);
-    await page.getByLabel(/Müşteriden alınan tutar/).fill("9876");
+    await acilirAc(page, /Faturasız — anlaşılan tutarı gir/);
+    await page.getByLabel(/Anlaşılan toplam tutar/).fill("9876");
     await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
     await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
 
+    await tahsilatEkle(page, "5000");
+
     const ic = await pdfMetni(page, `/api/pdf/segment?id=${segmentId}`);
-    expect(ic, "tahsilat bölümü olmalı").toContain("Tahsilat");
-    expect(ic, "segment cirosu olmalı").toContain("9.876,00");
+    expect(ic, "para bölümü olmalı").toContain("Para durumu");
+    expect(ic, "anlaşılan tutar olmalı").toContain("9.876,00");
+    expect(ic, "tahsil edilen olmalı").toContain("5.000,00");
+    /* Kalan YAZMALI: belgeye bakan kişinin ilk sorusu bu ve iki rakamı
+       kafadan çıkarması beklenemez. */
+    expect(ic, "kalan olmalı").toContain("4.876,00");
     expect(ic, "iş bazlı tutar olmalı").toContain("1.234,00");
-    /* İki para bir arada duruyor; toplanmadığı YAZMALI, yoksa okuyan
-       kişi ikisini toplar ve ciroyu iki kez sayar. */
+    /* Üç para bir arada duruyor; iş tutarının hesaba girmediği YAZMALI,
+       yoksa okuyan kişi hepsini toplar. */
     expect(ic, "eklenmediği yazmalı").toContain("eklenmez");
 
     const dis = await pdfMetni(
       page,
       `/api/pdf/segment?id=${segmentId}&maliyet=0`
     );
-    expect(dis, "müşteri kopyasında tahsilat olmamalı").not.toContain(
-      "Tahsilat"
+    expect(dis, "müşteri kopyasında para bölümü olmamalı").not.toContain(
+      "Para durumu"
     );
-    expect(dis, "müşteri kopyasında segment cirosu olmamalı").not.toContain(
+    expect(dis, "müşteri kopyasında anlaşılan tutar olmamalı").not.toContain(
       "9.876,00"
+    );
+    expect(dis, "müşteri kopyasında tahsilat olmamalı").not.toContain(
+      "5.000,00"
     );
     expect(dis, "müşteri kopyasında iş tutarı olmamalı").not.toContain(
       "1.234,00"
@@ -1327,7 +1361,7 @@ test.describe("Panel iş akışı", () => {
     expect(ic, "blok başlıkları iş sayısı yazmalı").toMatch(
       /1 i[şs] · 0 tamamland/
     );
-    expect(ic, "iç kopyada ciro satırı olmalı").toContain("Ciro:");
+    expect(ic, "iç kopyada para satırı olmalı").toContain("Anlaşılan:");
 
     const dis = await pdfMetni(page, `/api/pdf/musteri?id=${musteriId}`
       + "&maliyet=0");
@@ -1337,9 +1371,11 @@ test.describe("Panel iş akışı", () => {
     expect(dis, "müşteri kopyasında blok ayrımı korunmalı").toMatch(
       /1 i[şs] · 0 tamamland/
     );
-    expect(dis, "müşteri kopyasında ciro olmamalı").not.toContain("Ciro:");
+    expect(dis, "müşteri kopyasında para olmamalı").not.toContain(
+      "Anlaşılan:"
+    );
     expect(dis, "müşteri kopyasında toplam olmamalı").not.toContain(
-      "Toplam ciro"
+      "Toplam anlaşılan"
     );
   });
 
@@ -1462,7 +1498,7 @@ test.describe("Panel iş akışı", () => {
    * İş açılırken girilen tutar
    * --------------------------------------------------------------------- */
 
-  test("82 — iş açılırken girilen tutar tamamlama formunda hazır geliyor", async ({
+  test("82 — iş açılırken girilen tutar iş sayfasında hazır geliyor", async ({
     page,
   }) => {
     await musteriOlustur(page, testAdi("OnTutarMusteri"));
@@ -1471,22 +1507,164 @@ test.describe("Panel iş akışı", () => {
     await acilirAc(page, /Yeni iş ekle/);
     await page.getByLabel("İş başlığı").fill("On tutarli is");
     /* Fiyat çoğu zaman iş ALINIRKEN konuşuluyor, kapatılırken değil. */
-    await page.getByLabel(/Müşteriden alınan tutar/).fill("2750");
+    await page.getByLabel(/İş tutarı/).fill("2750");
     await page.getByRole("button", { name: /İş Ekle/ }).click();
     await page.waitForURL(/\/yonetim\/isler\/[0-9a-f-]{36}/, {
       timeout: 20000,
     });
 
-    // Tamamlama formundaki alan AYNI değeri taşımalı — aynı kolon
-    const tutar = page.getByLabel(/Müşteriden alınan tutar/);
+    // İş sayfasındaki alan AYNI değeri taşımalı — aynı kolon
+    const tutar = page.getByLabel(/İş tutarı/);
     await expect(tutar).toHaveValue("2750");
-    await expect(page.getByText(/hazır geldi/)).toBeVisible();
 
     // Değiştirilebilmeli: iş sırasında pazarlık değişebilir
     await tutar.fill("3100");
-    await page.getByRole("checkbox", { name: /Motor sarımı/ }).check();
-    await page.getByRole("button", { name: /^İşi Tamamla/ }).click();
-    await expect(formBasarisi(page)).toBeVisible({ timeout: 20000 });
-    await expect(page.getByText(/3\.100,00/)).toBeVisible();
+    await page.getByRole("button", { name: /Tutarı Güncelle/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/3\.100,00/).first()).toBeVisible();
+  });
+
+  /* -----------------------------------------------------------------------
+   * 0015 — anlaşılan tutar / tahsilat ayrımı, çok vade
+   *
+   * Sistemin en büyük davranış değişikliği: fatura yüklemek ya da tutar
+   * girmek artık "para alındı" demek DEĞİL. Para ayrı ayrı vadelerle
+   * giriliyor ve aylık gelir vadenin tarihine yazılıyor.
+   * --------------------------------------------------------------------- */
+
+  test("83 — çok vade: parça parça tahsilat, kalan doğru azalıyor", async ({
+    page,
+  }) => {
+    await musteriOlustur(page, testAdi("VadeMusteri"));
+    const musteriUrl = page.url();
+    await segmentAc(page);
+
+    await acilirAc(page, /Faturasız — anlaşılan tutarı gir/);
+    await page.getByLabel(/Anlaşılan toplam tutar/).fill("10000");
+    await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+
+    await tahsilatEkle(page, "4000", "1. vade nakit");
+    await expect(page.getByText(/4\.000,00 alındı/)).toBeVisible();
+    await expect(page.getByText(/6\.000,00 kaldı/)).toBeVisible();
+
+    /* "Vade ekle" ikinci ödemeyi kabul etmeli: sistemin eski hâlinde
+       tek bir tutar alanı vardı ve ikinci ödemenin karşılığı yoktu. */
+    await tahsilatEkle(page, "2500", "2. vade havale");
+    await expect(page.getByText(/6\.500,00 alındı/)).toBeVisible();
+    await expect(page.getByText(/2 vade/)).toBeVisible();
+    await expect(page.getByText(/3\.500,00 kaldı/)).toBeVisible();
+
+    // Vadeler tek tek okunabilmeli
+    await expect(page.getByText("1. vade nakit")).toBeVisible();
+    await expect(page.getByText("2. vade havale")).toBeVisible();
+
+    /* Müşteri sayfasında da açık borç görünmeli: "bu müşteri bana ne
+       kadar borçlu" sorusu her segmente girilerek cevaplanmamalı. */
+    await page.goto(musteriUrl);
+    await expect(page.getByText(/3\.500,00 açık alacak/)).toBeVisible();
+  });
+
+  test("84 — iş tutarları segment anlaşılan tutarına hazır geliyor", async ({
+    page,
+  }) => {
+    await musteriOlustur(page, testAdi("OneriMusteri"));
+    await segmentAc(page);
+    const segmentUrl = page.url();
+
+    for (const [baslik, tutar] of [
+      ["Birinci motor", "1500"],
+      ["Ikinci motor", "2250"],
+    ]) {
+      await page.goto(segmentUrl);
+      await acilirAc(page, /Yeni iş ekle/);
+      await page.getByLabel("İş başlığı").fill(baslik);
+      await page.getByLabel(/İş tutarı/).fill(tutar);
+      await page.getByRole("button", { name: /İş Ekle/ }).click();
+      await page.waitForURL(/\/yonetim\/isler\/[0-9a-f-]{36}/, {
+        timeout: 20000,
+      });
+    }
+
+    await page.goto(segmentUrl);
+    await acilirAc(page, /Faturasız — anlaşılan tutarı gir/);
+
+    /* Kullanıcının isteği: işlere girilen tutarların toplamı segment
+       alanına HAZIR gelsin, yanlışsa silinip düzeltilsin. */
+    await expect(page.getByLabel(/Anlaşılan toplam tutar/)).toHaveValue("3750");
+    await expect(page.getByText(/hazır yazıldı/)).toBeVisible();
+
+    // Öneri bir kayıt değil: değiştirilip kaydedilebilmeli
+    await page.getByLabel(/Anlaşılan toplam tutar/).fill("3500");
+    await page.getByRole("button", { name: /Tutarı Kaydet/ }).click();
+    await expect(formBasarisi(page)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(/3\.500,00 · faturasız/)).toBeVisible();
+
+    /* Kaydedilmiş bir tutarın üstüne öneri YAZILMAMALI: kullanıcının
+       kararını sessizce geri almak olurdu. */
+    await page.reload();
+    await expect(page.getByText(/hazır yazıldı/)).toHaveCount(0);
+  });
+
+  test("85 — gelecek tarihli vade reddediliyor", async ({ page }) => {
+    await musteriOlustur(page, testAdi("IleriVade"));
+    await segmentAc(page);
+
+    const yarin = new Date();
+    yarin.setDate(yarin.getDate() + 1);
+    const iso = `${yarin.getFullYear()}-${String(
+      yarin.getMonth() + 1
+    ).padStart(2, "0")}-${String(yarin.getDate()).padStart(2, "0")}`;
+
+    await acilirAc(page, /Tahsilat ekle/);
+    await page.getByLabel(/Alınan tutar/).fill("500");
+    await page.getByLabel(/Alındığı tarih/).fill(iso);
+    await page.getByRole("button", { name: /Vadeyi Kaydet/ }).click();
+
+    /* İleri tarihli bir vade PLANLANMIŞ ödemedir; gelire girse o ay
+       olmayan para gelmiş gibi görünürdü. */
+    await expect(page.getByText(/gelecekte olamaz/i)).toBeVisible({
+      timeout: 15000,
+    });
+  });
+
+  test("86 — tahsilat işin tamamlanmasından bağımsız", async ({ page }) => {
+    await musteriOlustur(page, testAdi("BagimsizMusteri"));
+    await segmentAc(page);
+    const segmentUrl = page.url();
+
+    await isEkle(page, "Bitmemis is");
+    await page.goto(segmentUrl);
+
+    /* Tamamlanmamış işin parası peşin alınabilir: sistem bunu
+       engellememeli. */
+    await tahsilatEkle(page, "800", "Pesin");
+    await expect(page.getByText(/800,00 alındı/)).toBeVisible();
+    await expect(page.getByText(/anlaşılan tutar girilmemiş/)).toBeVisible();
+  });
+
+  /* -----------------------------------------------------------------------
+   * Açıklamalar bilgi ikonunun arkasında
+   * --------------------------------------------------------------------- */
+
+  test("87 — öğretici metinler varsayılan gizli, ikonla açılıyor", async ({
+    page,
+  }) => {
+    await musteriOlustur(page, testAdi("BilgiMusteri"));
+
+    /* Her ekranda duran öğretici metinler göz yoruyordu. Silinmediler,
+       bir ikonun arkasına girdiler: bilen görmüyor, öğrenmek isteyen
+       açıyor. */
+    const metin = page.getByText(/Müşterinin her gelişi bir segment/);
+    await expect(metin).toBeHidden();
+
+    const ikon = page.getByRole("button", { name: /Segmentler — açıklama/ });
+    await expect(ikon).toHaveAttribute("aria-expanded", "false");
+    await ikon.click();
+    await expect(metin).toBeVisible();
+    await expect(ikon).toHaveAttribute("aria-expanded", "true");
+
+    await ikon.click();
+    await expect(metin).toBeHidden();
   });
 });

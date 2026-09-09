@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import type { SegmentTahsilati } from "@/lib/supabase/database.types";
 import {
   Bolum,
   Icerik,
@@ -17,7 +18,9 @@ import IsFormu from "@/components/panel/IsFormu";
 import SegmentDurumButonu from "@/components/panel/SegmentDurumButonu";
 import FaturaYukleFormu from "@/components/panel/FaturaYukleFormu";
 import FaturaSatiri from "@/components/panel/FaturaSatiri";
-import SegmentTutarFormu from "@/components/panel/SegmentTutarFormu";
+import SegmentAnlasilanFormu from "@/components/panel/SegmentAnlasilanFormu";
+import TahsilatFormu from "@/components/panel/TahsilatFormu";
+import TahsilatSatiri from "@/components/panel/TahsilatSatiri";
 
 export default async function SegmentDetaySayfasi({
   params,
@@ -27,28 +30,38 @@ export default async function SegmentDetaySayfasi({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: segment }, { data: faturalar }] = await Promise.all([
-    supabase
-      .from("segments")
-      .select(
-        "id, segment_date, note, status, customer_id, charged_amount, customers(id, name), jobs(id, title, status, completed_at, created_at)"
-      )
-      .eq("id", id)
-      .is("deleted_at", null)
-      /* Gömülü filtre: silinmiş iş segment listesinde görünmeye devam
-         ederdi. PostgREST'te iç içe tabloya "tablo.kolon" ile filtre
-         uygulanıyor. */
-      .is("jobs.deleted_at", null)
-      .maybeSingle(),
-    supabase
-      .from("invoices")
-      .select(
-        "id, invoice_no, issue_date, net_amount, gross_amount, supplier_name"
-      )
-      .eq("segment_id", id)
-      .is("deleted_at", null)
-      .order("issue_date", { ascending: false }),
-  ]);
+  const [{ data: segment }, { data: faturalar }, { data: bakiye }, tahsilatSonuc] =
+    await Promise.all([
+      supabase
+        .from("segments")
+        .select(
+          "id, segment_date, note, status, customer_id, agreed_amount, customers(id, name), jobs(id, title, status, completed_at, created_at, agreed_amount)"
+        )
+        .eq("id", id)
+        .is("deleted_at", null)
+        /* Gömülü filtre: silinmiş iş segment listesinde görünmeye devam
+           ederdi. PostgREST'te iç içe tabloya "tablo.kolon" ile filtre
+           uygulanıyor. */
+        .is("jobs.deleted_at", null)
+        .maybeSingle(),
+      supabase
+        .from("invoices")
+        .select(
+          "id, invoice_no, issue_date, net_amount, gross_amount, supplier_name"
+        )
+        .eq("segment_id", id)
+        .is("deleted_at", null)
+        .order("issue_date", { ascending: false }),
+      /* Anlaşılan / tahsil edilen / kalan tek yerden: aynı hesabı
+         sayfada tekrar yapmak, görünümle sayfanın ayrı düşmesi
+         demekti. */
+      supabase
+        .from("segment_balances")
+        .select("*")
+        .eq("segment_id", id)
+        .maybeSingle(),
+      supabase.rpc("segment_tahsilatlari", { p_segment_id: id }),
+    ]);
 
   if (!segment) notFound();
 
@@ -63,6 +76,7 @@ export default async function SegmentDetaySayfasi({
     status: "pending" | "in_progress" | "completed";
     completed_at: string | null;
     created_at: string;
+    agreed_amount: number | null;
   }>;
 
   /* Tamamlanmamış işler üstte: sahada ilgilenilmesi gerekenler önce görünsün */
@@ -79,8 +93,27 @@ export default async function SegmentDetaySayfasi({
     0
   );
   const faturaVar = faturaListesi.length > 0;
-  const eldenTutar =
-    segment.charged_amount === null ? null : Number(segment.charged_amount);
+  const elleGirilen =
+    segment.agreed_amount === null ? null : Number(segment.agreed_amount);
+
+  const anlasilan =
+    bakiye?.anlasilan === null || bakiye?.anlasilan === undefined
+      ? null
+      : Number(bakiye.anlasilan);
+  const tahsilEdilen = Number(bakiye?.tahsil_edilen ?? 0);
+  const kalan =
+    bakiye?.kalan === null || bakiye?.kalan === undefined
+      ? null
+      : Number(bakiye.kalan);
+
+  const tahsilatlar = (tahsilatSonuc.data ?? []) as SegmentTahsilati[];
+
+  /* İşlere not olarak girilmiş tutarların toplamı. Segment tutarı hiç
+     kaydedilmemişse forma varsayılan olarak öneriliyor. */
+  const isTutarToplami = isler.reduce(
+    (a, i) => a + (i.agreed_amount === null ? 0 : Number(i.agreed_amount)),
+    0
+  );
 
   return (
     <>
@@ -116,9 +149,12 @@ export default async function SegmentDetaySayfasi({
                   href={`/yonetim/isler/${is.id}`}
                   baslik={is.title}
                   altBilgi={
-                    is.status === "completed"
+                    (is.status === "completed"
                       ? `Tamamlandı: ${formatTarih(is.completed_at)}`
-                      : `Açıldı: ${formatTarih(is.created_at)}`
+                      : `Açıldı: ${formatTarih(is.created_at)}`) +
+                    (is.agreed_amount !== null
+                      ? ` · ${formatPara(is.agreed_amount)} (not)`
+                      : "")
                   }
                   sag={<IsDurumu durum={is.status} />}
                 />
@@ -126,34 +162,47 @@ export default async function SegmentDetaySayfasi({
           </Liste>
         </Bolum>
 
-        {/* Ciro segmentin karşılığı: müşteri bir gelişte birden fazla iş
-            bırakıyor, hepsinin bedeli tek seferde alınıyor.
+        {/* ------------------------------------------------------------
+            PARA — iki ayrı soru, iki ayrı bölüm
 
-            YA fatura YA elden tutar — ikisi birden aynı parayı iki kez
-            saydırırdı. Kural veritabanında; buradaki düzen o kuralı
-            görünür kılıyor: hangisi doluysa öbürü kapanıyor. */}
+            1) Ne kadara anlaştık?  → fatura ya da elle girilen tutar
+            2) Ne kadarını aldık?   → vadeler
+
+            Eskiden tek bölümdü ve ikisi aynı sayılıyordu: fatura
+            yüklemek "para alındı" demekti. Gerçekte anlaşılan para tek
+            seferde ödenmiyor; ayrım bu yüzden ekranda da görünür.
+            ------------------------------------------------------------ */}
         <Bolum
-          baslik="Ciro"
+          baslik="Anlaşılan tutar"
           aciklama={
-            faturaVar
-              ? `${faturaListesi.length} fatura · toplam ${formatPara(faturaToplam)}`
-              : eldenTutar !== null
-                ? `Elden alındı · ${formatPara(eldenTutar)}`
-                : "Fatura yükleyin ya da alınan tutarı girin"
+            anlasilan !== null
+              ? faturaVar
+                ? `${formatPara(anlasilan)} · ${faturaListesi.length} fatura`
+                : `${formatPara(anlasilan)} · faturasız`
+              : "Girilmedi"
+          }
+          bilgi={
+            <>
+              Müşteriyle konuşulan <strong>toplam</strong> para. Fatura
+              yüklerseniz faturanın brüt tutarından gelir, yüklemezseniz elle
+              girersiniz — ikisi de aynı şeyi söylediği için bir segmentte
+              yalnızca biri olabilir. Bu bir <strong>alacak</strong> kaydı;
+              alınan para aşağıdaki tahsilat bölümünde.
+            </>
           }
         >
           <Liste
             ekleme={
-              eldenTutar === null ? (
+              elleGirilen === null ? (
                 <EkleAcilir
                   etiket="Fatura yükle"
-                  ilkAcik={faturaListesi.length === 0}
+                  ilkAcik={faturaListesi.length === 0 && anlasilan === null}
                 >
                   <FaturaYukleFormu segmentId={segment.id} />
                 </EkleAcilir>
               ) : (
                 <div className="px-4 py-3 text-sm text-pnl-muted">
-                  Elden tutar girildiği için fatura yüklenemiyor. Fatura
+                  Elle tutar girildiği için fatura yüklenemiyor. Fatura
                   kesilecekse aşağıdan tutarı boşaltın.
                 </div>
               )
@@ -170,22 +219,66 @@ export default async function SegmentDetaySayfasi({
               ekleme={
                 <EkleAcilir
                   etiket={
-                    eldenTutar === null
-                      ? "Faturasız — alınan tutarı gir"
-                      : "Alınan tutarı düzenle"
+                    elleGirilen === null
+                      ? "Faturasız — anlaşılan tutarı gir"
+                      : "Anlaşılan tutarı düzenle"
                   }
-                  ilkAcik={eldenTutar !== null}
+                  ilkAcik={elleGirilen !== null}
                 >
-                  <SegmentTutarFormu
+                  <SegmentAnlasilanFormu
                     segmentId={segment.id}
-                    mevcutTutar={eldenTutar}
+                    mevcutTutar={elleGirilen}
                     faturaVar={faturaVar}
                     faturaToplam={faturaToplam}
+                    isToplami={isTutarToplami > 0 ? isTutarToplami : null}
                   />
                 </EkleAcilir>
               }
             />
           </div>
+        </Bolum>
+
+        <Bolum
+          baslik="Tahsilat"
+          aciklama={
+            <ParaOzeti
+              anlasilan={anlasilan}
+              tahsilEdilen={tahsilEdilen}
+              kalan={kalan}
+              vadeSayisi={tahsilatlar.length}
+            />
+          }
+          bilgi={
+            <>
+              Fiilen alınan para. Anlaşılan tutar tek seferde ödenmek zorunda
+              değil: her ödeme ayrı bir vade. Aylık gelir raporu{" "}
+              <strong>vadenin tarihine</strong> bakıyor — paranın hangi ay
+              kasaya girdiği. İşin tamamlanmasıyla ilgisi yok; tamamlanmamış
+              işin parası peşin alınabilir, tamamlanmış işin parası aylar
+              sonra gelebilir.
+            </>
+          }
+        >
+          <Liste
+            ekleme={
+              <EkleAcilir
+                etiket={tahsilatlar.length === 0 ? "Tahsilat ekle" : "Vade ekle"}
+                ilkAcik={false}
+              >
+                <TahsilatFormu segmentId={segment.id} kalan={kalan} />
+              </EkleAcilir>
+            }
+          >
+            {tahsilatlar.length > 0 &&
+              tahsilatlar.map((t, i) => (
+                <TahsilatSatiri
+                  key={t.tahsilat_id}
+                  tahsilat={t}
+                  segmentId={segment.id}
+                  sira={i + 1}
+                />
+              ))}
+          </Liste>
         </Bolum>
 
         <Bolum baslik="Belgeler">
@@ -202,6 +295,57 @@ export default async function SegmentDetaySayfasi({
           />
         </Bolum>
       </Icerik>
+    </>
+  );
+}
+
+/**
+ * Tahsilat özeti — bölüm başlığının altındaki VERİ satırı.
+ *
+ * Üç rakam birlikte anlamlı: ne kadar anlaşıldı, ne kadarı alındı, ne
+ * kaldı. Yalnızca "3 vade" yazmak asıl soruyu ("ne kadar borcu var")
+ * cevapsız bırakırdı.
+ */
+function ParaOzeti({
+  anlasilan,
+  tahsilEdilen,
+  kalan,
+  vadeSayisi,
+}: {
+  anlasilan: number | null;
+  tahsilEdilen: number;
+  kalan: number | null;
+  vadeSayisi: number;
+}) {
+  if (vadeSayisi === 0 && anlasilan === null) {
+    return <>Henüz tahsilat girilmemiş</>;
+  }
+
+  return (
+    <>
+      {formatPara(tahsilEdilen)} alındı
+      {vadeSayisi > 0 && ` · ${vadeSayisi} vade`}
+      {/* Kalan yalnızca anlaşılan tutar biliniyorsa yazılıyor: tutar
+          girilmemişken "0 kaldı" demek "borcu yok" demek olurdu, oysa
+          doğrusu "borcu bilinmiyor". */}
+      {kalan !== null && kalan > 0 && (
+        <>
+          {" · "}
+          <span className="font-semibold text-pnl-warn">
+            {formatPara(kalan)} kaldı
+          </span>
+        </>
+      )}
+      {kalan !== null && kalan === 0 && tahsilEdilen > 0 && " · kapandı"}
+      {kalan !== null && kalan < 0 && (
+        <>
+          {" · "}
+          <span className="font-semibold text-pnl-warn">
+            {formatPara(-kalan)} fazla tahsilat
+          </span>
+        </>
+      )}
+      {anlasilan === null && vadeSayisi > 0 && " · anlaşılan tutar girilmemiş"}
     </>
   );
 }

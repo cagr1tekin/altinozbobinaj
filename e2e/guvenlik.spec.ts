@@ -115,6 +115,9 @@ test.describe("Güvenlik ve erişim", () => {
       "jobs",
       "invoices",
       "products",
+      /* Tahsilat tablosu: kimden ne zaman ne kadar para alındığı.
+         Sızması doğrudan ticari bilgi sızması. */
+      "payments",
       /* Denetim günlüğü kimin ne yaptığını tutuyor: sızması hem kişisel
          veri hem iş bilgisi sızması olur. */
       "audit_log",
@@ -169,8 +172,26 @@ test.describe("Güvenlik ve erişim", () => {
         { p_product_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc" },
       ],
       [
-        "segment_tutar_yaz",
+        "segment_anlasilan_yaz",
         { p_segment_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc", p_tutar: 1 },
+      ],
+      // 0015: tahsilat fonksiyonları da anon'a kapalı olmalı — bunlar
+      // para kaydı yazıyor.
+      [
+        "tahsilat_ekle",
+        { p_segment_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc", p_tutar: 1 },
+      ],
+      [
+        "tahsilat_guncelle",
+        {
+          p_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",
+          p_tutar: 1,
+          p_tarih: "2026-01-01",
+        },
+      ],
+      [
+        "segment_tahsilatlari",
+        { p_segment_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc" },
       ],
       ["add_job_product", {
         p_job_id: "5f7cf10e-6c49-48e9-a144-4ecbb1106ddc",

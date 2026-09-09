@@ -267,6 +267,67 @@ uygulamayı bozuk sanır.
 Aynı cümle nerede *girildiğini* de söylemeli ("Ciro segment sayfasından
 girilir").
 
+### Açıklamalar bilgi ikonunun arkasında
+
+Panelde her ekranda öğretici metin vardı ("bu alan şuna yarar", "şu neden
+böyle"). İlk kullanımda gerekliydi ama her gün aynı ekrana bakan biri için
+okunacak bir şey değil: yalnızca göz yoruyor ve asıl veriyi aşağı itiyordu.
+
+Metin **silinmiyor**, bir ⓘ düğmesinin arkasına giriyor. Bilen görmüyor,
+öğrenmek isteyen açıyor.
+
+İki tür alt metin var ve karıştırılmamalı:
+
+| | Nerede | Örnek |
+|---|---|---|
+| **Veri** (`aciklama`) | Her zaman görünür | "3 fatura · 4.500 TL", "01.08 – 01.09", "6.500 kaldı" |
+| **Öğretici** (`bilgi`) | İkonun arkasında | "her ziyaret bir segment", "filtre açık işleri etkilemez" |
+
+Kurallar:
+
+- Panel DOM'da her zaman duruyor (`hidden` ile gizleniyor, koşullu render
+  değil): `aria-describedby` ile bağlı olduğu için ekran okuyucu kapalıyken
+  de metne ulaşabilmeli.
+- İkonun **erişilebilir adı zorunlu**: tek başına bir simge ekran
+  okuyucuda "düğme" diye okunur. Ad neyin açıklaması olduğunu söyler
+  (`"Segmentler — açıklama"`).
+- `aria-expanded` durumu taşıyor; ikon açıkken renk değiştiriyor.
+- **Boş durum metinleri ikonun arkasına GİRMİYOR.** Ekranda başka bir şey
+  yokken "ne yapmalıyım" sorusunun cevabı ekranın kendisidir; gizlemek
+  boş bir ekran bırakırdı.
+- **Hata ve uyarı metinleri de girmiyor**: onlar öğretici değil, o an
+  yapılacak işi söylüyor.
+
+### Para: anlaşılan tutar ile tahsilat ayrı bölümler
+
+Bir segmentte iki ayrı soru var ve tek bölümde birleştirmek sistemin eski
+hatasıydı (fatura yüklemek "para alındı" saymak):
+
+1. **Ne kadara anlaştık?** → fatura ya da elle girilen tutar
+2. **Ne kadarını aldık?** → vadeler
+
+İkisi ekranda da ayrı duruyor. Tahsilat bölümünün başlığı üç rakamı
+birlikte yazıyor: alınan, vade sayısı, kalan. Yalnızca "3 vade" yazmak
+asıl soruyu ("ne kadar borcu var") cevapsız bırakırdı.
+
+**Kalan yalnızca biliniyorsa yazılıyor.** Anlaşılan tutar girilmemişken
+"0 TL kaldı" demek "borcu yok" demek olurdu; doğrusu "borcu bilinmiyor".
+
+**Kalan tutar forma hazır yazılmıyor**, yalnızca placeholder'da söyleniyor:
+"tamamını aldım" ile "bir kısmını aldım" arasındaki fark bu ekranın tek
+sebebi; hazır yazmak tek vadeye geri dönmenin kolay yolu olurdu.
+
+### Öneri, kayıt değil
+
+Segmentin anlaşılan tutar alanına, o segmentteki işlere not olarak girilmiş
+tutarların toplamı **hazır geliyor** — ama yalnızca alan **hiç
+kaydedilmemişken**. Kaydedilmiş bir değerin üzerine öneri yazmak
+kullanıcının kararını sessizce geri almak olurdu.
+
+Önerinin öneri olduğu ayrıca yazılıyor ("hazır yazıldı, doğru değilse
+değiştirin"): kullanıcı rakamın nereden geldiğini tahmin etmek zorunda
+kalmamalı.
+
 ### İç kopya / müşteri kopyası
 
 Müşteriye giden bir belgede işletmenin ticari bilgisi **hiç** olmamalı.
@@ -482,6 +543,13 @@ Panel telefona kısayol olarak eklenecek.
 | Açık işleri tarih filtresine sokmak | Unutulmuş eski iş ekrandan kaybolur — filtrenin amacına ters |
 | Filtre bağlantısında arama terimini düşürmek | Kullanıcı her dönem değişiminde terimi yeniden yazar |
 | Aynı bilgi için iki ayrı alan (iş açılışı / tamamlama tutarı) | Hangisinin geçerli olduğu belirsiz kalır |
+| Öğretici metni ekranda sürekli göstermek | Her gün aynı ekrana bakan kişi için gürültü; veriyi aşağı iter |
+| Boş durum ya da hata metnini ikonun arkasına gizlemek | Orada metin zaten tek içerik; gizlemek boş ekran bırakır |
+| Anlaşılan tutarı "alındı" saymak | Tek vade varsayımı; gerçek ödeme parça parça geliyor |
+| Anlaşılan tutar girilmemişken "0 kaldı" yazmak | "Borcu yok" demek olur; doğrusu "borcu bilinmiyor" |
+| Kalan tutarı tahsilat formuna hazır yazmak | Tek vadeye dönmenin kolay yolu; kısmi ödeme görünmez olur |
+| Kaydedilmiş bir alanın üstüne öneri yazmak | Kullanıcının kararını sessizce geri alır |
+| Para girişini işin tamamlanmasına bağlamak | Peşin ödeme ve geç ödeme gerçek; ikisi de engellenmiş olur |
 | Aynı anda iki miktar alanı (adet + gram) göstermek | Hangisinin doldurulacağı her seferinde bir karar; yanlış kutu stoğu sessizce bozar |
 | Miktarda ondalık kabul etmek | Virgül/nokta karışıklığı ve yuvarlama; gram tam sayı olarak yeterli |
 | Placeholder'ı etiket yerine kullanma | Yazmaya başlayınca etiket kaybolur |

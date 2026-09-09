@@ -123,7 +123,7 @@ export default async function UrunSayfasi({
 
         <Bolum
           baslik="Stok hareketi"
-          aciklama="Girişte fiyat da girebilirsiniz; ürünün fiyatı güncellenir"
+          bilgi="Girişte fiyat da girebilirsiniz; ürünün güncel fiyatı o rakama güncellenir ve bundan sonra tamamlanan işlerin maliyeti bu fiyattan hesaplanır."
         >
           <Liste
             ekleme={
@@ -136,7 +136,7 @@ export default async function UrunSayfasi({
 
         <Bolum
           baslik="Stok geçmişi"
-          aciklama="Bu ürünün tüm hareketleri — değiştirilemez"
+          bilgi="Bu ürünün tüm hareketleri. Denetim izidir: sonradan değiştirilemez, yalnızca yeni hareket eklenir."
         >
           {gecmisHatasi && (
             <div className="mb-4">
@@ -195,7 +195,7 @@ export default async function UrunSayfasi({
 
         <Bolum
           baslik="Ürün bilgisi"
-          aciklama="Fiyat buradan değişmez — fiyat stok girişinde girilir"
+          bilgi="Fiyat buradan değişmez: bir ürünün fiyatı ancak alındığı anda belli olur, o yüzden stok girişinde giriliyor."
         >
           <Liste
             ekleme={

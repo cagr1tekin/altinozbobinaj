@@ -87,11 +87,17 @@ export const isSchema = z.object({
   segment_id: z.string().uuid("Segment seçilmedi"),
   title: zorunluMetin("İş başlığı"),
   description: opsiyonelMetin(2000),
-  /* İş açılırken de girilebilen tutar. TAMAMLAMADAKİ ALANLA AYNI ŞEY:
-     aynı kolona (jobs.charged_amount) yazıyor ve aynı anlamı taşıyor —
-     müşteriden alınan/alınacak para, not niteliğinde. İki ayrı alan
-     olsaydı hangisinin geçerli olduğu belirsiz kalırdı. */
-  charged_amount: opsiyonelTutar("Alınan tutar"),
+  /* İş açılırken girilebilen tutar. İş sayfasındaki "İş tutarı"
+     alanıyla AYNI ŞEY: aynı kolona (jobs.agreed_amount) yazıyor.
+     Not niteliğinde — hiçbir tahsilat veya rapor hesabına girmiyor. */
+  agreed_amount: opsiyonelTutar("İş tutarı"),
+});
+
+/* Tamamlanmış iş dahil her an düzenlenebilen iş tutarı notu. Boş
+   göndermek notu siliyor. */
+export const isTutarSchema = z.object({
+  job_id: z.string().uuid("İş bulunamadı"),
+  agreed_amount: opsiyonelTutar("İş tutarı"),
 });
 
 export const isDurumSchema = z.object({
@@ -168,21 +174,74 @@ export const isTamamlaSchema = z.object({
     /* Tekrar gelmesi beklenmiyor ama gelirse müşteri belgesinde
        "motor sarımı ve motor sarımı" yazardı. */
     .transform((v) => Array.from(new Set(v))),
-  /* Müşteriden alınan tutar. Bilinçli olarak NOT niteliğinde: hiçbir
-     ciro veya kâr hesabına girmiyor (ciro segment düzeyinde tutuluyor).
-     Boş bırakılabilir — her iş için para bilgisi girilmiyor. */
-  charged_amount: opsiyonelTutar("Alınan tutar"),
+  /* Tutar alanı BİLİNÇLİ olarak yok: para ile işin tamamlanması
+     arasında bağ kurulmuyor. İş tutarı iş sayfasından her zaman
+     düzenlenebilen ayrı bir not. */
   allow_negative: z
     .string()
     .optional()
     .transform((v) => v === "1"),
 });
 
-/* Segment cirosu: ya fatura ya elle tutar. Boş göndermek tutarı
-   temizliyor, böylece fatura yolu açılabiliyor. */
-export const segmentTutarSchema = z.object({
+/* Müşteriyle anlaşılan TOPLAM tutar (faturasız segment için). Boş
+   göndermek tutarı temizliyor, böylece fatura yolu açılabiliyor.
+   Tahsil edilen para bu alanda DEĞİL. */
+export const segmentAnlasilanSchema = z.object({
   segment_id: z.string().uuid("Segment bulunamadı"),
-  charged_amount: opsiyonelTutar("Tutar"),
+  agreed_amount: opsiyonelTutar("Anlaşılan tutar"),
+});
+
+/**
+ * Tahsilat (vade).
+ *
+ * Tutar ZORUNLU ve sıfırdan büyük: opsiyonelTutar burada yanlış olurdu,
+ * boş bir tahsilat kaydı bir şey ifade etmiyor.
+ *
+ * Tarih de zorunlu — aylık gelir buna göre hesaplanıyor ve "hangi gün
+ * alındı" sorusunun boş kalması raporu sessizce bozar. Form bugünü
+ * hazır getiriyor, kullanıcı geriye alabiliyor.
+ */
+const tahsilatTutari = z
+  .string()
+  .trim()
+  .min(1, "Tahsilat tutarı girilmeli")
+  .transform((v) => Number(v.replace(",", ".")))
+  .refine((v) => Number.isFinite(v), { message: "Tutar sayı olmalı" })
+  .refine((v) => v > 0, { message: "Tutar sıfırdan büyük olmalı" });
+
+const tahsilatTarihi = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Tahsilat tarihi seçilmeli")
+  /* Gelecek tarih reddediliyor: "alınan para"nın tanımı geriye dönük.
+     İleri tarihli bir vade PLANLANMIŞ ödemedir; gelir hesabına girse
+     o ay olmayan para gelmiş gibi görünürdü. Kural veritabanında da
+     var, burası anlaşılır Türkçe hata için. */
+  .refine(
+    (v) => {
+      const b = new Date();
+      const bugun = `${b.getFullYear()}-${String(b.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}-${String(b.getDate()).padStart(2, "0")}`;
+      return v <= bugun;
+    },
+    { message: "Tahsilat tarihi gelecekte olamaz" }
+  );
+
+export const tahsilatSchema = z.object({
+  segment_id: z.string().uuid("Segment bulunamadı"),
+  amount: tahsilatTutari,
+  paid_on: tahsilatTarihi,
+  note: opsiyonelMetin(300),
+});
+
+export const tahsilatGuncelleSchema = z.object({
+  id: z.string().uuid("Tahsilat bulunamadı"),
+  segment_id: z.string().uuid("Segment bulunamadı"),
+  amount: tahsilatTutari,
+  paid_on: tahsilatTarihi,
+  note: opsiyonelMetin(300),
 });
 
 export const isMalzemeSchema = z.object({
@@ -244,6 +303,7 @@ export type FaturaInput = z.infer<typeof faturaSchema>;
 export type MusteriInput = z.infer<typeof musteriSchema>;
 export type SegmentInput = z.infer<typeof segmentSchema>;
 export type IsInput = z.infer<typeof isSchema>;
+export type TahsilatInput = z.infer<typeof tahsilatSchema>;
 export type UrunInput = z.infer<typeof urunSchema>;
 export type StokHareketInput = z.infer<typeof stokHareketSchema>;
 export type UrunStokEkleInput = z.infer<typeof urunStokEkleSchema>;

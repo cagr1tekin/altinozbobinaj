@@ -5,8 +5,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   musteriSchema,
+  segmentAnlasilanSchema,
   segmentSchema,
-  segmentTutarSchema,
 } from "@/lib/validation/schemas";
 import {
   type ActionState,
@@ -152,26 +152,29 @@ export async function segmentDurumDegistir(
 }
 
 /**
- * Segment cirosu: elden alınan tutar.
+ * Müşteriyle anlaşılan TOPLAM tutar (faturasız segment için).
  *
- * Bir segmentte YA fatura YA bu tutar olur — ikisi birden ciroyu iki kez
- * saydırırdı. Kural veritabanı trigger'ında (iki yönlü); buradaki
- * kontrol yalnızca anlaşılır bir mesaj için.
+ * Bu bir borç kaydı, tahsilat değil: para alındığında ayrıca vade
+ * giriliyor (bkz. lib/actions/tahsilat.ts). Fatura yüklenmiş bir
+ * segmentte anlaşılan tutar zaten faturadan geliyor; ikisi birden
+ * aynı şeyi iki kez tanımlardı ve veritabanı trigger'ı engelliyor.
  *
  * Boş göndermek tutarı temizliyor, böylece fatura yolu açılıyor.
  */
-export async function segmentTutarKaydet(
+export async function segmentAnlasilanKaydet(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const parsed = segmentTutarSchema.safeParse(Object.fromEntries(formData));
+  const parsed = segmentAnlasilanSchema.safeParse(
+    Object.fromEntries(formData)
+  );
   if (!parsed.success) return zodHatasi(parsed.error);
 
   const supabase = await createClient();
 
-  const { error } = await supabase.rpc("segment_tutar_yaz", {
+  const { error } = await supabase.rpc("segment_anlasilan_yaz", {
     p_segment_id: parsed.data.segment_id,
-    p_tutar: parsed.data.charged_amount,
+    p_tutar: parsed.data.agreed_amount,
   });
 
   if (error) return veritabaniHatasi(error, "Tutar kaydedilemedi");
@@ -183,8 +186,8 @@ export async function segmentTutarKaydet(
   return {
     status: "success",
     message:
-      parsed.data.charged_amount === null
-        ? "Tutar kaldırıldı. Bu segmente artık fatura girilebilir."
-        : "Alınan tutar kaydedildi",
+      parsed.data.agreed_amount === null
+        ? "Tutar kaldırıldı. Bu segmente artık fatura yüklenebilir."
+        : "Anlaşılan tutar kaydedildi",
   };
 }

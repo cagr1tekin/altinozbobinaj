@@ -291,11 +291,11 @@ end $$;
 do $$
 begin
   if has_function_privilege('anon',
-       'complete_job(uuid, service_type[], numeric, boolean)', 'EXECUTE') then
+       'complete_job(uuid, service_type[], boolean)', 'EXECUTE') then
     raise exception 'KALDI: anon is tamamlayabiliyor';
   end if;
   if not has_function_privilege('authenticated',
-       'complete_job(uuid, service_type[], numeric, boolean)', 'EXECUTE') then
+       'complete_job(uuid, service_type[], boolean)', 'EXECUTE') then
     raise exception 'KALDI: personel is tamamlayamiyor';
   end if;
   if has_function_privilege('anon',

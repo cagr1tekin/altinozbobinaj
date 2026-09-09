@@ -44,7 +44,7 @@ declare
 begin
   foreach t in array array['customers','segments','jobs','job_products',
                            'invoices','products','qr_codes',
-                           'stock_movements','audit_log']
+                           'stock_movements','audit_log','payments']
   loop
     if has_table_privilege('authenticated', t, 'DELETE') then
       v_silinen := v_silinen || t;
@@ -54,7 +54,7 @@ begin
   if array_length(v_silinen, 1) is not null then
     raise exception 'KALDI: personel su tablolarda DELETE yetkisine sahip: %', v_silinen;
   end if;
-  raise notice 'GECTI: 9 tabloda da personelin DELETE yetkisi yok';
+  raise notice 'GECTI: 10 tabloda da personelin DELETE yetkisi yok';
 end $$;
 
 \echo '--- TEST 2: DELETE politikasi HIC yazilmamis ---'
@@ -140,16 +140,29 @@ begin
   raise notice 'GECTI: silinen fatura segment toplamindan dustu';
 end $$;
 
-\echo '--- TEST 7: silinen fatura AYLIK TRENDDEN dusuyor ---'
+\echo '--- TEST 7: silinen TAHSILAT aylik trendden dusuyor ---'
+/* 0015: trend artik faturayi degil odemeyi okuyor. Yumusak silinmis bir
+   tahsilat raporda kalirsa yumusak silme ise yaramaz — silinen para
+   gelirde gorunmeye devam eder. */
 do $$
-declare v_gelir numeric;
+declare v_gelir numeric; v_tahsilat uuid;
 begin
-  select net_gelir into v_gelir from monthly_trend(12)
+  v_tahsilat := tahsilat_ekle('f2222222-2222-4222-8222-222222222222', 700);
+
+  select tahsilat into v_gelir from monthly_trend(12)
+  where donem = date_trunc('month', current_date)::date;
+  if coalesce(v_gelir, 0) <> 700.00 then
+    raise exception 'KALDI: tahsilat trende girmedi: %', v_gelir;
+  end if;
+
+  perform kayit_sil('payments', v_tahsilat);
+
+  select tahsilat into v_gelir from monthly_trend(12)
   where donem = date_trunc('month', current_date)::date;
   if coalesce(v_gelir, 0) <> 0 then
-    raise exception 'KALDI: silinen fatura aylik trendde: %', v_gelir;
+    raise exception 'KALDI: silinen tahsilat aylik trendde: %', v_gelir;
   end if;
-  raise notice 'GECTI: silinen fatura kar/zarar raporundan dustu';
+  raise notice 'GECTI: silinen tahsilat kar/zarar raporundan dustu';
 end $$;
 
 \echo '--- TEST 8: silinen malzeme MALIYETTEN dusuyor ---'

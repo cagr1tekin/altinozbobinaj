@@ -18,6 +18,7 @@ const VARLIK: Record<AuditKaydi["entity"], string> = {
   product: "Ürün",
   stock_movement: "Stok hareketi",
   invoice: "Fatura",
+  payment: "Tahsilat",
   report: "Rapor",
 };
 
@@ -54,7 +55,9 @@ const ALAN: Record<string, string> = {
   qty_grams_delta: "gram değişimi",
   unit_price: "birim fiyat",
   unit_cost_snapshot: "maliyet fiyatı",
-  charged_amount: "alınan tutar",
+  agreed_amount: "anlaşılan tutar",
+  amount: "tutar",
+  paid_on: "tahsilat tarihi",
   invoice_no: "fatura no",
   gross_amount: "brüt tutar",
   net_amount: "net tutar",

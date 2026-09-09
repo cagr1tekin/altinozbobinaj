@@ -91,15 +91,29 @@ begin
   raise notice 'GECTI: monthly_trend 12 ay kesintisiz donuyor';
 end $$;
 
-\echo '--- TEST 6: trend faturayi geliri olarak sayiyor ---'
+\echo '--- TEST 6: trend TAHSILATI gelir sayiyor, faturayi degil ---'
+/* 0015 oncesi bu test faturalarin netini gelir sayiyordu. Artik gelirin
+   olcutu odeme tarihi: 3 fatura duruyor ama para alinmadigi surece
+   trend sifir. */
 do $$
 declare v numeric;
 begin
-  select net_gelir into v from monthly_trend(12)
+  select tahsilat into v from monthly_trend(12)
   where donem = date_trunc('month', current_date)::date;
-  -- 78.605 + 100 + 200 = 78.905
-  if v <> 78905.00 then raise exception 'KALDI: bu ayin geliri %, 78905 bekleniyordu', v; end if;
-  raise notice 'GECTI: trend gelirleri dogru topluyor (78.905)';
+  if coalesce(v, 0) <> 0 then
+    raise exception 'KALDI: fatura tahsilat sayildi, gelen %', v;
+  end if;
+  raise notice 'GECTI: tahsil edilmeyen fatura trende girmiyor';
+end $$;
+
+do $$
+declare v numeric;
+begin
+  perform tahsilat_ekle('6dbb15c7-afd3-4608-b32c-d118e9c44784', 1000);
+  select tahsilat into v from monthly_trend(12)
+  where donem = date_trunc('month', current_date)::date;
+  if v <> 1000.00 then raise exception 'KALDI: tahsilat sonrasi trend %', v; end if;
+  raise notice 'GECTI: tahsilat trende odeme ayina yaziliyor (1.000)';
 end $$;
 
 \echo '--- TEST 7: segment silinince faturalar segmentsiz kaliyor (kayit korunuyor) ---'

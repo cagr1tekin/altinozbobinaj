@@ -8,6 +8,7 @@ import {
   isSchema,
   isDurumSchema,
   isTamamlaSchema,
+  isTutarSchema,
 } from "@/lib/validation/schemas";
 import {
   type ActionState,
@@ -149,10 +150,6 @@ export async function isTamamla(
   const { data, error } = await supabase.rpc("complete_job", {
     p_job_id: jobId,
     p_service_types: parsed.data.service_types,
-    /* Alınan tutar: not niteliğinde, hiçbir hesaba girmiyor. Boş
-       gönderilirse mevcut değer korunuyor (geri alıp tekrar
-       tamamlarken kaybolmasın). */
-    p_charged_amount: parsed.data.charged_amount,
     // Kullanıcı "stok yetersiz" uyarısını görüp yine de devam etmeyi seçtiyse
     p_allow_negative: parsed.data.allow_negative,
   });
@@ -171,6 +168,48 @@ export async function isTamamla(
       malzemeSayisi > 0
         ? `İş tamamlandı, ${malzemeSayisi} malzeme stoktan düşüldü.`
         : "İş tamamlandı. Bu işe malzeme girilmemişti, stok değişmedi.",
+  };
+}
+
+/**
+ * İş tutarı notu.
+ *
+ * İşin durumundan BAĞIMSIZ: tamamlanmış işte de düzenlenebiliyor.
+ * Eskiden yalnızca tamamlama formundan giriliyordu ve iş kapandıktan
+ * sonra değiştirmenin yolu yoktu — pazarlık iş bittikten sonra da
+ * değişebiliyor.
+ *
+ * Doğrudan UPDATE: bu alan hiçbir hesaba girmediği için korunacak bir
+ * tutarlılık kuralı yok. Negatif değeri şema kısıtı reddediyor,
+ * değişiklik denetim günlüğüne trigger'dan düşüyor.
+ */
+export async function isTutarKaydet(
+  _prev: ActionState,
+  formData: FormData
+): Promise<ActionState> {
+  const parsed = isTutarSchema.safeParse(Object.fromEntries(formData));
+  if (!parsed.success) return zodHatasi(parsed.error);
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("jobs")
+    .update({ agreed_amount: parsed.data.agreed_amount })
+    .eq("id", parsed.data.job_id)
+    .is("deleted_at", null);
+
+  if (error) return veritabaniHatasi(error, "İş tutarı kaydedilemedi");
+
+  revalidatePath(`/yonetim/isler/${parsed.data.job_id}`);
+  /* Segment sayfası bu tutarları toplayıp anlaşılan tutar alanına
+     varsayılan olarak koyuyor; tazelenmezse eski toplamı gösterir. */
+  revalidatePath("/yonetim/segmentler", "layout");
+
+  return {
+    status: "success",
+    message:
+      parsed.data.agreed_amount === null
+        ? "İş tutarı kaldırıldı"
+        : "İş tutarı kaydedildi",
   };
 }
 

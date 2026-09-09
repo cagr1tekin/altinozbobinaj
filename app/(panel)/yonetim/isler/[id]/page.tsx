@@ -12,18 +12,19 @@ import {
   Liste,
   Miktar,
   UstCubuk,
-  Uyari,
   butonStilleri,
   formatPara,
   formatTarihSaat,
 } from "@/components/panel/ui";
 import { islemleriSirala } from "@/lib/bicim";
+import Bilgi from "@/components/panel/Bilgi";
 import { PdfBaglantilari } from "@/components/panel/PdfButonlari";
 import EkleAcilir from "@/components/panel/EkleAcilir";
 import MalzemeFormu from "@/components/panel/MalzemeFormu";
 import MalzemeSilButonu from "@/components/panel/MalzemeSilButonu";
 import TamamlamaPaneli from "@/components/panel/TamamlamaPaneli";
 import IsDurumFormu from "@/components/panel/IsDurumFormu";
+import IsTutarFormu from "@/components/panel/IsTutarFormu";
 
 export default async function IsDetaySayfasi({
   params,
@@ -38,7 +39,7 @@ export default async function IsDetaySayfasi({
       .from("jobs")
       .select(
         `id, title, description, status, completed_at, created_at, segment_id,
-         service_types, charged_amount,
+         service_types, agreed_amount,
          segments(id, segment_date, customers(id, name)),
          job_products(id, qty_pieces_used, qty_grams_used, unit_cost_snapshot,
                       products(id, name, unit_type_default, qty_pieces, qty_grams,
@@ -154,24 +155,50 @@ export default async function IsDetaySayfasi({
               tamamlandiMi={tamamlandiMi}
               malzemeSayisi={malzemeler.length}
               stokUyarilari={stokUyarilari}
-              alinanTutar={
-                is.charged_amount === null ? null : Number(is.charged_amount)
+            />
+          </Kart>
+        </Bolum>
+
+        {/* İş tutarı tamamlama panelinden AYRI ve her durumda görünür.
+            Kullanıcının isteği: "bu notu işi tamamladıktan sonra da
+            görebilmeli ve düzenleyebilmeliyiz". Tamamlama formunun
+            içinde olsaydı iş kapandığında kaybolurdu. */}
+        <Bolum
+          baslik="İş tutarı"
+          aciklama={
+            is.agreed_amount === null
+              ? "Girilmedi"
+              : `${formatPara(is.agreed_amount)} · not`
+          }
+          bilgi={
+            <>
+              Bu motora ne kadar konuşulduğunun <strong>notu</strong>. Hiçbir
+              gelir, tahsilat veya kâr hesabına girmez — para segment
+              sayfasından takip edilir. Segmentteki &quot;anlaşılan toplam
+              tutar&quot; alanı, o segmentteki işlerin bu tutarlarını
+              toplayıp hazır öneriyor. İş tamamlandıktan sonra da
+              değiştirilebilir.
+            </>
+          }
+        >
+          <Kart>
+            <IsTutarFormu
+              isId={is.id}
+              mevcutTutar={
+                is.agreed_amount === null ? null : Number(is.agreed_amount)
               }
             />
           </Kart>
         </Bolum>
 
-        <Bolum baslik="Kullanılan malzemeler">
-          {malzemeler.length > 0 && (
-            <div className="mb-3">
-              <Uyari tur="bilgi">
-                {tamamlandiMi
-                  ? "Bu malzemeler stoktan düşüldü. Tamamlamayı geri alırsanız iade edilir."
-                  : "Bu malzemeler henüz stoktan düşülmedi. Düşüm, iş tamamlandığında yapılır."}
-              </Uyari>
-            </div>
-          )}
-
+        <Bolum
+          baslik="Kullanılan malzemeler"
+          bilgi={
+            tamamlandiMi
+              ? "Bu malzemeler stoktan düşüldü. Tamamlamayı geri alırsanız iade edilir."
+              : "Bu malzemeler henüz stoktan düşülmedi. Düşüm, iş tamamlandığında yapılır."
+          }
+        >
           <Liste
             ekleme={
               !tamamlandiMi ? (
@@ -220,18 +247,20 @@ export default async function IsDetaySayfasi({
           </Liste>
 
           {malzemeler.length > 0 && (
-            <p className="mt-3 text-sm text-pnl-muted">
-              Toplam malzeme maliyeti:{" "}
-              <span className="font-semibold text-pnl-text">
-                {formatPara(toplamMaliyet)}
-              </span>
+            <div className="mt-3 flex items-center gap-1">
+              <p className="text-sm text-pnl-muted">
+                Toplam malzeme maliyeti:{" "}
+                <span className="font-semibold text-pnl-text">
+                  {formatPara(toplamMaliyet)}
+                </span>
+              </p>
               {!tamamlandiMi && (
-                <>
-                  {" — "}güncel alış fiyatlarına göre. İş tamamlandığında o
-                  günkü fiyatlarla sabitlenir.
-                </>
+                <Bilgi ad="Malzeme maliyeti">
+                  Güncel alış fiyatlarına göre hesaplanıyor. İş
+                  tamamlandığında o günkü fiyatlarla sabitlenir.
+                </Bilgi>
               )}
-            </p>
+            </div>
           )}
 
           {malzemeler.length === 0 && tamamlandiMi && (
@@ -243,13 +272,12 @@ export default async function IsDetaySayfasi({
 
 
         {tamamlandiMi && qr?.token && (
-          <Bolum baslik="Malzeme şeffaflığı QR'ı">
+          <Bolum
+            baslik="Malzeme şeffaflığı QR'ı"
+            bilgi="Müşteri bu kodu okutunca yalnızca kullanılan malzemelerin adlarını görür. Fiyat ve miktar görünmez."
+          >
             <Kart>
-              <p className="text-sm text-pnl-muted">
-                Müşteri bu kodu okutunca yalnızca kullanılan malzemeleri görür.
-                Fiyat bilgisi görünmez.
-              </p>
-              <p className="mt-3 break-all rounded-lg bg-pnl-bg px-3 py-2 font-mono text-xs">
+              <p className="break-all rounded-lg bg-pnl-bg px-3 py-2 font-mono text-xs">
                 {SITE_URL}/j/{qr.token}
               </p>
               <Link

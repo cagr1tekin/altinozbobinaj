@@ -71,12 +71,12 @@ export default function KarZararGrafigi({ veri }: { veri: AylikTrend[] }) {
   return (
     <figure className="rounded-lg border border-pnl-line bg-pnl-surface p-4">
       <figcaption className="mb-3 text-sm text-pnl-muted">
-        Son {veri.length} ayın kâr/zarar seyri
+        Son {veri.length} ayın kâr/zarar seyri — tahsilat eksenli
       </figcaption>
 
       {tumuSifir ? (
         <p className="py-6 text-center text-sm text-pnl-muted">
-          Bu dönemde fatura veya tamamlanmış iş kaydı yok.
+          Bu dönemde tahsilat veya tamamlanmış iş kaydı yok.
         </p>
       ) : (
         <svg
@@ -187,7 +187,7 @@ export default function KarZararGrafigi({ veri }: { veri: AylikTrend[] }) {
           <thead className="text-pnl-muted">
             <tr>
               <th scope="col" className="py-1.5 font-medium">Ay</th>
-              <th scope="col" className="py-1.5 text-right font-medium">Gelir</th>
+              <th scope="col" className="py-1.5 text-right font-medium">Tahsilat</th>
               <th scope="col" className="py-1.5 text-right font-medium">Gider</th>
               <th scope="col" className="py-1.5 text-right font-medium">Kâr/Zarar</th>
             </tr>
@@ -197,7 +197,7 @@ export default function KarZararGrafigi({ veri }: { veri: AylikTrend[] }) {
               <tr key={v.donem} className="border-t border-pnl-line">
                 <td className="py-1.5">{ayEtiketi(v.donem)}</td>
                 <td className="py-1.5 text-right text-pnl-muted">
-                  {formatPara(v.net_gelir)}
+                  {formatPara(v.tahsilat)}
                 </td>
                 <td className="py-1.5 text-right text-pnl-muted">
                   {formatPara(v.malzeme_maliyeti)}
