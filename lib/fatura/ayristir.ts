@@ -118,6 +118,35 @@ export function alanlariDogrula(a: FaturaAlanlari): string | null {
 }
 
 /**
+ * pdfjs'in worker modülünü ADIYLA yükler.
+ *
+ * Neden gerekli: pdfjs Node'da worker'ı `GlobalWorkerOptions.workerSrc`
+ * üzerinden, ÇALIŞMA ANINDA hesaplanan göreceli bir yolla içeri alıyor
+ * (`await import("./pdf.worker.mjs")`). Next'in dosya izleyicisi (nft)
+ * değişkenli bir import'u göremiyor: `pdf.mjs` sunucusuz pakete
+ * kopyalanıyor ama `pdf.worker.mjs` KOPYALANMIYOR.
+ *
+ * Sonuç yerelde görünmüyor — node_modules olduğu gibi duruyor — ama
+ * Vercel'de fatura yükleme "Setting up fake worker failed: Cannot find
+ * module …" ile düşüyordu. Ölçüldü: derleme sonrası
+ * `.next/server/app/.../page.js.nft.json` içinde `pdf.mjs` var,
+ * `pdf.worker.mjs` yoktu.
+ *
+ * İki şeyi birden yapıyor:
+ *  1) Statik belirteçle import: izleyici dosyayı görüp pakete kopyalıyor.
+ *  2) `globalThis.pdfjsWorker`: pdfjs bunu bulduğunda kendi dinamik
+ *     import'unu HİÇ yapmıyor (bkz. `#mainThreadWorkerMessageHandler`),
+ *     yani yol çözümlemesine hiç bağlı kalmıyoruz.
+ *
+ * Modül önbelleğe alındığı için ikinci çağrıda maliyeti yok.
+ */
+async function workerYukle(): Promise<void> {
+  const kure = globalThis as { pdfjsWorker?: unknown };
+  if (kure.pdfjsWorker) return;
+  kure.pdfjsWorker = await import("pdfjs-dist/legacy/build/pdf.worker.mjs");
+}
+
+/**
  * PDF dosyasından metni çıkarır.
  *
  * pdfjs'in legacy derlemesi kullanılıyor: sunucu tarafında DOM ve canvas
@@ -125,6 +154,7 @@ export function alanlariDogrula(a: FaturaAlanlari): string | null {
  */
 export async function pdfMetniCikar(veri: Uint8Array): Promise<string> {
   const { getDocument } = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  await workerYukle();
 
   /* pdfjs kendisine verilen tamponun sahipliğini devralıyor ve okuma
      bitince onu geçersiz kılıyor (detached ArrayBuffer). Çağıran aynı
