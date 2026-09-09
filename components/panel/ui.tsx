@@ -23,6 +23,11 @@ export {
 /* Yeniden ihraç değerleri bu modülün kapsamına sokmuyor; rozet bileşeni
    ISLEM_TURU'yu kullandığı için ayrıca ithal ediliyor. */
 import { ISLEM_TURU } from "@/lib/bicim";
+/* Açılır açıklama durum tuttuğu için istemci bileşeni; sunucu
+   bileşenlerinden içe aktarılması sorun değil. */
+import { BolumBasligi } from "./Bilgi";
+
+export { default as Bilgi } from "./Bilgi";
 
 /**
  * Panel bileşenleri — design-system/PANEL.md
@@ -80,30 +85,37 @@ export function Icerik({ children }: { children: ReactNode }) {
   );
 }
 
-/** Bölüm başlığı — sayfa içi gruplama */
+/**
+ * Bölüm başlığı — sayfa içi gruplama.
+ *
+ * İki farklı alt metin var ve karıştırılmamalı:
+ *   `aciklama` → VERİ. Her zaman görünür ("3 fatura · 4.500 TL").
+ *   `bilgi`    → ÖĞRETİCİ metin. Bilgi ikonunun arkasında, isteyen açar.
+ *
+ * Ayrım bilinçli: ekranı dolduran şey öğretici metinlerdi, veri değil.
+ */
 export function Bolum({
   baslik,
   aciklama,
+  bilgi,
   eylem,
   children,
 }: {
   baslik?: string;
-  aciklama?: string;
+  aciklama?: ReactNode;
+  bilgi?: ReactNode;
   eylem?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className="mb-6">
-      {(baslik || eylem) && (
-        <div className="mb-3 flex items-end justify-between gap-3">
-          <div>
-            {baslik && <h2 className="text-base font-semibold">{baslik}</h2>}
-            {aciklama && (
-              <p className="mt-0.5 text-sm text-pnl-muted">{aciklama}</p>
-            )}
-          </div>
-          {eylem}
-        </div>
+      {(baslik || eylem || bilgi) && (
+        <BolumBasligi
+          baslik={baslik}
+          aciklama={aciklama}
+          bilgi={bilgi}
+          eylem={eylem}
+        />
       )}
       {children}
     </section>

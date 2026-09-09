@@ -26,7 +26,8 @@ Personel hesapları **Authentication → Users → Add user** ile elle açılır
 **Kolay yol:** `kurulum-tumu.sql` dosyasının tamamını kopyalayıp Supabase
 panelinde **SQL Editor**'e yapıştırın ve çalıştırın. Bu dosya aşağıdaki
 migration'ların sırayla birleştirilmiş hâlidir. Ortasında bir doğrulama
-sorgusu çalıştırıyor — **10 tablo / 13 fonksiyon / 2 view** ve **anon'a açık
+sorgusu çalıştırıyor — **10 tablo / 13 fonksiyon / 2 view** (0015 sonrası
+`payments` tablosu ve `segment_balances` görünümü de ekleniyor) ve **anon'a açık
 fonksiyon: 0** görmelisiniz. Son sütun 0 değilse yetki düzeltmesi
 uygulanmamış demektir. (Fonksiyon sayısı dosyayı ikinci kez
 çalıştırdığınızda daha yüksek çıkar: sonraki migration'lar zaten kurulu
@@ -53,6 +54,7 @@ Tekrar çalıştırmak güvenlidir; üç ardışık koşu hatasız doğrulanıyo
 | 12 | `migrations/0012_islem_turu_coklu.sql` | İşlem türü çoklu seçim: ikisi birden yapılabiliyor |
 | 13 | `migrations/0013_guvenlik_sikilastirma.sql` | **Güvenlik:** yumuşak silme, DELETE kaldırıldı, signup engeli, giriş günlüğü |
 | 14 | `migrations/0014_tutar_ve_stok_fiyati.sql` | Faturasız ciro, stok girişinde fiyat, güncel fiyattan maliyet |
+| 15 | `migrations/0015_tahsilat_ve_vade.sql` | Anlaşılan tutar / tahsilat ayrımı, çok vadeli ödeme, nakit esaslı gelir |
 
 `tests/00_supabase_shim.sql` dosyasını **çalıştırmayın** — o yalnızca yerel
 Postgres'te test için, Supabase'de bu roller zaten var.
@@ -142,10 +144,59 @@ maliyet gerçeğin gerisinde kalıyordu.
 Tamamlama geri alınıp yeniden yapılırsa fiyat o anki değerden yeniden
 donuyor — istenen davranış bu: iş yeniden kapatılıyor demek.
 
+### Anlaşılan tutar ile tahsilat neden ayrı? (0015)
+
+Sistem başlangıçta ikisini aynı sayıyordu: fatura yüklemek ya da segmente
+elle tutar girmek "para alındı" demekti ve aylık gelir o tarihe yazılıyordu.
+Gerçekte anlaşılan para tek seferde ödenmiyor.
+
+İki ayrı kavram var:
+
+| | Nerede | Ne anlatıyor |
+|---|---|---|
+| **Anlaşılan tutar** | `segments.agreed_amount` ya da faturanın brütü | Müşteriyle konuşulan toplam. Bir **alacak**. |
+| **Tahsilat** | `payments` (segment başına birden çok satır) | Fiilen alınan para; her satırın kendi tarihi var. |
+
+`segment_balances` görünümü üçünü tek satırda veriyor: anlaşılan, tahsil
+edilen, kalan. Panel, PDF ve raporlar aynı görünümden okuyor — üç yerde
+ayrı hesaplanırsa biri değişip diğeri kalır.
+
+**Aylık gelir NAKİT esaslı**: ölçüt `payments.paid_on`, yani paranın ele
+geçtiği gün. Fatura tarihi ya da işin bittiği gün değil. Kâr/zarar da bu
+rakamdan hesaplanıyor. Yapılmış ama tahsil edilmemiş iş gelirde
+görünmüyor; karşılığı **kalan alacak** olarak ayrıca raporlanıyor.
+
+`kalan` **null olabiliyor**: anlaşılan tutar hiç girilmemişse "borç yok"
+değil "borç bilinmiyor" demektir. Sıfır yazmak bunu gizlerdi.
+
+Fazla tahsilat reddedilmiyor (avans, yuvarlama gerçek) ama toplamlarda
+`greatest(kalan, 0)` ile sıfıra çekiliyor: bir segmentteki fazla ödeme
+başka bir segmentin borcunu kapatmıyor.
+
+İşin tamamlanmasıyla paranın **hiçbir bağı yok**: `complete_job()` 0015'te
+tutar parametresini kaybetti. Tamamlanmamış işin parası peşin alınabiliyor,
+tamamlanmış işin parası aylar sonra gelebiliyor.
+
+### 0015 geçişi: eski kayıtlar ne oldu?
+
+Migration, mevcut her fatura ve elle girilmiş tutar için **bir vade**
+yazdı (notunda "0015 gecisi" yazıyor). Sebep: tahsilat tablosu boş
+bırakılsaydı geçmiş dönem raporları sıfır gelir gösterirdi — veri kaybı
+gibi görünen, sessiz ve yanlış bir sonuç. Eski sistemin zaten varsaydığı
+şey, artık açık bir kayıt olarak duruyor.
+
+**Gerçekte tahsil edilmemiş olanları panelden silin.** Segmentin tahsilat
+bölümünde vadenin yanındaki çöp kutusu yumuşak siliyor; kayıt
+veritabanında kalıyor.
+
+Segmentinde zaten tahsilat olan kayıtlar atlanıyor, yani kurulum dosyası
+baştan çalıştırıldığında para ikiye katlanmıyor.
+
 ### Müşteriye giden belgeler ne göstermiyor?
 
 Üç şey birlikte gizleniyor (`maliyet=0`): alış fiyatı/maliyet, malzeme
-**miktarı** ve tahsilat/ciro tutarları. Miktar da ticari bilgi ve QR
+**miktarı** ve para bilgisi (anlaşılan tutar, vadeler, kalan alacak, iş
+tutarı notları). Miktar da ticari bilgi ve QR
 sayfasından 0010 ile kaldırılmıştı; PDF'lerde 0014 sonrası düzeltildi —
 iki yüzeyin farklı davranması tutarsızlıktı.
 

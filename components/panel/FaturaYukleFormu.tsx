@@ -2,6 +2,7 @@
 
 import { faturaYukle } from "@/lib/actions/faturalar";
 import { Form, GonderButonu } from "@/components/panel/Form";
+import Bilgi from "@/components/panel/Bilgi";
 
 /**
  * Fatura yükleme.
@@ -16,7 +17,7 @@ export default function FaturaYukleFormu({
 }) {
   return (
     <Form action={faturaYukle}>
-      {(state) => (
+      {() => (
         <div className="space-y-4">
           <input type="hidden" name="segment_id" value={segmentId} />
 
@@ -38,17 +39,17 @@ export default function FaturaYukleFormu({
               aria-describedby="fatura-dosya-ipucu"
               className="w-full rounded-lg border border-pnl-edge bg-pnl-surface p-3 text-base file:mr-3 file:min-h-[36px] file:cursor-pointer file:rounded-md file:border-0 file:bg-pnl-primary file:px-4 file:text-sm file:font-semibold file:text-white focus:border-pnl-primary focus:outline-none focus:ring-2 focus:ring-pnl-primary/30"
             />
-            <p id="fatura-dosya-ipucu" className="mt-1.5 text-sm text-pnl-faint">
-              e-fatura sağlayıcınızdan indirdiğiniz PDF. Tutarlar otomatik
-              okunur; fotoğraf veya tarama okunamaz.
-            </p>
+            <div className="mt-1.5">
+              <Bilgi ad="Fatura PDF'i">
+                <span id="fatura-dosya-ipucu">
+                  e-fatura sağlayıcınızdan indirdiğiniz PDF. Tutarlar metin
+                  katmanından otomatik okunur; fotoğraf veya tarama okunamaz.
+                  Faturanın brüt tutarı segmentin anlaşılan tutarı olur. Aynı
+                  fatura iki kez yüklenemez.
+                </span>
+              </Bilgi>
+            </div>
           </div>
-
-          {state.status === "idle" && (
-            <p className="text-sm text-pnl-faint">
-              Aynı fatura iki kez yüklenemez.
-            </p>
-          )}
 
           <GonderButonu>Faturayı Yükle ve Oku</GonderButonu>
         </div>

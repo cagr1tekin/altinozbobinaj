@@ -120,7 +120,7 @@ export default async function OzetSayfasi({
               baslik={`Arama sonuçları${
                 sonuclar.length > 0 ? ` (${sonuclar.length})` : ""
               }`}
-              aciklama="Müşteri ve motor adında arandı"
+              bilgi="Arama müşteri adında ve motor (iş) başlığında yapılır."
             >
               {aramaSonuc?.error ? (
                 <Uyari tur="hata" baslik="Arama yapılamadı">
@@ -165,11 +165,7 @@ export default async function OzetSayfasi({
 
         <Bolum
           baslik={`Açık işler${sirali.length > 0 ? ` (${sirali.length})` : ""}`}
-          aciklama={
-            sirali.length > 0
-              ? "Tamamlanmamış tüm işler — tarih filtresinden etkilenmez"
-              : undefined
-          }
+          bilgi="Tamamlanmamış tüm işler burada; aşağıdaki tarih filtresi bu listeyi etkilemez. İki ay önce açılmış ve hâlâ bitmemiş bir iş unutulmuş demektir ve ekrandan kaybolmamalı."
         >
           {sirali.length === 0 ? (
             <BosDurum
@@ -206,6 +202,7 @@ export default async function OzetSayfasi({
             bitenler.length > 0 ? ` (${bitenler.length})` : ""
           }`}
           aciklama={aralikEtiketi(aralik)}
+          bilgi="Tarih filtresi işin TAMAMLANDIĞI güne bakar, açıldığı güne değil. Yalnızca bu listeyi sınırlar; açık işler her zaman görünür."
         >
           <div className="mb-3">
             <DonemSecici

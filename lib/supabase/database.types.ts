@@ -52,10 +52,12 @@ export type Segment = {
   segment_date: string;
   note: string | null;
   status: SegmentStatus;
-  /* Faturasız ciro: müşteriden elden alınan tutar. Bir segmentte YA
-     fatura YA bu tutar olur (veritabanı trigger'ı ikisini engelliyor);
-     ciro hesabı fatura yoksa buradan geliyor. */
-  charged_amount: number | null;
+  /* Müşteriyle ANLAŞILAN toplam tutar (fatura kesilmeyen işler için).
+     Bir segmentte YA fatura YA bu tutar olur — ikisi de aynı şeyi,
+     "toplam alınacak para"yı ifade ediyor.
+     TAHSİL EDİLEN para burada DEĞİL: o `payments` tablosunda ve
+     birden çok vadeye bölünebiliyor. */
+  agreed_amount: number | null;
   created_at: string;
   updated_at: string;
   /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
@@ -73,9 +75,10 @@ export type Job = {
   /* Tamamlanmamış işte null; tamamlanmışta en az bir eleman (şema kısıtı).
      Dizi: bir ziyarette hem sarım hem revizyon yapılabiliyor. */
   service_types: ServiceType[] | null;
-  /* İş başına alınan tutar. YALNIZCA NOT: hiçbir ciro, kâr veya rapor
-     hesabına girmiyor — ciro segment düzeyinde tutuluyor. */
-  charged_amount: number | null;
+  /* İş başına anlaşılan tutar. YALNIZCA NOT: hiçbir tahsilat, kâr veya
+     rapor hesabına girmiyor — para segment düzeyinde takip ediliyor.
+     İşin durumundan bağımsız her zaman düzenlenebiliyor. */
+  agreed_amount: number | null;
   created_at: string;
   updated_at: string;
   /* Yumuşak silme: dolu ise kayıt listelerde ve toplamlarda görünmez
@@ -181,6 +184,52 @@ export type PdfExport = {
   generated_at: string;
 };
 
+/**
+ * payments satırı — segment başına tahsilat (vade).
+ *
+ * Anlaşılan tutar tek seferde ödenmediği için bir segmentte birden çok
+ * satır olabiliyor. `paid_on` paranın ele geçtiği gün: aylık gelir
+ * hesabı fatura ya da segment tarihine değil buna bakıyor.
+ */
+export type Payment = {
+  id: string;
+  segment_id: string;
+  amount: number;
+  paid_on: string;
+  note: string | null;
+  created_at: string;
+  updated_at: string;
+  deleted_at: string | null;
+};
+
+/** segment_tahsilatlari() satır şekli */
+export type SegmentTahsilati = {
+  tahsilat_id: string;
+  tutar: number;
+  tarih: string;
+  not_: string | null;
+  girildi: string;
+};
+
+/** segment_balances satırı — segmentin para durumu tek satırda */
+export type SegmentBakiyesi = {
+  segment_id: string;
+  customer_id: string;
+  segment_date: string;
+  fatura_sayisi: number;
+  fatura_toplam: number;
+  elle_girilen: number | null;
+  /* Fatura varsa fatura brütü, yoksa elle girilen tutar. Hiç
+     girilmemişse null — "borç yok" değil "borç bilinmiyor". */
+  anlasilan: number | null;
+  tahsil_edilen: number;
+  vade_sayisi: number;
+  son_tahsilat: string | null;
+  /* anlasilan − tahsil_edilen. anlasilan null ise null. Negatifse
+     fazla tahsilat var. */
+  kalan: number | null;
+};
+
 /** complete_job() dönüş şekli */
 export type CompleteJobResult = {
   job_id: string;
@@ -193,16 +242,24 @@ export type CompleteJobResult = {
 export type DashboardOzet = {
   baslangic: string;
   bitis: string;
-  brut_gelir: number;
-  net_gelir: number;
-  vergi: number;
+  /* NAKİT: dönemde fiilen tahsil edilen para (ödeme tarihine göre).
+     Ana gelir rakamı. */
+  tahsilat: number;
+  tahsilat_sayisi: number;
+  /* TAHAKKUK: dönemde anlaşılan toplam (segment tarihine göre).
+     Tahsil edilmiş olması gerekmiyor; farkı kalan alacağa gidiyor. */
+  anlasilan_tutar: number;
+  faturali_anlasilan: number;
+  elden_anlasilan: number;
   fatura_sayisi: number;
-  /* Ciro iki kaynaktan: faturalar + faturasız segment tutarları.
-     net_gelir ikisinin toplamı; ayrıştırma raporda gösteriliyor. */
-  faturali_gelir: number;
-  elden_gelir: number;
   elden_sayisi: number;
+  /* Fatura tarihine göre — vergi hangi ay beyan edilecekse o aya ait.
+     Bilinçli olarak yukarıdakinden farklı bir eksen. */
+  vergi: number;
+  /* Dönem sonu itibarıyla açık bakiye. Akış değil, bakiye. */
+  kalan_alacak: number;
   malzeme_maliyeti: number;
+  /* tahsilat − malzeme_maliyeti. Nakit esaslı. */
   kar_zarar: number;
   tamamlanan_is: number;
   acik_is: number;
@@ -212,16 +269,19 @@ export type DashboardOzet = {
 export type DashboardMusteri = {
   customer_id: string;
   customer_name: string;
-  net_gelir: number;
+  tahsilat: number;
   malzeme_maliyeti: number;
   kar_zarar: number;
+  /* "Kim bana ne kadar borçlu" — tahsilat takibinin asıl sorusu. */
+  kalan_alacak: number;
   tamamlanan_is: number;
 };
 
 /** monthly_trend() satır şekli — raporlar grafiği */
 export type AylikTrend = {
   donem: string;
-  net_gelir: number;
+  /* Ödeme tarihine göre: para hangi ay alındıysa o ayın geliri. */
+  tahsilat: number;
   malzeme_maliyeti: number;
   kar_zarar: number;
 };
@@ -256,6 +316,7 @@ export type AuditEntity =
   | "product"
   | "stock_movement"
   | "invoice"
+  | "payment"
   | "report";
 
 /** audit_log satırı — salt okunur, salt eklenir */
@@ -318,7 +379,7 @@ export type Database = {
         Row: Segment;
         Insert: InsertOf<
           Segment,
-          Zamanlar | "segment_date" | "note" | "status" | "charged_amount" | "deleted_at">;
+          Zamanlar | "segment_date" | "note" | "status" | "agreed_amount" | "deleted_at">;
         Update: Partial<Segment>;
         Relationships: [
           {
@@ -342,7 +403,7 @@ export type Database = {
           | "status"
           | "completed_at"
           | "service_types"
-          | "charged_amount"
+          | "agreed_amount"
           | "deleted_at"
         >;
         Update: Partial<Job>;
@@ -428,6 +489,24 @@ export type Database = {
             columns: ["job_id"];
             isOneToOne: false;
             referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      /* Tahsilat. Insert/Update tipleri var ama uygulama bunlari
+         DOGRUDAN kullanmiyor: yazma tahsilat_ekle() /
+         tahsilat_guncelle() uzerinden geciyor, cunku silinmis segment
+         ve gelecek tarih kontrolleri orada. */
+      payments: {
+        Row: Payment;
+        Insert: InsertOf<Payment, Zamanlar | "paid_on" | "note" | "deleted_at">;
+        Update: Partial<Payment>;
+        Relationships: [
+          {
+            foreignKeyName: "payments_segment_id_fkey";
+            columns: ["segment_id"];
+            isOneToOne: false;
+            referencedRelation: "segments";
             referencedColumns: ["id"];
           },
         ];
@@ -523,6 +602,12 @@ export type Database = {
         };
         Relationships: [];
       };
+      /* Segmentin para durumu tek satırda. Üç ekran ve PDF aynı hesabı
+         yapmasın diye görünüme alındı. */
+      segment_balances: {
+        Row: SegmentBakiyesi;
+        Relationships: [];
+      };
     };
     Functions: {
       /* Yumuşak silme: fiziksel DELETE yetkisi RLS'te yok. */
@@ -534,7 +619,8 @@ export type Database = {
             | "jobs"
             | "job_products"
             | "invoices"
-            | "products";
+            | "products"
+            | "payments";
           p_id: string;
         };
         Returns: undefined;
@@ -567,12 +653,12 @@ export type Database = {
       complete_job: {
         /* İşlem türü ZORUNLU: opsiyonel değil, çünkü müşteriye gösterilen
            belgenin metni buna bağlı. */
+        /* Tutar parametresi 0015'te KALKTI: işin tamamlanmasıyla
+           paranın bağı yok. İş tutarı iş sayfasından her zaman
+           düzenlenebilen bir not. */
         Args: {
           p_job_id: string;
           p_service_types: ServiceType[];
-          /* Alınan tutar: not niteliğinde, hesaba girmiyor. null
-             gönderilirse mevcut değer korunuyor. */
-          p_charged_amount?: number | null;
           p_allow_negative?: boolean;
         };
         Returns: CompleteJobResult;
@@ -621,10 +707,36 @@ export type Database = {
         Args: { p_product_id: string; p_limit?: number };
         Returns: StokGecmisiSatiri[];
       };
-      segment_tutar_yaz: {
-        /* null = tutarı temizle (fatura yolunu aç). */
+      segment_anlasilan_yaz: {
+        /* Müşteriyle anlaşılan toplam tutar (faturasız segment için).
+           null = tutarı temizle, fatura yolunu aç. */
         Args: { p_segment_id: string; p_tutar: number | null };
         Returns: undefined;
+      };
+      tahsilat_ekle: {
+        /* Yeni vade. p_tarih paranın ele geçtiği gün: aylık gelir buna
+           göre hesaplanıyor, bu yüzden varsayılan bugün ama
+           değiştirilebilir. Gelecek tarih reddediliyor. */
+        Args: {
+          p_segment_id: string;
+          p_tutar: number;
+          p_tarih?: string;
+          p_not?: string | null;
+        };
+        Returns: string;
+      };
+      tahsilat_guncelle: {
+        Args: {
+          p_id: string;
+          p_tutar: number;
+          p_tarih: string;
+          p_not?: string | null;
+        };
+        Returns: undefined;
+      };
+      segment_tahsilatlari: {
+        Args: { p_segment_id: string };
+        Returns: SegmentTahsilati[];
       };
       add_job_product: {
         Args: {

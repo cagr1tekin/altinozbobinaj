@@ -7,6 +7,7 @@ import {
   ListeSatiri,
   SegmentDurumu,
   UstCubuk,
+  formatPara,
   formatTarih,
 } from "@/components/panel/ui";
 import { PdfBaglantilari } from "@/components/panel/PdfButonlari";
@@ -28,26 +29,47 @@ export default async function MusteriDetaySayfasi({
      müşteride boş çıkardı — aynı müşteri her ay gelmiyor. */
   const pdfAralik = aralikCoz({ donem: "yil" });
 
-  const [{ data: musteri }, { data: segmentler }] = await Promise.all([
-    supabase
-      .from("customers")
-      .select("*")
-      .eq("id", id)
-      .is("deleted_at", null)
-      .maybeSingle(),
-    supabase
-      .from("segments")
-      .select("id, segment_date, note, status, jobs(id, status)")
-      .eq("customer_id", id)
-      .is("deleted_at", null)
-      /* Silinmiş iş, segmentin "açık iş" sayacında görünmemeli. */
-      .is("jobs.deleted_at", null)
-      .order("segment_date", { ascending: false }),
-  ]);
+  const [{ data: musteri }, { data: segmentler }, { data: bakiyeler }] =
+    await Promise.all([
+      supabase
+        .from("customers")
+        .select("*")
+        .eq("id", id)
+        .is("deleted_at", null)
+        .maybeSingle(),
+      supabase
+        .from("segments")
+        .select("id, segment_date, note, status, jobs(id, status)")
+        .eq("customer_id", id)
+        .is("deleted_at", null)
+        /* Silinmiş iş, segmentin "açık iş" sayacında görünmemeli. */
+        .is("jobs.deleted_at", null)
+        .order("segment_date", { ascending: false }),
+      /* "Bu müşteri bana ne kadar borçlu" bu ekranın en sık sorulan
+         sorusu; her segmente girip bakmak gerekmemeli. */
+      supabase
+        .from("segment_balances")
+        .select("segment_id, kalan")
+        .eq("customer_id", id),
+    ]);
 
   if (!musteri) notFound();
 
   const liste = segmentler ?? [];
+
+  const kalanlar = new Map(
+    (bakiyeler ?? []).map((b) => [
+      b.segment_id,
+      b.kalan === null ? null : Number(b.kalan),
+    ])
+  );
+
+  /* Fazla tahsilat başka bir segmentin borcunu kapatmıyor: negatifler
+     sıfıra çekiliyor, yoksa toplam borç olduğundan küçük görünürdü. */
+  const toplamAlacak = [...kalanlar.values()].reduce<number>(
+    (a, k) => a + Math.max(k ?? 0, 0),
+    0
+  );
 
   return (
     <>
@@ -58,7 +80,15 @@ export default async function MusteriDetaySayfasi({
       />
 
       <Icerik>
-        <Bolum baslik="Segmentler" aciklama="Her ziyaret bir segment">
+        <Bolum
+          baslik="Segmentler"
+          aciklama={
+            toplamAlacak > 0
+              ? `${liste.length} geliş · ${formatPara(toplamAlacak)} açık alacak`
+              : `${liste.length} geliş`
+          }
+          bilgi="Müşterinin her gelişi bir segment: o gün bıraktığı bütün işler ve o iş grubunun parası birlikte takip ediliyor. Sağdaki rakam o segmentten kalan borç."
+        >
           <Liste
             ekleme={
               <EkleAcilir
@@ -75,6 +105,7 @@ export default async function MusteriDetaySayfasi({
                 const tamamlanan = isler.filter(
                   (i) => i.status === "completed"
                 ).length;
+                const kalan = kalanlar.get(s.id) ?? null;
                 return (
                   <ListeSatiri
                     key={s.id}
@@ -85,7 +116,19 @@ export default async function MusteriDetaySayfasi({
                         ? `${s.note} · ${isler.length} iş`
                         : `${isler.length} iş · ${tamamlanan} tamamlandı`
                     }
-                    sag={<SegmentDurumu durum={s.status} />}
+                    sag={
+                      <span className="flex flex-col items-end gap-1">
+                        <SegmentDurumu durum={s.status} />
+                        {/* Kalan yalnızca borç varken yazılıyor. "0 TL"
+                            yazmak, anlaşılan tutarı hiç girilmemiş bir
+                            segmentte "borcu yok" demek olurdu. */}
+                        {kalan !== null && kalan > 0 && (
+                          <span className="text-sm font-semibold text-pnl-warn">
+                            {formatPara(kalan)} kaldı
+                          </span>
+                        )}
+                      </span>
+                    }
                   />
                 );
               })}
@@ -94,7 +137,7 @@ export default async function MusteriDetaySayfasi({
 
         <Bolum
           baslik="Belgeler"
-          aciklama="Tüm geçmiş ya da seçtiğiniz tarih aralığı"
+          bilgi="Varsayılan olarak tüm geçmişi içerir. Belirli bir dönemi almak isterseniz 'Tarih aralığı seçerek al' bölümünü açın; aralıkla alınan belge hangi dönemi kapsadığını başlığında yazar."
         >
           <PdfBaglantilari
             temelUrl={`/api/pdf/musteri?id=${musteri.id}`}

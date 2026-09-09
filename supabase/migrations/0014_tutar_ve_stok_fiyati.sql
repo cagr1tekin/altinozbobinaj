@@ -574,6 +574,13 @@ $$;
 revoke all on function dashboard_summary(date, date) from anon, public;
 grant execute on function dashboard_summary(date, date) to authenticated;
 
+/* 0015 monthly_trend / dashboard_by_customer'in DONUS KOLONLARINI
+   degistiriyor (net_gelir -> tahsilat, kalan_alacak eklendi).
+   `create or replace function` donus tipini degistiremiyor: kurulum
+   dosyasi ikinci kez calistirildiginda bu satir "cannot change return
+   type of existing function" hatasi veriyordu. Once dusuruluyor. */
+drop function if exists monthly_trend(integer);
+
 create or replace function monthly_trend(p_ay_sayisi integer default 12)
 returns table (
   donem date,
@@ -624,6 +631,13 @@ $$;
 
 revoke all on function monthly_trend(integer) from anon, public;
 grant execute on function monthly_trend(integer) to authenticated;
+
+/* 0015 monthly_trend / dashboard_by_customer'in DONUS KOLONLARINI
+   degistiriyor (net_gelir -> tahsilat, kalan_alacak eklendi).
+   `create or replace function` donus tipini degistiremiyor: kurulum
+   dosyasi ikinci kez calistirildiginda bu satir "cannot change return
+   type of existing function" hatasi veriyordu. Once dusuruluyor. */
+drop function if exists dashboard_by_customer(date, date);
 
 create or replace function dashboard_by_customer(p_start date, p_end date)
 returns table (

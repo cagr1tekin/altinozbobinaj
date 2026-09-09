@@ -139,6 +139,13 @@ $$;
 -- -----------------------------------------------------------------------------
 -- 4) Müşteri bazlı kırılım (dashboard)
 -- -----------------------------------------------------------------------------
+/* 0015 monthly_trend / dashboard_by_customer'in DONUS KOLONLARINI
+   degistiriyor (net_gelir -> tahsilat, kalan_alacak eklendi).
+   `create or replace function` donus tipini degistiremiyor: kurulum
+   dosyasi ikinci kez calistirildiginda bu satir "cannot change return
+   type of existing function" hatasi veriyordu. Once dusuruluyor. */
+drop function if exists dashboard_by_customer(date, date);
+
 create or replace function dashboard_by_customer(
   p_start date,
   p_end date

@@ -2,6 +2,7 @@
 
 import { isOlustur } from "@/lib/actions/isler";
 import { Alan, Form, GonderButonu } from "@/components/panel/Form";
+import Bilgi from "@/components/panel/Bilgi";
 
 export default function IsFormu({ segmentId }: { segmentId: string }) {
   return (
@@ -19,21 +20,21 @@ export default function IsFormu({ segmentId }: { segmentId: string }) {
               hatalar={hatalar}
             />
             <Alan ad="description" etiket="Açıklama" cokSatir hatalar={hatalar} />
-            {/* Tutar burada da girilebiliyor: fiyat çoğu zaman iş alınırken
-                konuşuluyor, işi kapatırken değil. Aynı kolona yazıyor, yani
-                buraya girilen değer tamamlama formunda hazır çıkıyor. */}
+            {/* Fiyat çoğu zaman iş alınırken konuşuluyor. Aynı kolona
+                yazıyor: iş sayfasındaki "İş tutarı" alanıyla aynı şey ve
+                orada her zaman değiştirilebiliyor. */}
             <Alan
-              ad="charged_amount"
-              etiket="Müşteriden alınan tutar (TL)"
+              ad="agreed_amount"
+              etiket="İş tutarı (TL)"
               tip="number"
               adim="0.01"
               placeholder="Boş bırakabilirsiniz"
-              ipucu="Not amaçlıdır, raporlardaki ciroya girmez. İşi tamamlarken bu alan hazır gelir ve değiştirilebilir."
+              ipucu="Not amaçlıdır: hiçbir gelir veya tahsilat hesabına girmez. Segmentteki anlaşılan toplam tutara varsayılan olarak önerilir. İş sayfasından her zaman değiştirebilirsiniz."
               hatalar={hatalar}
             />
-            <p className="text-sm text-pnl-faint">
+            <Bilgi ad="Yeni işin durumu">
               Eklenen iş doğrudan &quot;devam ediyor&quot; durumunda başlar.
-            </p>
+            </Bilgi>
             <GonderButonu>İş Ekle</GonderButonu>
           </div>
         );

@@ -60,8 +60,11 @@ end $$;
 
 select complete_job('a1b2c3d4-5e6f-4a8b-9c0d-1e2f3a4b5c6d', array['winding']::service_type[]);
 
-insert into invoices (customer_id, invoice_no, gross_amount, net_amount, tax_amount)
-  values ('5f7cf10e-6c49-48e9-a144-4ecbb1106ddc','FTR-100',1180,1000,180);
+-- 0015: fatura SEGMENTE bagli olmali. Anlasilan tutar da kalan alacak da
+-- segment_balances uzerinden okunuyor; segmentsiz fatura hicbirine girmez.
+insert into invoices (customer_id, segment_id, invoice_no, gross_amount, net_amount, tax_amount)
+  values ('5f7cf10e-6c49-48e9-a144-4ecbb1106ddc',
+          '379e8a09-f025-4484-9ae3-3a4b78f9de36','FTR-100',1180,1000,180);
 
 \echo ''
 \echo 'DASHBOARD OZETI:'
@@ -73,25 +76,48 @@ begin
   v := dashboard_summary(current_date - 30, current_date);
   if (v->>'malzeme_maliyeti')::numeric = 425.00 then raise notice 'GECTI: tamamlanan is maliyeti sayildi (425.00)';
   else raise exception 'KALDI: maliyet %', v->>'malzeme_maliyeti'; end if;
-  if (v->>'net_gelir')::numeric = 1000.00 then raise notice 'GECTI: net gelir 1000.00';
-  else raise exception 'KALDI: net gelir %', v->>'net_gelir'; end if;
-  if (v->>'kar_zarar')::numeric = 575.00 then raise notice 'GECTI: kar/zarar 1000 - 425 = 575.00';
+  /* 0015: fatura yuklendi ama para ALINMADI. Anlasilan tutar dolu,
+     tahsilat sifir. Eskiden ikisi ayni sey sayiliyordu. */
+  if (v->>'anlasilan_tutar')::numeric = 1180.00 then raise notice 'GECTI: anlasilan tutar fatura brutunden (1180.00)';
+  else raise exception 'KALDI: anlasilan tutar %', v->>'anlasilan_tutar'; end if;
+  if (v->>'tahsilat')::numeric = 0 then raise notice 'GECTI: fatura tek basina tahsilat sayilmiyor';
+  else raise exception 'KALDI: fatura tahsilat sayildi: %', v->>'tahsilat'; end if;
+  if (v->>'kalan_alacak')::numeric = 1180.00 then raise notice 'GECTI: kalan alacak 1180.00';
+  else raise exception 'KALDI: kalan alacak %', v->>'kalan_alacak'; end if;
+  /* Nakit esasli kar/zarar: gider gerceklesti, para gelmedi. */
+  if (v->>'kar_zarar')::numeric = -425.00 then raise notice 'GECTI: tahsilatsiz donem zarar gosteriyor (-425.00)';
   else raise exception 'KALDI: kar/zarar %', v->>'kar_zarar'; end if;
   if (v->>'tamamlanan_is')::int = 1 then raise notice 'GECTI: tamamlanan is 1';
   else raise exception 'KALDI: tamamlanan is %', v->>'tamamlanan_is'; end if;
 end $$;
 
+\echo '--- TEST: para alininca gelir gorunuyor ---'
+select tahsilat_ekle('379e8a09-f025-4484-9ae3-3a4b78f9de36', 1180);
+do $$
+declare v jsonb;
+begin
+  v := dashboard_summary(current_date - 30, current_date);
+  if (v->>'tahsilat')::numeric = 1180.00 then raise notice 'GECTI: tahsilat 1180.00';
+  else raise exception 'KALDI: tahsilat %', v->>'tahsilat'; end if;
+  if (v->>'tahsilat_sayisi')::int = 1 then raise notice 'GECTI: 1 vade';
+  else raise exception 'KALDI: vade sayisi %', v->>'tahsilat_sayisi'; end if;
+  if (v->>'kalan_alacak')::numeric = 0 then raise notice 'GECTI: kalan alacak kapandi';
+  else raise exception 'KALDI: kalan alacak %', v->>'kalan_alacak'; end if;
+  if (v->>'kar_zarar')::numeric = 755.00 then raise notice 'GECTI: kar/zarar 1180 - 425 = 755.00';
+  else raise exception 'KALDI: kar/zarar %', v->>'kar_zarar'; end if;
+end $$;
+
 \echo ''
 \echo 'MUSTERI KIRILIMI:'
-select customer_name, net_gelir, malzeme_maliyeti, kar_zarar, tamamlanan_is
+select customer_name, tahsilat, malzeme_maliyeti, kar_zarar, kalan_alacak, tamamlanan_is
 from dashboard_by_customer(current_date - 30, current_date);
 
 do $$
 declare v record;
 begin
   select * into v from dashboard_by_customer(current_date - 30, current_date) limit 1;
-  if v.customer_name = 'Fabrika A' and v.kar_zarar = 575.00 then
-    raise notice 'GECTI: musteri kirilimi dogru (Fabrika A, 575.00)';
+  if v.customer_name = 'Fabrika A' and v.kar_zarar = 755.00 then
+    raise notice 'GECTI: musteri kirilimi dogru (Fabrika A, 755.00)';
   else raise exception 'KALDI: %', v; end if;
   -- Faturasi/isi olmayan musteri listede olmamali
   if (select count(*) from dashboard_by_customer(current_date - 30, current_date)) = 1 then
@@ -99,16 +125,27 @@ begin
   else raise exception 'KALDI: hareketsiz musteri listeye girdi'; end if;
 end $$;
 
--- Donem disi fatura sayilmamali
-insert into invoices (customer_id, invoice_no, gross_amount, net_amount)
-  values ('5f7cf10e-6c49-48e9-a144-4ecbb1106ddc','FTR-ESKI',5000,5000);
-update invoices set issue_date = current_date - 400 where invoice_no = 'FTR-ESKI';
+-- 0015: olcut artik ODEME TARIHI. Donem disinda alinan para bu donemin
+-- geliri degil.
+select tahsilat_ekle('379e8a09-f025-4484-9ae3-3a4b78f9de36', 5000,
+                     current_date - 400);
 do $$
 declare v jsonb;
 begin
   v := dashboard_summary(current_date - 30, current_date);
-  if (v->>'net_gelir')::numeric = 1000.00 then raise notice 'GECTI: donem disi fatura sayilmadi';
-  else raise exception 'KALDI: donem disi fatura sayildi, net %', v->>'net_gelir'; end if;
+  if (v->>'tahsilat')::numeric = 1180.00 then raise notice 'GECTI: donem disi tahsilat sayilmadi';
+  else raise exception 'KALDI: donem disi tahsilat sayildi: %', v->>'tahsilat'; end if;
+end $$;
+
+\echo '--- TEST: gelecek tarihli tahsilat reddediliyor ---'
+do $$
+begin
+  perform tahsilat_ekle('379e8a09-f025-4484-9ae3-3a4b78f9de36', 100,
+                        current_date + 1);
+  raise exception 'KALDI: gelecek tarihli tahsilat kabul edildi';
+exception
+  when invalid_parameter_value then
+    raise notice 'GECTI: gelecek tarihli tahsilat engellendi';
 end $$;
 
 rollback;

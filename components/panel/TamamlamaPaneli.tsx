@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { isTamamla, isTamamlamaGeriAl } from "@/lib/actions/isler";
-import { Alan, Form, GonderButonu } from "@/components/panel/Form";
+import { Form, GonderButonu } from "@/components/panel/Form";
 import type { ServiceType } from "@/lib/supabase/database.types";
-import { ISLEM_TURU, formatPara } from "@/components/panel/ui";
+import { ISLEM_TURU } from "@/components/panel/ui";
+import Bilgi from "@/components/panel/Bilgi";
 
 const ISLEM_SECENEKLERI: Array<{ deger: ServiceType; aciklama: string }> = [
   { deger: "winding", aciklama: "Sargılar sökülüp yeniden sarıldı" },
@@ -26,21 +27,23 @@ type StokUyarisi = {
  * Stok yetersizse veritabanı tamamlamayı reddediyor. Kullanıcıyı çıkışsız
  * bırakmamak için önce uyarı gösteriliyor, onay verilirse allow_negative
  * ile devam ediliyor — eksi stok bilinçli bir tercih olarak kayda geçiyor.
+ *
+ * TUTAR ALANI BURADA YOK, bilinçli olarak: para ile işin tamamlanması
+ * arasında bağ kurulmuyor. İş tutarı sayfanın kendi bölümünde ve işin
+ * durumundan bağımsız her zaman düzenlenebiliyor; burada da sorulsaydı
+ * aynı alanı iki yerden yazmak olurdu ve "tamamlarken girmezsem
+ * kaybolur mu" sorusu doğuyordu.
  */
 export default function TamamlamaPaneli({
   isId,
   tamamlandiMi,
   malzemeSayisi,
   stokUyarilari,
-  alinanTutar,
 }: {
   isId: string;
   tamamlandiMi: boolean;
   malzemeSayisi: number;
   stokUyarilari: StokUyarisi[];
-  /* Daha önce girilmiş tutar; geri alıp tekrar tamamlarken kaybolmasın
-     diye forma önceden yazılıyor. */
-  alinanTutar: number | null;
 }) {
   const [zorlamaOnayi, setZorlamaOnayi] = useState(false);
   /* Ön seçim YOK: hangisinin yapıldığı bilinçli bir karar olmalı.
@@ -74,16 +77,12 @@ export default function TamamlamaPaneli({
       <Form key={`geri-al-${isId}`} action={isTamamlamaGeriAl}>
         {() => (
           <div className="space-y-3">
-            {alinanTutar !== null && (
-              <p className="text-sm text-pnl-muted">
-                Bu işe not olarak {formatPara(alinanTutar)} tutar girilmiş.
-              </p>
-            )}
-            <p className="text-sm text-pnl-muted">
+            <Bilgi ad="Tamamlamayı geri alma">
               Tamamlamayı geri almak malzemeleri stoğa iade eder ve işi
               &quot;devam ediyor&quot; durumuna döndürür. Basılmış QR etiketi
-              geçerliliğini korur.
-            </p>
+              geçerliliğini korur. Tahsilat etkilenmez — para ile işin
+              durumu birbirine bağlı değil.
+            </Bilgi>
             <input type="hidden" name="job_id" value={isId} />
             <GonderButonu tur="ikincil" tamGenislik={false}>Tamamlamayı Geri Al</GonderButonu>
           </div>
@@ -154,37 +153,13 @@ export default function TamamlamaPaneli({
                 {state.fieldErrors.service_types[0]}
               </p>
             )}
-            <p className="mt-1.5 text-sm text-pnl-faint">
-              İkisi birden yapıldıysa ikisini de işaretleyin. Müşteri QR
-              kodunu okuttuğunda bu bilgiyi görecek.
-            </p>
+            <div className="mt-1.5">
+              <Bilgi ad="Yapılan işlem">
+                İkisi birden yapıldıysa ikisini de işaretleyin. Müşteri QR
+                kodunu okuttuğunda bu bilgiyi görecek.
+              </Bilgi>
+            </div>
           </fieldset>
-
-          {/* Müşteriden alınan tutar — opsiyonel ve NOT niteliğinde.
-              Ciro segment düzeyinde tutuluyor; bu alan hiçbir kâr veya
-              rapor hesabına girmiyor. Bunu açıkça yazmak gerekiyor: aksi
-              hâlde buraya girilen para raporlarda aranır.
-
-              İş açılırken girilmiş bir tutar varsa hazır geliyor — AYNI
-              alan, aynı kolon. Fiyat çoğu zaman iş alınırken konuşuluyor;
-              işi kapatan kişinin onu yeniden yazması gerekmiyor, ama
-              değiştirmesi de serbest (iş sırasında pazarlık değişebilir). */}
-          <Alan
-            ad="charged_amount"
-            etiket="Müşteriden alınan tutar (TL)"
-            tip="number"
-            adim="0.01"
-            varsayilan={alinanTutar === null ? undefined : String(alinanTutar)}
-            placeholder="Boş bırakabilirsiniz"
-            ipucu={
-              alinanTutar === null
-                ? "Not amaçlıdır, raporlardaki ciroya girmez. Ciro segment sayfasından girilir (fatura ya da tutar)."
-                : "İş açılırken girilen tutar hazır geldi; değiştirebilirsiniz. Not amaçlıdır, raporlardaki ciroya girmez."
-            }
-            hatalar={
-              state.status === "error" ? state.fieldErrors : undefined
-            }
-          />
 
           {malzemeSayisi === 0 && (
             <p className="rounded-lg border border-pnl-edge bg-pnl-bg px-4 py-3 text-sm text-pnl-muted">

@@ -29,22 +29,37 @@ export type PdfIs = {
   tamamlanmaTarihi: string | null;
   olusturmaTarihi: string;
   maliyet: number;
-  /** İş başına alınan tutar. NOT niteliğinde: hiçbir toplama girmiyor. */
-  alinanTutar: number | null;
+  /** İş başına anlaşılan tutar. NOT: hiçbir toplama girmiyor. */
+  isTutari: number | null;
   malzemeler: PdfMalzeme[];
   qrToken?: string | null;
 };
 
+/** Tek bir vade — alınan para ve alındığı gün. */
+export type PdfVade = {
+  tarih: string;
+  tutar: number;
+  not: string | null;
+};
+
 /**
- * Segment cirosu: YA fatura YA elle alınan tutar.
+ * Segmentin para durumu.
  *
- * İkisi bir arada olamıyor (veritabanı trigger'ı engelliyor), o yüzden
- * belgede tek bir tahsilat satırı yazılıyor — hangisi doluysa o.
+ * İki ayrı kavram bir arada duruyor ve karışmamalı:
+ *   anlasilan     → müşteriyle konuşulan TOPLAM (fatura brütü ya da
+ *                   elle girilen tutar; ikisi bir arada olamıyor)
+ *   tahsilEdilen  → fiilen alınan para, vade vade
+ * Farkı `kalan`. Anlaşılan hiç girilmemişse kalan null: "borç yok"
+ * değil "borç bilinmiyor".
  */
-export type PdfCiro = {
+export type PdfPara = {
   faturaSayisi: number;
   faturaToplam: number;
-  eldenTutar: number | null;
+  elleGirilen: number | null;
+  anlasilan: number | null;
+  tahsilEdilen: number;
+  kalan: number | null;
+  vadeler: PdfVade[];
 };
 
 export type PdfSegment = {
@@ -52,7 +67,7 @@ export type PdfSegment = {
   tarih: string;
   not: string | null;
   durum: string;
-  ciro: PdfCiro;
+  para: PdfPara;
   isler: PdfIs[];
 };
 
@@ -174,36 +189,74 @@ function IsBasligi({ is }: { is: PdfIs }) {
   );
 }
 
-/** Segmentin cirosunu tek satırda anlatır: fatura mı, elden mi, yok mu. */
-function ciroMetni(ciro: PdfCiro): string {
-  if (ciro.faturaSayisi > 0) {
-    return `${formatPara(ciro.faturaToplam)} (${ciro.faturaSayisi} fatura)`;
+/** Anlaşılan tutarı tek satırda anlatır: faturadan mı, elle mi, yok mu. */
+function anlasilanMetni(para: PdfPara): string {
+  if (para.faturaSayisi > 0) {
+    return `${formatPara(para.faturaToplam)} (${para.faturaSayisi} fatura)`;
   }
-  if (ciro.eldenTutar !== null) {
-    return `${formatPara(ciro.eldenTutar)} (faturasız, elden)`;
+  if (para.elleGirilen !== null) {
+    return `${formatPara(para.elleGirilen)} (faturasız)`;
   }
   return "Girilmemiş";
 }
 
+/** Tahsilatı tek satırda anlatır: ne kadarı alındı, kaç vadede. */
+function tahsilatMetni(para: PdfPara): string {
+  if (para.vadeler.length === 0) return "Tahsilat girilmemiş";
+  return `${formatPara(para.tahsilEdilen)} (${para.vadeler.length} vade)`;
+}
+
+/** Kalan borç. null = anlaşılan tutar bilinmiyor, sıfır değil. */
+function kalanMetni(para: PdfPara): string {
+  if (para.kalan === null) return "Anlaşılan tutar girilmemiş";
+  if (para.kalan > 0) return formatPara(para.kalan);
+  if (para.kalan < 0) return `${formatPara(-para.kalan)} fazla tahsilat`;
+  return "Kapandı";
+}
+
 /**
- * Segmentin tahsilat bölümü — yalnızca iç kopyada.
+ * Segmentin para bölümü — yalnızca iç kopyada.
  *
- * İki farklı para bir arada duruyor ve karışmaması gerekiyor:
- *   • Segment cirosu — gerçek gelir, raporlara giren tutar
- *   • İş tutarları  — usta not olarak girmiş, HİÇBİR hesaba girmiyor
+ * Üç farklı rakam bir arada duruyor ve karışmaması gerekiyor:
+ *   • Anlaşılan tutar — müşteriyle konuşulan toplam (bir alacak)
+ *   • Tahsilat        — fiilen alınan para, vade vade
+ *   • İş tutarları    — usta not olarak girmiş, HİÇBİR hesaba girmiyor
  *
- * İkisinin toplanmaması bilinçli; alt not bunu yazıyor, yoksa okuyan
- * kişi ikisini toplar ve ciroyu iki kez sayar.
+ * Vadeler tek tek yazılıyor: "3.500 alındı" yeterli değil, ne zaman
+ * alındığı sorulduğunda belgeye bakılıyor.
  */
 function TahsilatBolumu({ segment }: { segment: PdfSegment }) {
-  const tutarliIsler = segment.isler.filter((i) => i.alinanTutar !== null);
+  const para = segment.para;
+  const tutarliIsler = segment.isler.filter((i) => i.isTutari !== null);
 
   return (
     <View style={{ marginTop: 14 }} wrap={false}>
-      <Text style={stiller.bolumBaslik}>Tahsilat</Text>
+      <Text style={stiller.bolumBaslik}>Para durumu</Text>
       <View style={stiller.kutu}>
-        <BilgiSatiri etiket="Segment cirosu" deger={ciroMetni(segment.ciro)} />
+        <BilgiSatiri
+          etiket="Anlaşılan tutar"
+          deger={anlasilanMetni(para)}
+        />
+        <BilgiSatiri etiket="Tahsil edilen" deger={tahsilatMetni(para)} />
+        <BilgiSatiri etiket="Kalan" deger={kalanMetni(para)} />
       </View>
+
+      {para.vadeler.length > 0 && (
+        <View style={{ marginTop: 8 }}>
+          <Text style={{ fontSize: 9, fontWeight: "bold", marginBottom: 3 }}>
+            Vadeler
+          </Text>
+          {para.vadeler.map((v, i) => (
+            <View key={`${v.tarih}-${i}`} style={stiller.tabloSatir}>
+              <Text style={{ width: 70 }}>{formatTarih(v.tarih)}</Text>
+              <Text style={{ flex: 1 }}>{v.not ?? `${i + 1}. vade`}</Text>
+              <Text style={{ width: 90, ...stiller.sag }}>
+                {formatPara(v.tutar)}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       {tutarliIsler.length > 0 && (
         <View style={{ marginTop: 8 }}>
@@ -214,13 +267,13 @@ function TahsilatBolumu({ segment }: { segment: PdfSegment }) {
             <View key={is.id} style={stiller.tabloSatir}>
               <Text style={{ flex: 1 }}>{is.baslik}</Text>
               <Text style={{ width: 90, ...stiller.sag }}>
-                {formatPara(is.alinanTutar ?? 0)}
+                {formatPara(is.isTutari ?? 0)}
               </Text>
             </View>
           ))}
           <Text style={{ fontSize: 7, color: "#71717a", marginTop: 4 }}>
-            İş bazlı tutarlar not amaçlıdır; segment cirosuna eklenmez ve
-            hiçbir rapora girmez. Gerçek gelir yukarıdaki segment cirosudur.
+            İş bazlı tutarlar not amaçlıdır; anlaşılan tutara da tahsilata
+            da eklenmez ve hiçbir rapora girmez.
           </Text>
         </View>
       )}
@@ -281,20 +334,21 @@ export function IsBelgesi({
       )}
 
       {/* İş tutarı — iç kopyada ve yalnızca girilmişse.
-          "Not" olduğu açıkça yazılıyor: bu belgeye bakıp ciro toplamı
-          çıkaran biri yanlış sayıya varırdı. Ciro segment belgesinde. */}
-      {icKopya && is.alinanTutar !== null && (
+          "Not" olduğu açıkça yazılıyor: bu belgeye bakıp gelir toplamı
+          çıkaran biri yanlış sayıya varırdı. Para segment belgesinde. */}
+      {icKopya && is.isTutari !== null && (
         <View style={{ marginTop: 14 }} wrap={false}>
-          <Text style={stiller.bolumBaslik}>Alınan tutar (not)</Text>
+          <Text style={stiller.bolumBaslik}>İş tutarı (not)</Text>
           <View style={stiller.kutu}>
             <BilgiSatiri
-              etiket="Bu iş için alınan"
-              deger={formatPara(is.alinanTutar)}
+              etiket="Bu iş için konuşulan"
+              deger={formatPara(is.isTutari)}
             />
           </View>
           <Text style={{ fontSize: 7, color: "#71717a", marginTop: 4 }}>
-            Elle girilen bir nottur; hiçbir ciro, kâr veya rapor hesabına
-            girmez. Segmentin gerçek cirosu segment belgesinde yazar.
+            Elle girilen bir nottur; hiçbir gelir, tahsilat veya kâr
+            hesabına girmez. Segmentin anlaşılan tutarı ve tahsilatı
+            segment belgesinde yazar.
           </Text>
         </View>
       )}
@@ -403,7 +457,7 @@ function SegmentBlogu({
 }) {
   const tamamlanan = segment.isler.filter((i) => i.durum === "completed").length;
   const maliyet = segment.isler.reduce((a, i) => a + Number(i.maliyet), 0);
-  const tutarliIsler = segment.isler.filter((i) => i.alinanTutar !== null);
+  const tutarliIsler = segment.isler.filter((i) => i.isTutari !== null);
 
   return (
     <View style={{ marginTop: 12 }} wrap={false}>
@@ -452,7 +506,9 @@ function SegmentBlogu({
         <View style={{ marginTop: 4 }}>
           <View style={stiller.gruToplam}>
             <Text style={{ flex: 1, fontSize: 8 }}>
-              Ciro: {ciroMetni(segment.ciro)}
+              {`Anlaşılan: ${anlasilanMetni(segment.para)} · Tahsilat: ${tahsilatMetni(
+                segment.para
+              )} · Kalan: ${kalanMetni(segment.para)}`}
             </Text>
             {segment.isler.length > 0 && (
               <Text style={{ fontSize: 8 }}>
@@ -463,8 +519,8 @@ function SegmentBlogu({
           {tutarliIsler.length > 0 && (
             <Text style={{ fontSize: 7, color: "#71717a", marginTop: 2 }}>
               {`İş bazlı not edilen tutarlar: ${tutarliIsler
-                .map((i) => `${i.baslik} ${formatPara(i.alinanTutar ?? 0)}`)
-                .join(" · ")} (ciroya eklenmez)`}
+                .map((i) => `${i.baslik} ${formatPara(i.isTutari ?? 0)}`)
+                .join(" · ")} (hiçbir hesaba girmez)`}
             </Text>
           )}
         </View>
@@ -499,14 +555,21 @@ export function MusteriBelgesi({
     0
   );
 
-  /* Ciro toplamı: fatura varsa faturadan, yoksa elden tutardan. İkisi bir
-     arada olamıyor, o yüzden basit toplama yeterli — çifte sayım yok. */
-  const toplamCiro = segmentler.reduce(
-    (a, s) =>
-      a +
-      (s.ciro.faturaSayisi > 0
-        ? s.ciro.faturaToplam
-        : (s.ciro.eldenTutar ?? 0)),
+  /* Üç ayrı toplam. Tek bir "ciro" satırı yazmak artık yanlış olurdu:
+     anlaşılan para ile alınan para farklı ve aradaki fark bu belgenin
+     en çok sorulan sorusu ("bu müşteri bana ne kadar borçlu"). */
+  const toplamAnlasilan = segmentler.reduce(
+    (a, s) => a + (s.para.anlasilan ?? 0),
+    0
+  );
+  const toplamTahsilat = segmentler.reduce(
+    (a, s) => a + s.para.tahsilEdilen,
+    0
+  );
+  /* Fazla tahsilat başka bir segmentin borcunu kapatmıyor: her segment
+     kendi başına değerlendiriliyor, negatif kalanlar sıfıra çekiliyor. */
+  const toplamKalan = segmentler.reduce(
+    (a, s) => a + Math.max(s.para.kalan ?? 0, 0),
     0
   );
 
@@ -565,8 +628,20 @@ export function MusteriBelgesi({
       {icKopya && segmentler.length > 0 && (
         <View style={stiller.toplamKutu}>
           <View style={stiller.toplamSatir}>
-            <Text>Toplam ciro</Text>
-            <Text style={stiller.toplamVurgu}>{formatPara(toplamCiro)}</Text>
+            <Text>Toplam anlaşılan</Text>
+            <Text style={stiller.toplamVurgu}>
+              {formatPara(toplamAnlasilan)}
+            </Text>
+          </View>
+          <View style={stiller.toplamSatir}>
+            <Text>Toplam tahsil edilen</Text>
+            <Text style={stiller.toplamVurgu}>
+              {formatPara(toplamTahsilat)}
+            </Text>
+          </View>
+          <View style={stiller.toplamSatir}>
+            <Text>Kalan alacak</Text>
+            <Text style={stiller.toplamVurgu}>{formatPara(toplamKalan)}</Text>
           </View>
           <View style={stiller.toplamSatir}>
             <Text>Toplam malzeme gideri</Text>
@@ -574,10 +649,16 @@ export function MusteriBelgesi({
               {formatPara(toplamMaliyet)}
             </Text>
           </View>
+          {/* Kâr/zarar TAHSİLAT üzerinden: panelin gelir tanımı da bu.
+              Anlaşılan tutardan hesaplansa henüz eline geçmemiş parayı
+              kâr saymış olurduk. */}
           <View style={stiller.toplamSatir}>
-            <Text>{toplamCiro - toplamMaliyet < 0 ? "Zarar" : "Kâr"}</Text>
+            <Text>
+              {toplamTahsilat - toplamMaliyet < 0 ? "Zarar" : "Kâr"} (tahsilat
+              üzerinden)
+            </Text>
             <Text style={stiller.toplamVurgu}>
-              {formatPara(toplamCiro - toplamMaliyet)}
+              {formatPara(toplamTahsilat - toplamMaliyet)}
             </Text>
           </View>
         </View>
@@ -585,8 +666,11 @@ export function MusteriBelgesi({
 
       {icKopya && segmentler.length > 0 && (
         <Text style={{ fontSize: 7, color: "#71717a", marginTop: 8 }}>
-          Malzeme gideri yalnızca tamamlanmış işlerden hesaplanır. İş bazlı
-          not edilen tutarlar ciroya dahil değildir.
+          Anlaşılan tutar müşteriyle konuşulan toplamdır; tahsil edilen
+          fiilen alınan paradır ve farkı kalan alacaktır. Kâr/zarar tahsil
+          edilen para üzerinden hesaplanır. Malzeme gideri yalnızca
+          tamamlanmış işlerden gelir. İş bazlı not edilen tutarlar hiçbir
+          toplama dahil değildir.
         </Text>
       )}
     </Belge>
@@ -599,9 +683,10 @@ export function MusteriBelgesi({
 
 export type PdfDonemMusteri = {
   ad: string;
-  netGelir: number;
+  tahsilat: number;
   maliyet: number;
   karZarar: number;
+  kalanAlacak: number;
   isSayisi: number;
 };
 
@@ -614,13 +699,15 @@ export function DonemRaporu({
   baslangic: string;
   bitis: string;
   ozet: {
-    brutGelir: number;
-    netGelir: number;
-    vergi: number;
+    tahsilat: number;
+    tahsilatSayisi: number;
+    anlasilan: number;
+    faturaliAnlasilan: number;
+    eldenAnlasilan: number;
     faturaSayisi: number;
-    faturaliGelir: number;
-    eldenGelir: number;
     eldenSayisi: number;
+    vergi: number;
+    kalanAlacak: number;
     maliyet: number;
     karZarar: number;
     tamamlananIs: number;
@@ -632,24 +719,15 @@ export function DonemRaporu({
       belgeTuru="Dönemsel Kâr / Zarar Raporu"
       altBilgi={`${formatTarih(baslangic)} – ${formatTarih(bitis)}`}
     >
-      <Text style={stiller.bolumBaslik}>Dönem özeti</Text>
+      {/* İki blok, iki ayrı soru. Tek listede karışsalar okuyan kişi
+          anlaşılan parayı tahsil edilmiş sanardı — sistemin düzelttiği
+          hatanın ta kendisi. */}
+      <Text style={stiller.bolumBaslik}>Tahsilat (dönemde eline geçen)</Text>
       <View style={stiller.kutu}>
         <BilgiSatiri
-          etiket="Brüt gelir"
-          deger={formatPara(ozet.brutGelir)}
+          etiket="Tahsil edilen"
+          deger={`${formatPara(ozet.tahsilat)}  (${ozet.tahsilatSayisi} vade)`}
         />
-        {/* Gelirin kaynağı ayrı yazılıyor: "3 fatura" tek başına
-            yazsaydı faturasız ciro görünmez olurdu. */}
-        <BilgiSatiri
-          etiket="— faturalı"
-          deger={`${formatPara(ozet.faturaliGelir)}  (${ozet.faturaSayisi} fatura)`}
-        />
-        <BilgiSatiri
-          etiket="— faturasız (elden)"
-          deger={`${formatPara(ozet.eldenGelir)}  (${ozet.eldenSayisi} segment)`}
-        />
-        <BilgiSatiri etiket="Vergi" deger={formatPara(ozet.vergi)} />
-        <BilgiSatiri etiket="Net gelir" deger={formatPara(ozet.netGelir)} />
         <BilgiSatiri
           etiket="Malzeme gideri"
           deger={`${formatPara(ozet.maliyet)}  (${ozet.tamamlananIs} tamamlanan iş)`}
@@ -663,36 +741,64 @@ export function DonemRaporu({
         </View>
       </View>
 
+      <Text style={stiller.bolumBaslik}>Anlaşılan tutar ve alacak</Text>
+      <View style={stiller.kutu}>
+        <BilgiSatiri
+          etiket="Dönemde anlaşılan"
+          deger={formatPara(ozet.anlasilan)}
+        />
+        <BilgiSatiri
+          etiket="— faturalı"
+          deger={`${formatPara(ozet.faturaliAnlasilan)}  (${ozet.faturaSayisi} fatura)`}
+        />
+        <BilgiSatiri
+          etiket="— faturasız"
+          deger={`${formatPara(ozet.eldenAnlasilan)}  (${ozet.eldenSayisi} segment)`}
+        />
+        <BilgiSatiri etiket="Fatura vergisi" deger={formatPara(ozet.vergi)} />
+        {/* Bakiye, dönemin akışı değil: eski aylardan devreden borçları
+            da içeriyor. Etiketi bunu söylemek zorunda. */}
+        <BilgiSatiri
+          etiket="Kalan alacak (dönem sonu, devreden dahil)"
+          deger={formatPara(ozet.kalanAlacak)}
+        />
+      </View>
+
       <Text style={stiller.bolumBaslik}>Müşteri bazlı kırılım</Text>
 
       {musteriler.length === 0 ? (
         <Text style={stiller.bosMesaj}>
-          Bu dönemde cirosu veya tamamlanmış işi olan müşteri yok.
+          Bu dönemde tahsilatı, tamamlanmış işi veya açık alacağı olan
+          müşteri yok.
         </Text>
       ) : (
         <View>
           <View style={stiller.tabloBaslik}>
             <Text style={{ flex: 1 }}>Müşteri</Text>
-            <Text style={{ width: 40, ...stiller.sag }}>İş</Text>
-            <Text style={{ width: 80, ...stiller.sag }}>Net gelir</Text>
-            <Text style={{ width: 80, ...stiller.sag }}>Gider</Text>
-            <Text style={{ width: 80, ...stiller.sag }}>Kâr / Zarar</Text>
+            <Text style={{ width: 30, ...stiller.sag }}>İş</Text>
+            <Text style={{ width: 72, ...stiller.sag }}>Tahsilat</Text>
+            <Text style={{ width: 72, ...stiller.sag }}>Gider</Text>
+            <Text style={{ width: 72, ...stiller.sag }}>Kâr / Zarar</Text>
+            <Text style={{ width: 72, ...stiller.sag }}>Alacak</Text>
           </View>
 
           {musteriler.map((m, i) => (
             <View key={`${m.ad}-${i}`} style={stiller.tabloSatir}>
               <Text style={{ flex: 1 }}>{m.ad}</Text>
-              <Text style={{ width: 40, ...stiller.sag }}>{m.isSayisi}</Text>
-              <Text style={{ width: 80, ...stiller.sag }}>
-                {formatPara(m.netGelir)}
+              <Text style={{ width: 30, ...stiller.sag }}>{m.isSayisi}</Text>
+              <Text style={{ width: 72, ...stiller.sag }}>
+                {formatPara(m.tahsilat)}
               </Text>
-              <Text style={{ width: 80, ...stiller.sag }}>
+              <Text style={{ width: 72, ...stiller.sag }}>
                 {formatPara(m.maliyet)}
               </Text>
               <Text
-                style={{ width: 80, ...stiller.sag, fontWeight: "bold" }}
+                style={{ width: 72, ...stiller.sag, fontWeight: "bold" }}
               >
                 {formatPara(m.karZarar)}
+              </Text>
+              <Text style={{ width: 72, ...stiller.sag }}>
+                {formatPara(m.kalanAlacak)}
               </Text>
             </View>
           ))}
@@ -700,12 +806,15 @@ export function DonemRaporu({
       )}
 
       <Text style={{ fontSize: 7, color: "#71717a", marginTop: 12 }}>
-        Gelir faturalardan ve faturasız segment tutarlarından oluşur; bir
-        segmentte ikisi birden olamaz, çifte sayım yoktur. İş bazlı not
-        edilen tutarlar bu hesaba girmez. Malzeme gideri yalnızca
-        tamamlanmış işlerden hesaplanır; tamamlanmamış işlerin malzemesi
-        henüz stoktan düşülmediği için gerçekleşmiş gider sayılmaz.
-        Tahsilat durumu bu raporun kapsamı dışındadır.
+        Gelir NAKİT esaslıdır: ölçüt paranın alındığı gün, fatura tarihi
+        değil. Kâr/zarar bu yüzden tahsil edilen para üzerinden hesaplanır.
+        Anlaşılan tutar faturaların brütü ile faturasız segment
+        tutarlarından oluşur; bir segmentte ikisi birden olamaz, çifte
+        sayım yoktur. İş bazlı not edilen tutarlar hiçbir hesaba girmez.
+        Malzeme gideri yalnızca tamamlanmış işlerden hesaplanır;
+        tamamlanmamış işlerin malzemesi henüz stoktan düşülmediği için
+        gerçekleşmiş gider sayılmaz. Kalan alacak bir bakiyedir: dönem
+        içinde doğmayan, önceki aylardan devreden borçları da içerir.
       </Text>
     </Belge>
   );

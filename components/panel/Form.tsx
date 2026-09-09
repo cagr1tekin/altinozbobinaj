@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import type { ReactNode } from "react";
 import { type ActionState, idleState } from "@/lib/actions/types";
 import { butonStilleri } from "./ui";
+import { BilgiDugmesi } from "./Bilgi";
 
 /**
  * Panel formları — design-system/PANEL.md
@@ -113,6 +114,12 @@ export function Alan({
   onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
   deger?: string;
 }) {
+  /* İpucu artık her zaman görünmüyor: etiketin yanındaki bilgi
+     ikonuyla açılıyor. Metin DOM'da duruyor (koşullu render değil,
+     `hidden`), çünkü aria-describedby ile bağlı — ekran okuyucu
+     kapalıyken de ulaşabilmeli. */
+  const [ipucuAcik, setIpucuAcik] = useState(false);
+
   const hata = hatalar?.[ad]?.[0];
   const id = `alan-${ad}`;
   const ipucuId = ipucu ? `${id}-ipucu` : undefined;
@@ -125,17 +132,40 @@ export function Alan({
 
   return (
     <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium">
-        {etiket}
-        {zorunlu && (
-          <>
-            <span className="ml-0.5 text-pnl-danger" aria-hidden="true">
-              *
-            </span>
-            <span className="sr-only"> (zorunlu)</span>
-          </>
+      <div className="mb-1.5 flex items-center gap-1">
+        <label htmlFor={id} className="text-sm font-medium">
+          {etiket}
+          {zorunlu && (
+            <>
+              <span className="ml-0.5 text-pnl-danger" aria-hidden="true">
+                *
+              </span>
+              <span className="sr-only"> (zorunlu)</span>
+            </>
+          )}
+        </label>
+        {ipucu && (
+          <BilgiDugmesi
+            acik={ipucuAcik}
+            panelId={ipucuId!}
+            ad={etiket}
+            onClick={() => setIpucuAcik((a) => !a)}
+          />
         )}
-      </label>
+      </div>
+
+      {/* Panel girdinin ÜSTÜNDE: açıklama okunduktan sonra göz doğal
+          olarak aşağı, dolduracağı alana iniyor. Altta olsaydı açıklama
+          ile alan arasında hata mesajı da kalabiliyordu. */}
+      {ipucu && (
+        <p
+          id={ipucuId}
+          hidden={!ipucuAcik}
+          className="mb-1.5 rounded-lg border border-pnl-line bg-pnl-bg px-3 py-2.5 text-sm leading-relaxed text-pnl-muted"
+        >
+          {ipucu}
+        </p>
+      )}
 
       {secenekler ? (
         <select
@@ -192,11 +222,6 @@ export function Alan({
         />
       )}
 
-      {ipucu && (
-        <p id={ipucuId} className="mt-1.5 text-sm text-pnl-faint">
-          {ipucu}
-        </p>
-      )}
       {hata && (
         <p id={hataId} className="mt-1.5 text-sm font-medium text-pnl-danger">
           {hata}

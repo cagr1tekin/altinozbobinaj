@@ -131,7 +131,7 @@ export default async function EtiketSayfasi({
       <Icerik>
         <Bolum
           baslik="Etiket"
-          aciklama="Yazdırıp işin veya ürünün üzerine yapıştırın. Müşteri okuttuğunda yalnızca kullanılan malzemeleri görür; fiyat ve miktar görünmez."
+          bilgi="Yazdırıp işin veya ürünün üzerine yapıştırın. Müşteri okuttuğunda yalnızca kullanılan malzemelerin adlarını görür; fiyat ve miktar görünmez."
         >
       {/* Etiket — beyaz zemin, yazdırmaya hazır */}
       <div

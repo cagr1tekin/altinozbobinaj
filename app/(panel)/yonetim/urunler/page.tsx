@@ -101,7 +101,7 @@ export default async function UrunlerSayfasi() {
 
         <Bolum
           baslik="Ürünler"
-          aciklama="Geçmişi ve fiyatı görmek için ürüne dokunun"
+          bilgi="Bir ürünün stok geçmişini, fiyat değişimlerini ve yürüyen bakiyesini görmek için üzerine dokunun."
         >
           <Liste
             ekleme={
@@ -152,7 +152,7 @@ export default async function UrunlerSayfasi() {
 
         <Bolum
           baslik="Stok hareketleri"
-          aciklama="Denetim izi — değiştirilemez"
+          bilgi="Denetim izi: kayıtlar sonradan değiştirilemez ve silinemez, yalnızca yeni hareket eklenir."
         >
           <Liste
             ekleme={

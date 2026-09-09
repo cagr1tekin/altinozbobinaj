@@ -5,9 +5,11 @@
 import {
   isMalzemeSchema,
   isTamamlaSchema,
+  isTutarSchema,
   musteriSchema,
-  segmentTutarSchema,
+  segmentAnlasilanSchema,
   stokHareketSchema,
+  tahsilatSchema,
   urunSchema,
   urunStokEkleSchema,
 } from "../lib/validation/schemas";
@@ -146,31 +148,86 @@ console.log("--- stokHareketSchema (isaret + fiyat) ---");
   bekle("ondalik stok miktari reddediliyor", !r.success);
 }
 
-console.log("--- isTamamlaSchema (alinan tutar) ---");
+console.log("--- isTamamlaSchema (tutar alani KALKTI) ---");
 {
-  const r = isTamamlaSchema.safeParse({ job_id: uuid1, service_types: ["winding"], charged_amount: "3500" });
-  bekle("tutar girilebiliyor", r.success && r.data.charged_amount === 3500, r.success ? r.data : r.error.issues[0]?.message);
-}
-{
-  /* Her ise para girilmiyor; bos gecilebilmeli. */
-  const r = isTamamlaSchema.safeParse({ job_id: uuid1, service_types: ["winding"] });
-  bekle("tutar bos birakilabiliyor", r.success && r.data.charged_amount === null, r.success ? r.data : r.error.issues[0]?.message);
-}
-{
-  const r = isTamamlaSchema.safeParse({ job_id: uuid1, service_types: ["winding"], charged_amount: "-1" });
-  bekle("negatif tutar reddediliyor", !r.success);
+  /* 0015: para ile isin tamamlanmasi arasinda bag yok. Tamamlama
+     formundan gelen bir tutar sessizce yok sayilmali, hata da
+     vermemeli — eski bir sekme gonderirse is tamamlanabilsin. */
+  const r = isTamamlaSchema.safeParse({
+    job_id: uuid1,
+    service_types: ["winding"],
+    charged_amount: "3500",
+  });
+  bekle(
+    "tamamlamada tutar alani yok, gonderilse de yok sayiliyor",
+    r.success && !("charged_amount" in r.data) && !("agreed_amount" in r.data),
+    r.success ? r.data : r.error.issues[0]?.message
+  );
 }
 
-console.log("--- segmentTutarSchema ---");
+console.log("--- isTutarSchema (her an duzenlenebilen not) ---");
 {
-  const r = segmentTutarSchema.safeParse(fd({ segment_id: uuid1, charged_amount: "1500,50" }));
-  bekle("virgullu tutar kabul ediliyor", r.success && r.data.charged_amount === 1500.5, r.success ? r.data : r.error.issues[0]?.message);
+  const r = isTutarSchema.safeParse(fd({ job_id: uuid1, agreed_amount: "3500" }));
+  bekle("is tutari girilebiliyor", r.success && r.data.agreed_amount === 3500, r.success ? r.data : r.error.issues[0]?.message);
 }
 {
-  /* Bos gondermek tutari TEMIZLIYOR (fatura yolunu aciyor); 0 TL ciro
-     ile karistirilmamali. */
-  const r = segmentTutarSchema.safeParse(fd({ segment_id: uuid1, charged_amount: "" }));
-  bekle("bos tutar null (temizleme) oluyor", r.success && r.data.charged_amount === null, r.success ? r.data : r.error.issues[0]?.message);
+  /* Bos gondermek notu SILIYOR; "0 TL is" ile karistirilmamali. */
+  const r = isTutarSchema.safeParse(fd({ job_id: uuid1, agreed_amount: "" }));
+  bekle("bos is tutari null (silme) oluyor", r.success && r.data.agreed_amount === null, r.success ? r.data : r.error.issues[0]?.message);
+}
+{
+  const r = isTutarSchema.safeParse(fd({ job_id: uuid1, agreed_amount: "-1" }));
+  bekle("negatif is tutari reddediliyor", !r.success);
+}
+
+console.log("--- segmentAnlasilanSchema ---");
+{
+  const r = segmentAnlasilanSchema.safeParse(fd({ segment_id: uuid1, agreed_amount: "1500,50" }));
+  bekle("virgullu tutar kabul ediliyor", r.success && r.data.agreed_amount === 1500.5, r.success ? r.data : r.error.issues[0]?.message);
+}
+{
+  /* Bos gondermek tutari TEMIZLIYOR (fatura yolunu aciyor); 0 TL
+     anlasma ile karistirilmamali. */
+  const r = segmentAnlasilanSchema.safeParse(fd({ segment_id: uuid1, agreed_amount: "" }));
+  bekle("bos tutar null (temizleme) oluyor", r.success && r.data.agreed_amount === null, r.success ? r.data : r.error.issues[0]?.message);
+}
+
+console.log("--- tahsilatSchema (vade) ---");
+const bugun = (() => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+})();
+const gunEkle = (gun: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + gun);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+{
+  const r = tahsilatSchema.safeParse(fd({ segment_id: uuid1, amount: "1500,50", paid_on: bugun }));
+  bekle("tahsilat kabul ediliyor", r.success && r.data.amount === 1500.5, r.success ? r.data : r.error.issues[0]?.message);
+}
+{
+  /* Bos bir tahsilat kaydi bir sey ifade etmiyor: opsiyonel DEGIL. */
+  const r = tahsilatSchema.safeParse(fd({ segment_id: uuid1, amount: "", paid_on: bugun }));
+  bekle("bos tahsilat tutari reddediliyor", !r.success);
+}
+{
+  const r = tahsilatSchema.safeParse(fd({ segment_id: uuid1, amount: "0", paid_on: bugun }));
+  bekle("sifir tahsilat reddediliyor", !r.success);
+}
+{
+  const r = tahsilatSchema.safeParse(fd({ segment_id: uuid1, amount: "100", paid_on: "" }));
+  bekle("tarihsiz tahsilat reddediliyor", !r.success);
+}
+{
+  /* Ileri tarihli vade PLANLANMIS odemedir; gelir hesabina girse o ay
+     olmayan para gelmis gibi gorunurdu. */
+  const r = tahsilatSchema.safeParse(fd({ segment_id: uuid1, amount: "100", paid_on: gunEkle(1) }));
+  bekle("gelecek tarihli tahsilat reddediliyor", !r.success);
+}
+{
+  const r = tahsilatSchema.safeParse(fd({ segment_id: uuid1, amount: "100", paid_on: gunEkle(-30) }));
+  bekle("gecmis tarihli tahsilat kabul ediliyor", r.success, r.success ? r.data : r.error.issues[0]?.message);
 }
 
 console.log("");

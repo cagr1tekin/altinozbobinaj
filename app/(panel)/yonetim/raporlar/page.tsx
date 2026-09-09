@@ -19,6 +19,7 @@ import {
 import DonemSecici from "@/components/panel/DonemSecici";
 import { aralikCoz } from "@/lib/donem";
 import KarZararGrafigi from "@/components/panel/KarZararGrafigi";
+import Bilgi from "@/components/panel/Bilgi";
 import DenetimGunlugu from "@/components/panel/DenetimGunlugu";
 
 /* Hareket geçmişinde gösterilen kayıt sayısı. Tamamını çekmek sayfayı
@@ -85,21 +86,20 @@ export default async function RaporlarSayfasi({
               />
             </div>
 
-            <div className="mb-6 grid grid-cols-2 gap-3">
-              {/* Ciro iki kaynaktan geliyor: faturalar ve faturasız
-                  segmentlere elle girilen tutarlar. Alt satır bunu
-                  ayrıştırıyor — "fatura sayısı" tek başına yazsaydı
-                  faturasız ciro görünmez olurdu. */}
+            {/* Gelir NAKİT esaslı: dönemde eline geçen para. Yanındaki
+                "kalan alacak" kartı olmadan bu rakam yanıltıcı olurdu —
+                yapılmış ama tahsil edilmemiş iş kayıp gibi görünürdü. */}
+            <div className="mb-2 grid grid-cols-2 gap-3">
               <OzetKarti
-                etiket="Net gelir"
-                deger={formatPara(ozet?.net_gelir ?? 0)}
-                alt={
-                  (ozet?.elden_sayisi ?? 0) > 0
-                    ? `${ozet?.fatura_sayisi ?? 0} fatura · ${
-                        ozet?.elden_sayisi ?? 0
-                      } faturasız`
-                    : `${ozet?.fatura_sayisi ?? 0} fatura`
-                }
+                etiket="Tahsilat"
+                deger={formatPara(ozet?.tahsilat ?? 0)}
+                alt={`${ozet?.tahsilat_sayisi ?? 0} vade`}
+              />
+              <OzetKarti
+                etiket="Kalan alacak"
+                deger={formatPara(ozet?.kalan_alacak ?? 0)}
+                alt="Dönem sonu itibarıyla"
+                vurgu={(ozet?.kalan_alacak ?? 0) > 0 ? "uyari" : "normal"}
               />
               <OzetKarti
                 etiket="Malzeme gideri"
@@ -110,32 +110,50 @@ export default async function RaporlarSayfasi({
               <OzetKarti
                 etiket={karZarar < 0 ? "Zarar" : "Kâr"}
                 deger={formatPara(karZarar)}
-                alt="Net gelir − gider"
+                alt="Tahsilat − gider"
                 vurgu={karZarar < 0 ? "uyari" : "normal"}
-              />
-              <OzetKarti
-                etiket="Tamamlanan iş"
-                deger={ozet?.tamamlanan_is ?? 0}
-                alt={`${ozet?.acik_is ?? 0} iş açık`}
               />
             </div>
 
-            {(ozet?.elden_sayisi ?? 0) > 0 && (
-              <p className="mb-6 -mt-3 text-sm text-pnl-muted">
-                Gelirin {formatPara(ozet?.faturali_gelir ?? 0)} kadarı
-                faturalı, {formatPara(ozet?.elden_gelir ?? 0)} kadarı
-                faturasız (elden) alınmış.
+            <div className="mb-6 flex items-start gap-1">
+              <p className="text-sm text-pnl-muted">
+                Dönemde {formatPara(ozet?.anlasilan_tutar ?? 0)} anlaşıldı
+                {(ozet?.elden_sayisi ?? 0) > 0 &&
+                  ` (${formatPara(ozet?.faturali_anlasilan ?? 0)} faturalı, ${formatPara(
+                    ozet?.elden_anlasilan ?? 0
+                  )} faturasız)`}
+                {" · "}
+                {ozet?.tamamlanan_is ?? 0} iş tamamlandı, {ozet?.acik_is ?? 0}{" "}
+                iş açık
               </p>
-            )}
+              <Bilgi ad="Gelir hesabı">
+                <strong>Tahsilat</strong> dönemde fiilen eline geçen para;
+                ölçüt vadenin tarihi, fatura tarihi değil. Kâr/zarar da bu
+                rakamdan hesaplanıyor — &quot;bu ay kasaya ne girdi&quot;
+                sorusunun cevabı.
+                <br />
+                <strong>Anlaşılan</strong> dönemde konuşulan toplam. Tahsil
+                edilmemiş kısmı <strong>kalan alacak</strong> olarak
+                duruyor; kalan alacak bir bakiye, dönemin akışı değil, o
+                yüzden daha eski aylardan devreden borçları da içerir.
+              </Bilgi>
+            </div>
 
-            <Bolum baslik="Aylık seyir">
+            <Bolum
+              baslik="Aylık seyir"
+              bilgi="Her ay tahsil edilen para eksi o ay tamamlanan işlerin malzeme gideri. Para hangi ay alındıysa o aya yazılıyor."
+            >
               <KarZararGrafigi veri={trend} />
             </Bolum>
 
-            <Bolum baslik="Müşteri bazlı">
+            <Bolum
+              baslik="Müşteri bazlı"
+              bilgi="Sağdaki rakam kâr/zarar (tahsilat − malzeme gideri). Alt satırdaki 'alacak', o müşterinin bugüne kadar birikmiş ödenmemiş borcu — dönemden bağımsız."
+            >
               {musteriler.length === 0 ? (
                 <p className="rounded-lg border border-pnl-line bg-pnl-surface p-4 text-sm text-pnl-muted">
-                  Bu dönemde faturası veya tamamlanmış işi olan müşteri yok.
+                  Bu dönemde tahsilatı, tamamlanmış işi veya açık alacağı
+                  olan müşteri yok.
                 </p>
               ) : (
                 <Liste>
@@ -144,9 +162,14 @@ export default async function RaporlarSayfasi({
                       key={m.customer_id}
                       href={`/yonetim/musteriler/${m.customer_id}`}
                       baslik={m.customer_name}
-                      altBilgi={`${formatPara(m.net_gelir)} gelir · ${formatPara(
-                        m.malzeme_maliyeti
-                      )} gider · ${m.tamamlanan_is} iş`}
+                      altBilgi={
+                        `${formatPara(m.tahsilat)} tahsilat · ${formatPara(
+                          m.malzeme_maliyeti
+                        )} gider · ${m.tamamlanan_is} iş` +
+                        (Number(m.kalan_alacak) > 0
+                          ? ` · ${formatPara(m.kalan_alacak)} alacak`
+                          : "")
+                      }
                       sag={
                         <span
                           className={`font-semibold ${
@@ -176,10 +199,7 @@ export default async function RaporlarSayfasi({
 
             {/* En altta: günlük iş akışının parçası değil, "ne oldu"
                 sorusuna bakılan yer. */}
-            <Bolum
-              baslik="Hareket geçmişi"
-              aciklama="Kim ne zaman ne yaptı"
-            >
+            <Bolum baslik="Hareket geçmişi" bilgi="Kim ne zaman ne yaptı.">
               <DenetimGunlugu
                 kayitlar={denetim}
                 eksik={Boolean(denetimSonuc.error)}

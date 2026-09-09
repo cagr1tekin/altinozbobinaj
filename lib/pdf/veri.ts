@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import type {
-  PdfCiro,
   PdfIs,
   PdfMusteri,
+  PdfPara,
   PdfSegment,
+  PdfVade,
 } from "./belgeler";
 
 /**
@@ -43,7 +44,7 @@ type HamIs = {
   status: string;
   completed_at: string | null;
   created_at: string;
-  charged_amount: number | string | null;
+  agreed_amount: number | string | null;
   job_products: HamMalzeme[];
 };
 
@@ -63,7 +64,7 @@ function islerDonustur(
       tamamlanmaTarihi: i.completed_at,
       olusturmaTarihi: i.created_at,
       maliyet: maliyetler.get(i.id) ?? 0,
-      alinanTutar: i.charged_amount === null ? null : Number(i.charged_amount),
+      isTutari: i.agreed_amount === null ? null : Number(i.agreed_amount),
       malzemeler: malzemeleriDonustur(i.job_products),
     }));
 }
@@ -85,49 +86,89 @@ async function maliyetHaritasi(
 }
 
 /**
- * Segmentlerin ciro bilgisini tek sorguda çeker.
+ * Segmentlerin para durumunu tek sorguda çeker.
  *
- * Ciro segment düzeyinde ve YA fatura YA elle girilen tutar — ikisi bir
- * arada olamıyor (veritabanı trigger'ı engelliyor). Belge bu yüzden tek
- * bir "tahsilat" satırı yazıyor, hangisi doluysa onu.
+ * `segment_balances` görünümü anlaşılan / tahsil edilen / kalan hesabını
+ * zaten yapıyor; burada tekrar hesaplamak, panelin gösterdiği rakamla
+ * belgenin yazdığı rakamın ayrı düşmesi demek olurdu.
+ *
+ * Vadeler ayrı bir sorgu: bakiye satır başına tek satır, vadeler ise
+ * segment başına birden çok.
  */
-async function ciroHaritasi(
+async function paraHaritasi(
   supabase: Awaited<ReturnType<typeof createClient>>,
   segmentIdler: string[]
-): Promise<Map<string, PdfCiro>> {
+): Promise<Map<string, PdfPara>> {
   if (segmentIdler.length === 0) return new Map();
 
-  const { data } = await supabase
-    .from("segment_invoice_totals")
-    .select("segment_id, fatura_sayisi, brut_toplam")
-    .in("segment_id", segmentIdler);
+  const [{ data: bakiyeler }, { data: vadeler }] = await Promise.all([
+    supabase
+      .from("segment_balances")
+      .select(
+        "segment_id, fatura_sayisi, fatura_toplam, elle_girilen, anlasilan, tahsil_edilen"
+      )
+      .in("segment_id", segmentIdler),
+    supabase
+      .from("payments")
+      .select("segment_id, amount, paid_on, note")
+      .in("segment_id", segmentIdler)
+      .is("deleted_at", null)
+      /* Tarihe göre artan: belgede "1. vade, 2. vade" diye okunuyor. */
+      .order("paid_on", { ascending: true })
+      .order("created_at", { ascending: true }),
+  ]);
+
+  const vadeHarita = new Map<string, PdfVade[]>();
+  for (const v of vadeler ?? []) {
+    const liste = vadeHarita.get(v.segment_id) ?? [];
+    liste.push({
+      tarih: v.paid_on,
+      tutar: Number(v.amount),
+      not: v.note,
+    });
+    vadeHarita.set(v.segment_id, liste);
+  }
 
   return new Map(
-    (data ?? []).map((r) => [
-      r.segment_id,
-      {
-        faturaSayisi: Number(r.fatura_sayisi),
-        faturaToplam: Number(r.brut_toplam),
-        /* Elden tutar segments tablosundan geliyor; çağıran dolduruyor.
-           Burada varsayılan null: harita yalnızca fatura tarafını bilir. */
-        eldenTutar: null,
-      },
-    ])
+    (bakiyeler ?? []).map((r) => {
+      const anlasilan =
+        r.anlasilan === null || r.anlasilan === undefined
+          ? null
+          : Number(r.anlasilan);
+      const tahsilEdilen = Number(r.tahsil_edilen ?? 0);
+      return [
+        r.segment_id,
+        {
+          faturaSayisi: Number(r.fatura_sayisi),
+          faturaToplam: Number(r.fatura_toplam),
+          elleGirilen:
+            r.elle_girilen === null || r.elle_girilen === undefined
+              ? null
+              : Number(r.elle_girilen),
+          anlasilan,
+          tahsilEdilen,
+          /* Anlaşılan bilinmiyorsa kalan da bilinmiyor — sıfır değil. */
+          kalan: anlasilan === null ? null : anlasilan - tahsilEdilen,
+          vadeler: vadeHarita.get(r.segment_id) ?? [],
+        } satisfies PdfPara,
+      ];
+    })
   );
 }
 
-/** Segmentin ciro bilgisini fatura haritası + segment satırından kurar. */
-function ciroKur(
-  harita: Map<string, PdfCiro>,
-  segmentId: string,
-  eldenTutar: number | string | null
-): PdfCiro {
-  const fatura = harita.get(segmentId);
-  return {
-    faturaSayisi: fatura?.faturaSayisi ?? 0,
-    faturaToplam: fatura?.faturaToplam ?? 0,
-    eldenTutar: eldenTutar === null ? null : Number(eldenTutar),
-  };
+/** Bakiye satırı gelmemişse (yeni segment) boş bir para durumu. */
+function paraKur(harita: Map<string, PdfPara>, segmentId: string): PdfPara {
+  return (
+    harita.get(segmentId) ?? {
+      faturaSayisi: 0,
+      faturaToplam: 0,
+      elleGirilen: null,
+      anlasilan: null,
+      tahsilEdilen: 0,
+      kalan: null,
+      vadeler: [],
+    }
+  );
 }
 
 export async function isVerisi(isId: string): Promise<{
@@ -140,7 +181,7 @@ export async function isVerisi(isId: string): Promise<{
   const { data } = await supabase
     .from("jobs")
     .select(
-      `id, title, description, status, completed_at, created_at, charged_amount,
+      `id, title, description, status, completed_at, created_at, agreed_amount,
        segments(segment_date, customers(id, name, phone, email, address, tax_number)),
        job_products(qty_pieces_used, qty_grams_used, unit_cost_snapshot, products(name, unit_type_default)),
        qr_codes(token)`
@@ -176,9 +217,9 @@ export async function isVerisi(isId: string): Promise<{
       olusturmaTarihi: data.created_at,
       maliyet: maliyetler.get(data.id) ?? 0,
       /* İş tutarı NOT niteliğinde: hiçbir toplama girmiyor, belgede de
-         "bilgi" olarak yazılıyor. Ciro segment düzeyinde. */
-      alinanTutar:
-        data.charged_amount === null ? null : Number(data.charged_amount),
+         "bilgi" olarak yazılıyor. Para segment düzeyinde. */
+      isTutari:
+        data.agreed_amount === null ? null : Number(data.agreed_amount),
       malzemeler: malzemeleriDonustur(
         data.job_products as unknown as HamMalzeme[]
       ),
@@ -216,9 +257,9 @@ export async function segmentVerisi(segmentId: string): Promise<{
   const { data } = await supabase
     .from("segments")
     .select(
-      `id, segment_date, note, status, charged_amount,
+      `id, segment_date, note, status, agreed_amount,
        customers(id, name, phone, email, address, tax_number),
-       jobs(id, title, description, status, completed_at, created_at, charged_amount,
+       jobs(id, title, description, status, completed_at, created_at, agreed_amount,
             job_products(qty_pieces_used, qty_grams_used, unit_cost_snapshot, products(name, unit_type_default)))`
     )
     .eq("id", segmentId)
@@ -233,9 +274,9 @@ export async function segmentVerisi(segmentId: string): Promise<{
 
   const isler = (data.jobs ?? []) as unknown as HamIs[];
 
-  const [maliyetler, faturalar] = await Promise.all([
+  const [maliyetler, paralar] = await Promise.all([
     maliyetHaritasi(supabase, isler.map((i) => i.id)),
-    ciroHaritasi(supabase, [data.id]),
+    paraHaritasi(supabase, [data.id]),
   ]);
 
   return {
@@ -245,7 +286,7 @@ export async function segmentVerisi(segmentId: string): Promise<{
       tarih: data.segment_date,
       not: data.note,
       durum: data.status,
-      ciro: ciroKur(faturalar, data.id, data.charged_amount),
+      para: paraKur(paralar, data.id),
       isler: islerDonustur(isler, maliyetler),
     },
   };
@@ -278,8 +319,8 @@ export async function musteriVerisi(
     supabase
       .from("segments")
       .select(
-        `id, segment_date, note, status, charged_amount,
-         jobs(id, title, description, status, completed_at, created_at, charged_amount,
+        `id, segment_date, note, status, agreed_amount,
+         jobs(id, title, description, status, completed_at, created_at, agreed_amount,
               job_products(qty_pieces_used, qty_grams_used, unit_cost_snapshot, products(name, unit_type_default)))`
       )
       .eq("customer_id", musteriId)
@@ -300,16 +341,16 @@ export async function musteriVerisi(
     segment_date: string;
     note: string | null;
     status: string;
-    charged_amount: number | string | null;
+    agreed_amount: number | string | null;
     jobs: HamIs[];
   }>;
 
-  const [maliyetler, faturalar] = await Promise.all([
+  const [maliyetler, paralar] = await Promise.all([
     maliyetHaritasi(
       supabase,
       ham.flatMap((s) => (s.jobs ?? []).map((i) => i.id))
     ),
-    ciroHaritasi(supabase, ham.map((s) => s.id)),
+    paraHaritasi(supabase, ham.map((s) => s.id)),
   ]);
 
   return {
@@ -319,7 +360,7 @@ export async function musteriVerisi(
       tarih: s.segment_date,
       not: s.note,
       durum: s.status,
-      ciro: ciroKur(faturalar, s.id, s.charged_amount),
+      para: paraKur(paralar, s.id),
       isler: islerDonustur(s.jobs ?? [], maliyetler),
     })),
   };
@@ -339,15 +380,18 @@ export async function donemVerisi(baslangic: string, bitis: string) {
 
   return {
     ozet: {
-      brutGelir: Number(o.brut_gelir ?? 0),
-      netGelir: Number(o.net_gelir ?? 0),
-      vergi: Number(o.vergi ?? 0),
+      /* NAKİT: dönemde eline geçen para (ödeme tarihine göre). */
+      tahsilat: Number(o.tahsilat ?? 0),
+      tahsilatSayisi: Number(o.tahsilat_sayisi ?? 0),
+      /* TAHAKKUK: dönemde anlaşılan toplam (segment tarihine göre).
+         İkisi ayrı yazılıyor, yoksa tahsil edilmemiş iş kayıp görünür. */
+      anlasilan: Number(o.anlasilan_tutar ?? 0),
+      faturaliAnlasilan: Number(o.faturali_anlasilan ?? 0),
+      eldenAnlasilan: Number(o.elden_anlasilan ?? 0),
       faturaSayisi: Number(o.fatura_sayisi ?? 0),
-      /* Ciro iki kaynaktan: faturalar + faturasız segment tutarları.
-         Rapor ikisini ayrı yazıyor, yoksa faturasız ciro görünmez. */
-      faturaliGelir: Number(o.faturali_gelir ?? 0),
-      eldenGelir: Number(o.elden_gelir ?? 0),
       eldenSayisi: Number(o.elden_sayisi ?? 0),
+      vergi: Number(o.vergi ?? 0),
+      kalanAlacak: Number(o.kalan_alacak ?? 0),
       maliyet: Number(o.malzeme_maliyeti ?? 0),
       karZarar: Number(o.kar_zarar ?? 0),
       tamamlananIs: Number(o.tamamlanan_is ?? 0),
@@ -356,9 +400,10 @@ export async function donemVerisi(baslangic: string, bitis: string) {
       (musteriler ?? []) as unknown as Array<Record<string, string | number>>
     ).map((m) => ({
       ad: String(m.customer_name),
-      netGelir: Number(m.net_gelir),
+      tahsilat: Number(m.tahsilat),
       maliyet: Number(m.malzeme_maliyeti),
       karZarar: Number(m.kar_zarar),
+      kalanAlacak: Number(m.kalan_alacak),
       isSayisi: Number(m.tamamlanan_is),
     })),
   };
